@@ -1,10 +1,7 @@
 use crate::{
-    api::models::storage_ticket::StorageTicket,
-    blockstore::{CarV2DiskBlockStore, MultiCarV2DiskBlockStore},
-    filesystem::{FilesystemError, FsMetadata},
-    native::configuration::xdg::xdg_data_home,
-    prelude::blockstore::RootedBlockStore,
+    api::models::storage_ticket::StorageTicket, native::configuration::xdg::xdg_data_home,
 };
+use cid::Cid;
 use colored::Colorize;
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
@@ -16,7 +13,6 @@ use std::{
 };
 use tomb_crypt::prelude::EcEncryptionKey;
 use uuid::Uuid;
-use wnfs::{libipld::Cid, private::PrivateNodeOnPathHistory};
 
 const BUCKET_METADATA_FILE_NAME: &str = "metadata.car";
 const BUCKET_CONTENT_DIR_NAME: &str = "content";

@@ -1,13 +1,9 @@
-use crate::{
-    blockstore::{BanyanApiBlockStore, DoubleSplitStore, RootedBlockStore},
-    filesystem::{wnfsio::path_to_segments, FsMetadata},
-    native::{
-        configuration::globalconfig::GlobalConfig, sync::OmniBucket, utils::get_progress_bar,
-        NativeError,
-    },
+use crate::native::{
+    configuration::globalconfig::GlobalConfig, sync::OmniBucket, utils::get_progress_bar,
+    NativeError,
 };
 use std::{fs::File, io::Write, os::unix::fs::symlink, path::PathBuf};
-use wnfs::private::PrivateNode;
+use tracing::{info, warn};
 
 /// Given the manifest file and a destination for our restored data, run the restoring pipeline
 /// on the data referenced in the manifest.

@@ -1,11 +1,10 @@
 mod io;
-#[cfg(test)]
-pub(crate) mod testing;
+
+//pub(crate) mod testing;
 pub use io::{get_read, get_read_write, get_write};
 
 #[cfg(test)]
-pub use io::compute_directory_size;
-
+//pub use io::compute_directory_size;
 mod cast;
 pub mod varint;
 

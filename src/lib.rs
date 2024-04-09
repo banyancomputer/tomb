@@ -9,8 +9,8 @@ pub(crate) mod api;
 //pub(crate) mod blockstore;
 //pub(crate) mod car;
 //pub(crate) mod filesystem;
-//pub mod native;
-//pub(crate) mod utils;
+pub mod native;
+pub(crate) mod utils;
 
 pub mod prelude {
     /*

@@ -1,7 +1,4 @@
-use crate::{
-    filesystem::wnfsio::{compress_file, path_to_segments},
-    native::{configuration::globalconfig::GlobalConfig, sync::LocalBucket, NativeError},
-};
+use crate::native::{configuration::globalconfig::GlobalConfig, sync::LocalBucket, NativeError};
 use chrono::Utc;
 use rand::thread_rng;
 use std::path::Path;

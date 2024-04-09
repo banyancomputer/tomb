@@ -1,7 +1,5 @@
 use crate::{
     api::models::metadata::Metadata,
-    blockstore::{BanyanApiBlockStore, DoubleSplitStore, RootedBlockStore},
-    filesystem::{wnfsio::path_to_segments, FsMetadata},
     native::{
         configuration::globalconfig::GlobalConfig,
         file_scanning::{grouper, spider, spider_plans::PreparePipelinePlan},
@@ -16,7 +14,8 @@ use std::{
     io::Read,
     path::{Path, PathBuf},
 };
-use wnfs::private::PrivateNode;
+use tracing::info;
+
 /// Given the input directory, the output directory, the manifest file, and other metadata,
 /// prepare the input directory into the output directory and store a record of how this
 /// operation was performed in the manifest file.

@@ -1,7 +1,4 @@
-use crate::{
-    filesystem::wnfsio::path_to_segments,
-    native::{configuration::globalconfig::GlobalConfig, sync::LocalBucket, NativeError},
-};
+use crate::native::{configuration::globalconfig::GlobalConfig, sync::LocalBucket, NativeError};
 use std::path::Path;
 
 /// The pipeline for removing an individual file from a WNFS

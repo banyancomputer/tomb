@@ -1,6 +1,5 @@
 mod local;
 mod omni;
-use crate::prelude::api::requests::core::buckets::metadata::push::PushMetadata;
 // mod sync;
 // mod error;
 // pub(crate) use error::SyncError;
@@ -18,8 +17,6 @@ use crate::{
         },
         requests::staging::upload::content::UploadContent,
     },
-    blockstore::{BanyanApiBlockStore, CarV2MemoryBlockStore, RootedBlockStore},
-    filesystem::{FilesystemError, FsMetadata},
     native::{configuration::globalconfig::GlobalConfig, operations::restore, NativeError},
 };
 use colored::Colorize;
@@ -29,7 +26,7 @@ pub use omni::OmniBucket;
 use std::{collections::BTreeSet, fmt::Display};
 use tokio::io::AsyncWriteExt;
 use tomb_crypt::prelude::{PrivateKey, PublicKey};
-use wnfs::{common::BlockStore, libipld::Ipld};
+use tracing::info;
 
 /// Sync State
 #[derive(Debug, Clone, PartialEq)]

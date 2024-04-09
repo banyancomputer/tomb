@@ -1,15 +1,14 @@
-use std::{fmt::Display, string::FromUtf8Error};
+use std::{fmt::Display, path::PathBuf, string::FromUtf8Error};
 
+use banyanfs::error::BanyanFsError;
 use colored::Colorize;
 use tomb_crypt::prelude::TombCryptError;
+use uuid::Uuid;
 
-use crate::{
-    api::error::ApiError, blockstore::BlockStoreError, car::error::CarError,
-    filesystem::FilesystemError, WnfsError,
-};
+use crate::api::error::ApiError;
 
 //#[cfg(feature = "cli")]
-use {crate::cli::specifiers::DriveSpecifier, std::path::PathBuf, uuid::Uuid};
+//use {crate::cli::specifiers::DriveSpecifier, std::path::PathBuf, uuid::Uuid};
 
 #[derive(Debug)]
 pub struct NativeError {
@@ -46,8 +45,10 @@ impl Display for NativeError {
             }
             NativeErrorKind::Api(err) => format!("{} {err}", "CLIENT ERROR:".underline()),
             NativeErrorKind::Io(err) => format!("{} {err}", "IO ERROR:".underline()),
-            //#[cfg(feature = "cli")]
-            NativeErrorKind::UnknownDrive(_) => "No known Drive with that specification".to_owned(),
+            NativeErrorKind::UnknownDriveId(id) => format!("No known Drive with id {id}"),
+            NativeErrorKind::UnknownDrivePath(path) => {
+                format!("No known Drive with path {}", path.display())
+            }
         };
 
         f.write_str(&string)
@@ -115,9 +116,9 @@ impl NativeError {
         }
     }
 
-    pub fn filesytem(err: FilesystemError) -> Self {
+    pub fn filesytem(err: BanyanFsError) -> Self {
         Self {
-            kind: NativeErrorKind::Filesystem(Box::new(err)),
+            kind: NativeErrorKind::Filesystem(err),
         }
     }
 
@@ -134,18 +135,16 @@ impl NativeError {
     }
 
     /// Unknown Bucket path
-    //#[cfg(feature = "cli")]
     pub fn unknown_path(path: PathBuf) -> Self {
         Self {
-            kind: NativeErrorKind::UnknownDrive(DriveSpecifier::with_origin(&path)),
+            kind: NativeErrorKind::UnknownDrivePath(path),
         }
     }
 
     /// Unknown Bucket ID
-    //#[cfg(feature = "cli")]
     pub fn unknown_id(id: Uuid) -> Self {
         Self {
-            kind: NativeErrorKind::UnknownDrive(DriveSpecifier::with_id(id)),
+            kind: NativeErrorKind::UnknownDriveId(id),
         }
     }
 }
@@ -162,23 +161,11 @@ enum NativeErrorKind {
     BadData,
     Custom(String),
     Cryptographic(TombCryptError),
-    Filesystem(Box<FilesystemError>),
+    Fs(banyanfs::error::BanyanFsError),
     Api(ApiError),
     Io(std::io::Error),
-    //#[cfg(feature = "cli")]
-    UnknownDrive(DriveSpecifier),
-}
-
-impl From<FilesystemError> for NativeError {
-    fn from(value: FilesystemError) -> Self {
-        Self::filesytem(value)
-    }
-}
-
-impl From<CarError> for NativeError {
-    fn from(value: CarError) -> Self {
-        Self::filesytem(FilesystemError::blockstore(BlockStoreError::car(value)))
-    }
+    UnknownDrivePath(PathBuf),
+    UnknownDriveId(Uuid),
 }
 
 impl From<TombCryptError> for NativeError {
@@ -190,18 +177,6 @@ impl From<TombCryptError> for NativeError {
 impl From<ApiError> for NativeError {
     fn from(value: ApiError) -> Self {
         Self::api(value)
-    }
-}
-
-impl From<WnfsError> for NativeError {
-    fn from(value: WnfsError) -> Self {
-        Self::filesytem(FilesystemError::wnfs(value))
-    }
-}
-
-impl From<BlockStoreError> for NativeError {
-    fn from(value: BlockStoreError) -> Self {
-        Self::filesytem(FilesystemError::blockstore(value))
     }
 }
 

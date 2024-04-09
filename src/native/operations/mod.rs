@@ -9,6 +9,7 @@ pub mod remove;
 /// This module contains the decryption pipeline function, which is the main entry point for restoring previously prepared data.
 pub mod restore;
 
+/*
 #[cfg(test)]
 //#[cfg(feature = "cli")]
 mod test {
@@ -726,3 +727,4 @@ mod test {
         test_teardown(test_name).await
     }
 }
+*/

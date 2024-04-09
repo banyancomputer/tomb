@@ -7,7 +7,6 @@ use crate::{
         sync::{LocalBucket, SyncState},
         NativeError,
     },
-    prelude::filesystem::FsMetadata,
 };
 use colored::{ColoredString, Colorize};
 use std::{

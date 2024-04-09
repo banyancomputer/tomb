@@ -1,9 +1,7 @@
 use colored::Colorize;
 use std::{fmt::Display, string::FromUtf8Error};
 
-use crate::WnfsError;
-#[cfg(test)]
-use crate::{filesystem::FilesystemError, native::NativeError};
+use crate::native::NativeError;
 
 #[derive(Debug)]
 pub struct UtilityError {
@@ -35,7 +33,6 @@ impl UtilityError {
         }
     }
 
-    #[cfg(test)]
     pub fn native(err: NativeError) -> Self {
         Self {
             kind: UtilityErrorKind::Native(err),
@@ -50,7 +47,6 @@ impl Display for UtilityError {
             UtilityErrorKind::Varint(err) => format!("{} {err}", "VARINT ERROR:".underline()),
             UtilityErrorKind::Io(err) => format!("{} {err}", "IO ERROR:".underline()),
             UtilityErrorKind::Utf8(err) => format!("{} {err}", "UTF8 ERROR:".underline()),
-            #[cfg(test)]
             UtilityErrorKind::Native(err) => format!("{} {err}", "NATIVE ERROR:".underline()),
         };
 
