@@ -6,10 +6,7 @@ use url::ParseError;
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
-use crate::{
-    WnfsError,
-    {blockstore::BlockStoreError, car::error::CarError, filesystem::FilesystemError},
-};
+use crate::{blockstore::BlockStoreError, car::error::CarError, filesystem::FilesystemError};
 
 /// Errors that can occur in the API Client
 #[derive(Debug)]

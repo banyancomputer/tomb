@@ -8,7 +8,7 @@ use crate::{
     filesystem::FilesystemError, WnfsError,
 };
 
-#[cfg(feature = "cli")]
+//#[cfg(feature = "cli")]
 use {crate::cli::specifiers::DriveSpecifier, std::path::PathBuf, uuid::Uuid};
 
 #[derive(Debug)]
@@ -46,7 +46,7 @@ impl Display for NativeError {
             }
             NativeErrorKind::Api(err) => format!("{} {err}", "CLIENT ERROR:".underline()),
             NativeErrorKind::Io(err) => format!("{} {err}", "IO ERROR:".underline()),
-            #[cfg(feature = "cli")]
+            //#[cfg(feature = "cli")]
             NativeErrorKind::UnknownDrive(_) => "No known Drive with that specification".to_owned(),
         };
 
@@ -134,7 +134,7 @@ impl NativeError {
     }
 
     /// Unknown Bucket path
-    #[cfg(feature = "cli")]
+    //#[cfg(feature = "cli")]
     pub fn unknown_path(path: PathBuf) -> Self {
         Self {
             kind: NativeErrorKind::UnknownDrive(DriveSpecifier::with_origin(&path)),
@@ -142,7 +142,7 @@ impl NativeError {
     }
 
     /// Unknown Bucket ID
-    #[cfg(feature = "cli")]
+    //#[cfg(feature = "cli")]
     pub fn unknown_id(id: Uuid) -> Self {
         Self {
             kind: NativeErrorKind::UnknownDrive(DriveSpecifier::with_id(id)),
@@ -165,7 +165,7 @@ enum NativeErrorKind {
     Filesystem(Box<FilesystemError>),
     Api(ApiError),
     Io(std::io::Error),
-    #[cfg(feature = "cli")]
+    //#[cfg(feature = "cli")]
     UnknownDrive(DriveSpecifier),
 }
 

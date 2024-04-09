@@ -1,4 +1,4 @@
-#[cfg(feature = "cli")]
+//#[cfg(feature = "cli")]
 use crate::cli::specifiers::DriveSpecifier;
 use crate::{
     api::models::bucket::{Bucket as RemoteBucket, BucketType, StorageClass},
@@ -32,7 +32,7 @@ pub struct OmniBucket {
 
 impl OmniBucket {
     /// Use local and remote to find
-    #[cfg(feature = "cli")]
+    //#[cfg(feature = "cli")]
     pub async fn from_specifier(drive_specifier: &DriveSpecifier) -> Self {
         let mut omni = Self {
             local: None,

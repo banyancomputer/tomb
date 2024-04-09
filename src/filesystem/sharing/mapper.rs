@@ -157,20 +157,12 @@ impl<'de> Deserialize<'de> for EncRefMapper {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod test {
-
-    use tomb_crypt::prelude::{EcEncryptionKey, PrivateKey};
-    use wnfs::{
-        common::dagcbor,
-        libipld::Cid,
-        private::{AesKey, PrivateRef, TemporalKey},
-    };
-
     use crate::{
         filesystem::sharing::mapper::EncRefMapper, prelude::filesystem::sharing::SharingError,
     };
+    use tomb_crypt::prelude::{EcEncryptionKey, PrivateKey};
 
     #[tokio::test]
     async fn to_from_ipld() -> Result<(), SharingError> {

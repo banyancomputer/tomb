@@ -6,12 +6,7 @@ use crate::{
     api::{client::Client, error::ApiError},
     blockstore::CarV2MemoryBlockStore,
 };
-
-#[cfg(not(target_arch = "wasm32"))]
 pub type ContentType = reqwest::Body;
-#[cfg(target_arch = "wasm32")]
-pub type ContentType = std::io::Cursor<Vec<u8>>;
-
 #[async_trait(?Send)]
 pub trait UploadContent {
     type UploadError: From<ApiError>;
@@ -53,10 +48,6 @@ impl UploadContent for CarV2MemoryBlockStore {
     }
 
     async fn get_body(&self) -> Result<ContentType, Self::UploadError> {
-        #[cfg(target_arch = "wasm32")]
-        return Ok(std::io::Cursor::new(self.get_data()));
-
-        #[cfg(not(target_arch = "wasm32"))]
         return Ok(self.get_data().into());
     }
 

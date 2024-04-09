@@ -782,7 +782,6 @@ pub struct FsMetadataEntry {
     pub metadata: Metadata,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod test {
     use crate::{
@@ -791,7 +790,6 @@ mod test {
         prelude::filesystem::sharing::SharedFile,
     };
     use tomb_crypt::prelude::{EcEncryptionKey, PrivateKey};
-    use wnfs::private::PrivateNode;
 
     async fn _init_save_unlock(
         wrapping_key: &EcEncryptionKey,

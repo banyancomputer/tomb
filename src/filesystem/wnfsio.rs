@@ -71,7 +71,6 @@ where
     CompressionScheme::new_lz4_flex().decode(reader, &mut writer)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 /// Compress the contents of a file at a given path
 pub fn compress_file(path: &std::path::Path) -> Result<Vec<u8>, std::io::Error> {
     // Open the original file (just the first one!)

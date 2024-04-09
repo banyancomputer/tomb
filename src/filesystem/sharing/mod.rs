@@ -12,16 +12,13 @@ pub use shared_file::SharedFile;
 
 pub use error::SharingError;
 
-#[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod test {
+    use super::SharingError;
     use crate::filesystem::sharing::manager::ShareManager;
     use rand::Rng;
     use serial_test::serial;
     use tomb_crypt::prelude::{EcEncryptionKey, PrivateKey};
-    use wnfs::private::{AesKey, PrivateRef, TemporalKey};
-
-    use super::SharingError;
 
     fn random_private_ref() -> PrivateRef {
         let random_bytes = rand::thread_rng().gen::<[u8; 32]>();

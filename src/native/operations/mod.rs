@@ -10,7 +10,7 @@ pub mod remove;
 pub mod restore;
 
 #[cfg(test)]
-#[cfg(feature = "cli")]
+//#[cfg(feature = "cli")]
 mod test {
     use crate::{
         cli::specifiers::DriveSpecifier,

@@ -94,7 +94,6 @@ impl Streamable for Block {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 mod test {
     crate::car::streamable_tests! {
         <crate::car::v1::Block, crate::car::error::CarError>:

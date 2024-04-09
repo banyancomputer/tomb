@@ -201,7 +201,6 @@ impl CarV1 {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 mod test {
     use crate::{
         car::{
@@ -216,7 +215,6 @@ mod test {
         io::{Seek, SeekFrom},
         str::FromStr,
     };
-    use wnfs::libipld::{Cid, IpldCodec};
 
     #[test]
     #[serial]

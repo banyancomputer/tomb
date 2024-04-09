@@ -123,7 +123,6 @@ impl Streamable for Header {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 mod test {
     use super::Header;
     use crate::car::{error::CarError, Streamable};
@@ -136,7 +135,6 @@ mod test {
         str::FromStr,
         vec,
     };
-    use wnfs::libipld::Cid;
 
     #[test]
     #[serial]

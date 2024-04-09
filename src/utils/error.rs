@@ -3,7 +3,6 @@ use std::{fmt::Display, string::FromUtf8Error};
 
 use crate::WnfsError;
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 use crate::{filesystem::FilesystemError, native::NativeError};
 
 #[derive(Debug)]
@@ -37,7 +36,6 @@ impl UtilityError {
     }
 
     #[cfg(test)]
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn native(err: NativeError) -> Self {
         Self {
             kind: UtilityErrorKind::Native(err),
@@ -53,7 +51,6 @@ impl Display for UtilityError {
             UtilityErrorKind::Io(err) => format!("{} {err}", "IO ERROR:".underline()),
             UtilityErrorKind::Utf8(err) => format!("{} {err}", "UTF8 ERROR:".underline()),
             #[cfg(test)]
-            #[cfg(not(target_arch = "wasm32"))]
             UtilityErrorKind::Native(err) => format!("{} {err}", "NATIVE ERROR:".underline()),
         };
 
@@ -68,7 +65,6 @@ pub enum UtilityErrorKind {
     Io(std::io::Error),
     Utf8(FromUtf8Error),
     #[cfg(test)]
-    #[cfg(not(target_arch = "wasm32"))]
     Native(NativeError),
 }
 
@@ -97,7 +93,6 @@ impl From<WnfsError> for UtilityError {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 impl From<NativeError> for UtilityError {
     fn from(value: NativeError) -> Self {
         Self::native(value)
@@ -105,7 +100,6 @@ impl From<NativeError> for UtilityError {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 impl From<FilesystemError> for UtilityError {
     fn from(value: FilesystemError) -> Self {
         Self::native(NativeError::filesytem(value))

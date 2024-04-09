@@ -1,6 +1,5 @@
 /// Fixture
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod fixture;
 /// CarV2 Header
 pub mod header;
@@ -23,7 +22,6 @@ use std::{
     cell::RefCell,
     io::{Read, Seek, SeekFrom, Write},
 };
-use wnfs::libipld::Cid;
 
 // | 11-byte fixed pragma | 40-byte header | optional padding | CarV1 data payload | optional padding | optional index payload |
 pub(crate) const PRAGMA_SIZE: usize = 11;
@@ -224,7 +222,6 @@ impl CarV2 {
 }
 
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 mod test {
     use crate::{
         car::{error::CarError, v1::Block, v2::CarV2},
@@ -235,7 +232,6 @@ mod test {
         fs::{File, OpenOptions},
         io::{Seek, SeekFrom},
     };
-    use wnfs::libipld::{Cid, IpldCodec};
 
     #[test]
     #[serial]

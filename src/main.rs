@@ -1,11 +1,4 @@
-//! this crate is the binary for the tomb project. It contains the main function and the command line interface.
-#[cfg(target_arch = "wasm32")]
-fn main() {
-    panic!("there is no main in wasm!");
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(feature = "cli")]
+//#[cfg(feature = "cli")]
 use {
     banyan_cli::{
         self,
@@ -16,8 +9,7 @@ use {
     tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer},
 };
 
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(feature = "cli")]
+//#[cfg(feature = "cli")]
 #[tokio::main]
 async fn main() {
     // Parse command line arguments. see args.rs
@@ -42,9 +34,10 @@ async fn main() {
     let _ = cli.command.run().await;
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+/*
 #[cfg(not(feature = "cli"))]
 #[tokio::main]
 async fn main() {
     println!("Enable the CLI feature to interact with the CLI");
 }
+*/
