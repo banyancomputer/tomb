@@ -1,4 +1,6 @@
 //#[cfg(feature = "cli")]
+
+/*
 use {
     banyan_cli::{
         self,
@@ -41,3 +43,8 @@ async fn main() {
     println!("Enable the CLI feature to interact with the CLI");
 }
 */
+*/
+
+fn main() {
+    println!("hey!!!");
+}

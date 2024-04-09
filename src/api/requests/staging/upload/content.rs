@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::push::PushContent;
 use crate::{
     api::{client::Client, error::ApiError},
-    blockstore::CarV2MemoryBlockStore,
+    //blockstore::CarV2MemoryBlockStore,
 };
 pub type ContentType = reqwest::Body;
 #[async_trait(?Send)]
@@ -36,6 +36,7 @@ pub trait UploadContent {
     }
 }
 
+/*
 #[async_trait(?Send)]
 impl UploadContent for CarV2MemoryBlockStore {
     type UploadError = ApiError;
@@ -55,6 +56,7 @@ impl UploadContent for CarV2MemoryBlockStore {
         Ok(self.get_data().len() as u64)
     }
 }
+*/
 
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]

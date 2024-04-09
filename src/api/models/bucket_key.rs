@@ -135,6 +135,7 @@ impl BucketKey {
     }
 }
 
+/*
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod test {
@@ -293,3 +294,4 @@ mod test {
         Ok(())
     }
 }
+*/

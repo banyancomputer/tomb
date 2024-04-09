@@ -4,10 +4,6 @@ use std::fmt::{self, Display, Formatter};
 use tomb_crypt::prelude::TombCryptError;
 use url::ParseError;
 
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-use crate::{blockstore::BlockStoreError, car::error::CarError, filesystem::FilesystemError};
-
 /// Errors that can occur in the API Client
 #[derive(Debug)]
 #[non_exhaustive]
@@ -147,10 +143,6 @@ enum ApiErrorKind {
     Parse(ParseError),
     /// Missing data for performing a request
     MissingData(String),
-    /// When we're performing integration tests we also want Filesystem Errors
-    #[cfg(test)]
-    #[cfg(feature = "integration-tests")]
-    Filesystem(Box<FilesystemError>),
 }
 
 impl From<TombCryptError> for ApiError {
@@ -168,47 +160,5 @@ impl From<reqwest::Error> for ApiError {
 impl From<ParseError> for ApiError {
     fn from(value: ParseError) -> Self {
         Self::parse(value)
-    }
-}
-
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-impl From<FilesystemError> for ApiError {
-    fn from(value: FilesystemError) -> Self {
-        Self {
-            kind: ApiErrorKind::Filesystem(Box::new(value)),
-        }
-    }
-}
-
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-impl From<WnfsError> for ApiError {
-    fn from(value: WnfsError) -> Self {
-        Self {
-            kind: ApiErrorKind::Filesystem(Box::new(FilesystemError::wnfs(value))),
-        }
-    }
-}
-
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-impl From<CarError> for ApiError {
-    fn from(value: CarError) -> Self {
-        Self {
-            kind: ApiErrorKind::Filesystem(Box::new(FilesystemError::blockstore(
-                BlockStoreError::car(value),
-            ))),
-        }
-    }
-}
-
-#[cfg(test)]
-#[cfg(feature = "integration-tests")]
-impl From<BlockStoreError> for ApiError {
-    fn from(value: BlockStoreError) -> Self {
-        Self {
-            kind: ApiErrorKind::Filesystem(Box::new(FilesystemError::blockstore(value))),
-        }
     }
 }

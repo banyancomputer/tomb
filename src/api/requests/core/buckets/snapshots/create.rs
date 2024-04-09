@@ -2,10 +2,10 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
+use cid::Cid;
 use reqwest::{Client, RequestBuilder, Url};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use wnfs::libipld::Cid;
 
 use crate::api::requests::ApiRequest;
 

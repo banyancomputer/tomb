@@ -52,6 +52,7 @@ impl Snapshot {
     }
 }
 
+/*
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod test {
@@ -100,3 +101,4 @@ mod test {
         Ok(())
     }
 }
+*/

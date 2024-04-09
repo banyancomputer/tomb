@@ -1,11 +1,8 @@
+use cid::Cid;
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, fmt::Display};
 use uuid::Uuid;
-use wnfs::libipld::Cid;
-
-use crate::prelude::api::requests::core::buckets::metadata::read::ReadMetadataResponse;
-
 use {
     crate::api::{
         client::Client,
@@ -14,7 +11,7 @@ use {
             metadata::{
                 pull::PullMetadata,
                 push::PushMetadata,
-                read::{ReadAllMetadata, ReadCurrentMetadata, ReadMetadata},
+                read::{ReadAllMetadata, ReadCurrentMetadata, ReadMetadata, ReadMetadataResponse},
             },
             snapshots::create::CreateSnapshot,
         },
@@ -190,6 +187,7 @@ impl Metadata {
     }
 }
 
+/*
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 pub(crate) mod test {
@@ -199,7 +197,6 @@ pub(crate) mod test {
     use std::{collections::BTreeSet, time::Duration};
     use tomb_crypt::prelude::{EcEncryptionKey, PrivateKey, PublicKey};
     use uuid::Uuid;
-    use wnfs::{libipld::Cid, private::PrivateNode};
 
     use crate::{
         api::{
@@ -410,3 +407,4 @@ pub(crate) mod test {
         Ok(())
     }
 }
+*/

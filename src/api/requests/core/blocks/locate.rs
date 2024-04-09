@@ -3,9 +3,9 @@ use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
 use crate::api::requests::ApiRequest;
+use cid::Cid;
 use reqwest::{Client, RequestBuilder, Url};
 use serde::{Deserialize, Serialize};
-use wnfs::libipld::Cid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LocationRequest {
