@@ -6,13 +6,13 @@ use crate::{
     WnfsError,
 };
 use async_trait::async_trait;
+use cid::{Cid, IpldCodec};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, create_dir_all};
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
 };
-use wnfs::libipld::{Cid, IpldCodec};
 
 /// CARv2 MultiCarV2DiskBlockStore across multiple CAR files using File IO
 #[derive(Debug, PartialEq, Clone)]

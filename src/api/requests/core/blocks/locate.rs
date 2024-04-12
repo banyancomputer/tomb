@@ -51,8 +51,8 @@ impl Error for LocationRequestError {}
 #[cfg(test)]
 #[cfg(feature = "integration-tests")]
 mod test {
+    use cid::Cid;
     use std::collections::BTreeSet;
-    use wnfs::libipld::Cid;
 
     use crate::{
         api::{

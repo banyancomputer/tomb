@@ -6,8 +6,8 @@ use tomb_crypt::{
 };
 use wnfs::private::PrivateRef;
 
+use cid::Ipld;
 use std::collections::{BTreeMap, HashMap};
-use wnfs::libipld::Ipld;
 
 use crate::{cast, filesystem::sharing::enc_ref::EncryptedPrivateRef};
 

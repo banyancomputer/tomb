@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
+use cid::Cid;
 use colored::Colorize;
-use wnfs::libipld::Cid;
 
 use crate::utils::UtilityError;
 
@@ -55,7 +55,7 @@ impl CarError {
         }
     }
 
-    pub fn cid_error(err: wnfs::libipld::cid::Error) -> Self {
+    pub fn cid_error(err: cid::Error) -> Self {
         Self {
             kind: CarErrorKind::Cid(err),
         }
@@ -100,7 +100,7 @@ pub enum CarErrorKind {
     /// Index codec
     EndOfData,
     Io(std::io::Error),
-    Cid(wnfs::libipld::cid::Error),
+    Cid(cid::Error),
     Utility(UtilityError),
 }
 
@@ -110,8 +110,8 @@ impl From<std::io::Error> for CarError {
     }
 }
 
-impl From<wnfs::libipld::cid::Error> for CarError {
-    fn from(value: wnfs::libipld::cid::Error) -> Self {
+impl From<cid::Error> for CarError {
+    fn from(value: cid::Error) -> Self {
         Self::cid_error(value)
     }
 }

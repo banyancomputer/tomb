@@ -5,10 +5,10 @@ mod test {
         v2::{CarV2, HEADER_SIZE, PH_SIZE},
     };
     use base58::ToBase58;
+    use cid::Cid;
     use sha2::Digest;
     use std::io::{Cursor, Seek, SeekFrom};
     use std::{cell::RefCell, str::FromStr};
-    use wnfs::libipld::Cid;
 
     /// Quick Specification Reference Links:
     ///

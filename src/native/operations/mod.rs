@@ -1,5 +1,6 @@
 /// This module contains the add pipeline function, which is the main entry point for inserting into existing WNFS filesystems.
 pub mod add;
+pub mod compression;
 /// This module contains configuration functions for the cli
 pub mod configure;
 /// This module contains the encryption pipeline function, which is the main entry point for bundling new data.

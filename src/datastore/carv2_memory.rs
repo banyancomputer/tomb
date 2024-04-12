@@ -1,16 +1,9 @@
-use crate::{
-    blockstore::{BlockStoreError, RootedBlockStore},
-    car::{error::CarError, v1::Block, v2::CarV2},
-};
 use async_trait::async_trait;
 use serde::de::Error;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::io::Write;
 use std::{borrow::Cow, io::Cursor};
-use wnfs::libipld::{Cid, IpldCodec};
-
-use super::BanyanBlockStore;
 
 #[derive(Debug, Clone, PartialEq)]
 /// CarV2 formatted memory blockstore

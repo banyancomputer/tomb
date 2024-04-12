@@ -6,10 +6,10 @@
 //#[cfg(feature = "cli")]
 //pub mod cli;
 pub(crate) mod api;
-//pub(crate) mod blockstore;
 //pub(crate) mod car;
+pub(crate) mod datastore;
 //pub(crate) mod filesystem;
-pub mod native;
+//pub mod native;
 pub(crate) mod utils;
 
 pub mod prelude {

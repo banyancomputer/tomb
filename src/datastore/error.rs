@@ -95,8 +95,8 @@ impl From<WnfsError> for BlockStoreError {
     }
 }
 
-impl From<wnfs::libipld::cid::Error> for BlockStoreError {
-    fn from(value: wnfs::libipld::cid::Error) -> Self {
+impl From<cid::Error> for BlockStoreError {
+    fn from(value: cid::Error) -> Self {
         Self::car(CarError::cid_error(value))
     }
 }

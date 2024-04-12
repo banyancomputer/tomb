@@ -2,12 +2,12 @@ use crate::{
     car::{error::CarError, v2::index::indexable::Indexable, Streamable},
     utils::varint::{read_leu32, read_leu64},
 };
+use cid::Cid;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::{Read, Seek, SeekFrom, Write},
 };
-use wnfs::libipld::Cid;
 
 /// Buckets contain a list of values
 /// | width (uint32) | count (uint64) | digest1 | digest1 offset (uint64) | digest2 | digest2 offset (uint64) ...

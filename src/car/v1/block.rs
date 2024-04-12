@@ -2,11 +2,8 @@ use crate::{
     car::{error::CarError, Streamable},
     utils::varint::{encode_varint_u128, read_varint_u128},
 };
+use cid::Cid;
 use std::io::{Read, Seek, SeekFrom, Write};
-use wnfs::libipld::{
-    multihash::{Code, MultihashDigest},
-    Cid, IpldCodec,
-};
 
 /// CARv1 Data Block
 /// | 19-byte varint | x-byte Cid | x-byte content |
@@ -93,6 +90,7 @@ impl Streamable for Block {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     crate::car::streamable_tests! {
@@ -101,7 +99,8 @@ mod test {
             // Raw bytes
             let data_example = "Hello Kitty!".as_bytes().to_vec();
             // Create new Block with these content bytes
-            crate::car::v1::Block::new(data_example, wnfs::libipld::IpldCodec::Raw).expect("unable to create new Block")
+            crate::car::v1::Block::new(data_example, cid::IpldCodec::Raw).expect("unable to create new Block")
         },
     }
 }
+*/

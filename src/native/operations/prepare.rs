@@ -8,6 +8,7 @@ use crate::{
         NativeError,
     },
 };
+use banyanfs::prelude::*;
 use std::{
     collections::HashSet,
     fs::File,

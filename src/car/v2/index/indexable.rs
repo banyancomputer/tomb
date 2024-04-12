@@ -1,6 +1,6 @@
 use crate::car::Streamable;
+use cid::Cid;
 use std::fmt::Debug;
-use wnfs::libipld::Cid;
 
 /// Special kind of hashmap for dealing with offsets
 pub trait Indexable: Debug + Streamable + Send {

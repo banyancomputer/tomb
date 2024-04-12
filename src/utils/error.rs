@@ -82,20 +82,12 @@ impl From<FromUtf8Error> for UtilityError {
     }
 }
 
-impl From<WnfsError> for UtilityError {
-    fn from(value: WnfsError) -> Self {
-        Self::custom(&value.to_string())
-    }
-}
-
-#[cfg(test)]
 impl From<NativeError> for UtilityError {
     fn from(value: NativeError) -> Self {
         Self::native(value)
     }
 }
 
-#[cfg(test)]
 impl From<FilesystemError> for UtilityError {
     fn from(value: FilesystemError) -> Self {
         Self::native(NativeError::filesytem(value))

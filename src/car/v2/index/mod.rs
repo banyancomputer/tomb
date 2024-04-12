@@ -3,13 +3,13 @@ pub mod indexable;
 /// The simple Bucket format
 pub mod indexsorted;
 
+use cid::Cid;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::Debug,
     io::{Read, Seek, SeekFrom, Write},
 };
-use wnfs::libipld::Cid;
 
 use self::indexable::Indexable;
 use crate::{

@@ -4,13 +4,13 @@ use crate::{
     utils::{get_read, get_read_write, get_write},
 };
 use async_trait::async_trait;
+use cid::{Cid, IpldCodec};
 use serde::{de::Error as DeError, Deserialize, Serialize};
 use std::{
     borrow::Cow,
     fs::File,
     path::{Path, PathBuf},
 };
-use wnfs::libipld::{Cid, IpldCodec};
 
 use super::BanyanBlockStore;
 
@@ -144,10 +144,10 @@ mod test {
         blockstore::{BanyanBlockStore, BlockStoreError, CarV2DiskBlockStore, RootedBlockStore},
         utils::testing::blockstores::car_test_setup,
     };
+    use cid::{Cid, IpldCodec};
     use serial_test::serial;
     use std::{fs::remove_file, path::Path, str::FromStr};
     use wnfs::common::blockstore::{bs_duplication_test, bs_retrieval_test};
-    use wnfs::libipld::{Cid, IpldCodec};
 
     #[tokio::test]
     #[serial]

@@ -3,15 +3,12 @@ use crate::{
     utils::varint::{encode_varint_u64, read_varint_u64},
 };
 
+use cid::Cid;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
     collections::BTreeMap,
     io::{Read, Seek, Write},
-};
-use wnfs::{
-    common::dagcbor,
-    libipld::{Cid, Ipld},
 };
 
 /// CARv1 Header

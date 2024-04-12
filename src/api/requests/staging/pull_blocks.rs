@@ -59,8 +59,8 @@ mod test {
         },
         blockstore::BanyanApiBlockStore,
     };
+    use cid::Cid;
     use wnfs::common::BlockStore;
-    use wnfs::libipld::Cid;
 
     #[tokio::test]
 

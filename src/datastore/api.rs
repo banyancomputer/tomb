@@ -1,9 +1,11 @@
+use super::{BanyanBlockStore, BlockStoreError};
 use crate::api::{
     client::Client,
     error::ApiError,
     requests::{core::blocks::locate::LocationRequest, staging::pull_blocks::PullBlock},
 };
 use async_trait::async_trait;
+use cid::{Cid, IpldCodec};
 use futures_util::StreamExt;
 use reqwest::Url;
 use std::{
@@ -11,9 +13,6 @@ use std::{
     cell::RefCell,
     collections::{BTreeSet, HashMap},
 };
-use wnfs::libipld::{Cid, IpldCodec};
-
-use super::{BanyanBlockStore, BlockStoreError};
 
 /// A network-based BlockStore designed to interface with a Kubo node or an API which mirrors it
 
