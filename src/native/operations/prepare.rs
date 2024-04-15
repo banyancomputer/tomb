@@ -3,7 +3,7 @@ use crate::{
     native::{
         configuration::globalconfig::GlobalConfig,
         file_scanning::{grouper, spider, spider_plans::PreparePipelinePlan},
-        sync::OmniBucket,
+        sync::OmniDrive,
         utils::get_progress_bar,
         NativeError,
     },
@@ -30,7 +30,7 @@ use tracing::info;
 ///
 /// # Return Type
 /// Returns `Ok(())` on success, otherwise returns an error.
-pub async fn pipeline(mut omni: OmniBucket, follow_links: bool) -> Result<String, NativeError> {
+pub async fn pipeline(mut omni: OmniDrive, follow_links: bool) -> Result<String, NativeError> {
     let mut fs = omni.unlock().await?;
     let mut local = omni.get_local()?;
     let mut global = GlobalConfig::from_disk().await?;
@@ -80,6 +80,7 @@ pub async fn pipeline(mut omni: OmniBucket, follow_links: bool) -> Result<String
     for (node, wnfs_path) in all_node_paths {
         // If the existing WNFS node is not still represented on disk
         if !all_disk_paths.contains(&wnfs_path) {
+            /*
             // If the node is a File, add all the CIDs associated with it to a list
             if let PrivateNode::File(file) = node {
                 local.deleted_block_cids.extend(
@@ -91,9 +92,11 @@ pub async fn pipeline(mut omni: OmniBucket, follow_links: bool) -> Result<String
             // Remove the reference from the WNFS
             fs.rm(&path_to_segments(&wnfs_path)?, &local.metadata)
                 .await?;
+                */
         }
     }
 
+    /*
     let split_store_local = DoubleSplitStore::new(&local.content, &local.metadata);
 
     // If we're online, let's also spin up a BanyanApiBlockStore for getting content
@@ -106,6 +109,7 @@ pub async fn pipeline(mut omni: OmniBucket, follow_links: bool) -> Result<String
         warn!("We notice you're offline or unauthenticated, preparing may fail to detect content changes and require repreparation of old files.");
         process_plans(&mut fs, bundling_plan, &local.metadata, &split_store_local).await?;
     }
+    */
 
     local.save_fs(&mut fs).await?;
     global.update_config(&local)?;

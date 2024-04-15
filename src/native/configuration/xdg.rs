@@ -1,8 +1,7 @@
 use std::{env, fs::create_dir_all, path::PathBuf};
 const HOME_ERROR: &str = "cant find home directory";
-const GLOBAL_CONFIG_FILE_NAME: &str = "config.json";
-const DEVICE_API_KEY_FILE_NAME: &str = "device_api_key.pem";
-const DEVICE_WRAPPING_KEY_FILE_NAME: &str = "wrapping_key.pem";
+const GLOBAL_CONFIG_NAME: &str = "config.json";
+const PRIMARY_USER_KEY_NAME: &str = "primary.pem";
 
 /// Grab config path
 pub fn xdg_config_home() -> PathBuf {
@@ -36,15 +35,10 @@ pub fn xdg_data_home() -> PathBuf {
 
 /// Grab path to config.json File
 pub fn config_path() -> PathBuf {
-    xdg_config_home().join(GLOBAL_CONFIG_FILE_NAME)
+    xdg_config_home().join(GLOBAL_CONFIG_NAME)
 }
 
 /// Grab path to API Key
-pub fn default_api_key_path() -> PathBuf {
-    xdg_config_home().join(DEVICE_API_KEY_FILE_NAME)
-}
-
-/// Grab path to Wrapping Key
-pub fn default_wrapping_key_path() -> PathBuf {
-    xdg_config_home().join(DEVICE_WRAPPING_KEY_FILE_NAME)
+pub fn default_user_key_path() -> PathBuf {
+    xdg_data_home().join("keys").join(PRIMARY_USER_KEY_NAME)
 }

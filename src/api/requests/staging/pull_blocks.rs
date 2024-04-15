@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
-use cid::Cid;
+use banyanfs::codec::Cid;
 use reqwest::{Client, RequestBuilder, Url};
 use serde::{Deserialize, Serialize};
 

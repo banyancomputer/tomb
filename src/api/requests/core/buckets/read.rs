@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::api::{
-    models::bucket::{BucketType, StorageClass},
+    models::drive::{BucketType, StorageClass},
     requests::ApiRequest,
 };
 

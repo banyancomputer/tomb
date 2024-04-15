@@ -5,6 +5,7 @@ mod disk;
 //mod error;
 //mod multi_carv2_disk;
 
+pub use disk::DiskDataStore;
 /*
 pub use api::BanyanApiBlockStore;
 pub use banyanfs::stores::DataStore;

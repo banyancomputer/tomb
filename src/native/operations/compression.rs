@@ -110,8 +110,8 @@ pub fn decompress_vec(buf: &[u8]) -> Result<Vec<u8>, std::io::Error> {
 }
 
 /// Converts a PathBuf into a vector of path segments for use in WNFS.
-pub fn path_to_segments(path: &Path) -> Result<Vec<String>> {
-    let path = path.to_path_buf().into_os_string().into_string().unwray();
+pub fn path_to_segments(path: &Path) -> Result<Vec<String>, std::io::Error> {
+    let path = path.to_path_buf().into_os_string().into_string()?;
     let path_segments: Vec<String> = path
         .split('/')
         .filter(|s| !s.is_empty())

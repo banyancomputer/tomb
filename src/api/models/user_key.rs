@@ -16,7 +16,7 @@ use crate::api::{
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 /// DeviceApiKey Definition
-pub struct DeviceApiKey {
+pub struct UserKey {
     /// The unique identifier for the device api key
     pub id: Uuid,
     /// The public key material for the device api key
@@ -25,7 +25,7 @@ pub struct DeviceApiKey {
     pub fingerprint: String,
 }
 
-impl DeviceApiKey {
+impl UserKey {
     /// Create a new instance of this model or data structure. Attaches the associated credentials to the client.
     pub async fn create(pem: String, client: &mut Client) -> Result<Self, ApiError> {
         let response: CreateDeviceApiKeyResponse =
@@ -82,7 +82,7 @@ impl DeviceApiKey {
 mod test {
     use crate::api::{
         error::ApiError,
-        models::{account::test::authenticated_client, device_api_key::DeviceApiKey},
+        models::{account::test::authenticated_client, user_key::UserKey},
         utils::generate_api_key,
     };
 
@@ -91,7 +91,7 @@ mod test {
         let mut client = authenticated_client().await;
         let (_, pem) = generate_api_key().await;
         println!("pem: {:?}", pem);
-        let _ = DeviceApiKey::create(pem, &mut client).await?;
+        let _ = UserKey::create(pem, &mut client).await?;
         Ok(())
     }
 
@@ -99,8 +99,8 @@ mod test {
     async fn create_read() -> Result<(), ApiError> {
         let mut client = authenticated_client().await;
         let (_, pem) = generate_api_key().await;
-        let create = DeviceApiKey::create(pem, &mut client).await?;
-        let read = DeviceApiKey::read(&mut client, create.id).await?;
+        let create = UserKey::create(pem, &mut client).await?;
+        let read = UserKey::read(&mut client, create.id).await?;
         assert_eq!(create.id, read.id);
         assert_eq!(create.pem, read.pem);
         assert_eq!(create.fingerprint, read.fingerprint);
@@ -111,8 +111,8 @@ mod test {
     async fn create_read_all() -> Result<(), ApiError> {
         let mut client = authenticated_client().await;
         let (_, pem) = generate_api_key().await;
-        let create = DeviceApiKey::create(pem, &mut client).await?;
-        let read_all = DeviceApiKey::read_all(&mut client).await?;
+        let create = UserKey::create(pem, &mut client).await?;
+        let read_all = UserKey::read_all(&mut client).await?;
         assert!(!read_all.is_empty());
         assert_eq!(create.id, read_all[1].id);
         assert_eq!(create.pem, read_all[1].pem);
@@ -124,9 +124,9 @@ mod test {
     async fn create_delete() -> Result<(), ApiError> {
         let mut client = authenticated_client().await;
         let (_, pem) = generate_api_key().await;
-        let create = DeviceApiKey::create(pem, &mut client).await?;
+        let create = UserKey::create(pem, &mut client).await?;
         create.clone().delete(&mut client).await?;
-        let all_remaining = DeviceApiKey::read_all(&mut client).await?;
+        let all_remaining = UserKey::read_all(&mut client).await?;
         assert!(!all_remaining.iter().any(|value| value.id == create.id));
         Ok(())
     }

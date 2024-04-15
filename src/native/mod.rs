@@ -19,10 +19,13 @@
 * 7. TODO (laudiacay): Make car file with it.
 */
 
+mod error;
+
 #[allow(unused_extern_crates)]
 extern crate core;
 /// Local configurations
 pub(crate) mod configuration;
+
 /// Scanning local filesystems
 pub(crate) mod file_scanning;
 /// Operations which can be performed
@@ -31,5 +34,4 @@ pub(crate) mod sync;
 /// Simple helper utils
 pub mod utils;
 
-mod error;
 pub use error::NativeError;

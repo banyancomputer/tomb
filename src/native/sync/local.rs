@@ -1,7 +1,8 @@
 use crate::{
-    api::models::storage_ticket::StorageTicket, native::configuration::xdg::xdg_data_home,
+    api::models::storage_ticket::StorageTicket, datastore::DiskDataStore,
+    native::configuration::xdg::xdg_data_home,
 };
-use cid::Cid;
+use banyanfs::codec::Cid;
 use colored::Colorize;
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
@@ -17,43 +18,43 @@ use uuid::Uuid;
 const BUCKET_METADATA_FILE_NAME: &str = "metadata.car";
 const BUCKET_CONTENT_DIR_NAME: &str = "content";
 
-fn bucket_data_home(local_id: &str) -> PathBuf {
+fn drive_data_home(local_id: &str) -> PathBuf {
     xdg_data_home().join(local_id)
 }
 
-fn bucket_metadata_path(name: &str) -> PathBuf {
+fn drive_metadata_path(name: &str) -> PathBuf {
     xdg_data_home().join(name).join(BUCKET_METADATA_FILE_NAME)
 }
 
-fn bucket_content_path(name: &str) -> PathBuf {
+fn drive_content_path(name: &str) -> PathBuf {
     xdg_data_home().join(name).join(BUCKET_CONTENT_DIR_NAME)
 }
 
-// TODO: This is maybe better concieved of as a Bucket
-/// Configuration for an individual Bucket / FileSystem
+// TODO: This is maybe better concieved of as a Drive
+/// Configuration for an individual Drive / FileSystem
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct LocalBucket {
-    /// The name of this bucket
+pub struct LocalDrive {
+    /// The name of this drive
     pub(crate) name: String,
-    /// The filesystem that this bucket represents
+    /// The filesystem that this drive represents
     pub(crate) origin: PathBuf,
     /// Randomly generated folder name which holds prepared content and key files
     local_id: String,
-    /// Bucket Uuid on the remote server
+    /// Drive Uuid on the remote server
     pub(crate) remote_id: Option<Uuid>,
     /// Storage ticket in case we lose track of non-metadata components
     pub(crate) storage_ticket: Option<StorageTicket>,
     /// Locally deleted blocks the server needs to be notified of
     pub(crate) deleted_block_cids: BTreeSet<Cid>,
-    /// BlockStore for storing metadata only
-    pub metadata: CarV2DiskBlockStore,
-    /// BlockStore for storing metadata and file content
-    pub content: MultiCarV2DiskBlockStore,
-    /// Previous root cid of the metadata BlockStore, if there is one
+    /// DataStore for storing metadata only
+    pub metadata: DiskDataStore,
+    /// DataStore for storing metadata and file content
+    pub content: DiskDataStore,
+    /// Previous root cid of the metadata DataStore, if there is one
     pub previous_cid: Option<Cid>,
 }
 
-impl Display for LocalBucket {
+impl Display for LocalDrive {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "name:\t\t\t{}\ndrive_id:\t\t{}\norigin:\t\t\t{}\nstorage_ticket:\t\t{}",
@@ -73,7 +74,7 @@ impl Display for LocalBucket {
     }
 }
 
-impl LocalBucket {
+impl LocalDrive {
     /// Given a directory, initialize a configuration for it
     pub async fn new(
         origin: &Path,
@@ -93,10 +94,10 @@ impl LocalBucket {
             .map(char::from)
             .collect();
         // Compose the generated directory
-        let bucket_home = bucket_data_home(&local_id);
-        create_dir_all(bucket_home).expect("already exists");
-        let metadata_path = bucket_metadata_path(&local_id);
-        let content_path = bucket_content_path(&local_id);
+        let drive_home = drive_data_home(&local_id);
+        create_dir_all(drive_home).expect("already exists");
+        let metadata_path = drive_metadata_path(&local_id);
+        let content_path = drive_content_path(&local_id);
         let metadata = CarV2DiskBlockStore::new(&metadata_path)?;
         let mut content = MultiCarV2DiskBlockStore::new(&content_path)?;
         content.add_delta()?;
@@ -120,8 +121,8 @@ impl LocalBucket {
 
     pub(crate) fn remove_data(&self) -> Result<(), std::io::Error> {
         // Remove dir if it exists
-        if bucket_data_home(&self.local_id).exists() {
-            remove_dir_all(bucket_data_home(&self.local_id))?;
+        if drive_data_home(&self.local_id).exists() {
+            remove_dir_all(drive_data_home(&self.local_id))?;
         }
         Ok(())
     }
@@ -172,7 +173,7 @@ mod test {
         create_dir_all(&origin)?;
         let mut global = GlobalConfig::from_disk().await?;
         let wrapping_key = global.clone().wrapping_key().await?;
-        let mut config = global.get_or_init_bucket("test", &origin).await?;
+        let mut config = global.get_or_init_drive("test", &origin).await?;
         let mut rng = thread_rng();
         let mut fs = config.unlock_fs(&global.wrapping_key().await?).await?;
         config.content.add_delta()?;

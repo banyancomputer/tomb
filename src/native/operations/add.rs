@@ -1,11 +1,13 @@
-use crate::native::{configuration::globalconfig::GlobalConfig, sync::LocalBucket, NativeError};
+use crate::native::{configuration::globalconfig::GlobalConfig, sync::LocalDrive, NativeError};
 use chrono::Utc;
 use rand::thread_rng;
 use std::path::Path;
 
+use super::compression::{compress_file, path_to_segments};
+
 /// The pipeline for adding an individual file to a WNFS
 pub async fn pipeline(
-    mut local: LocalBucket,
+    mut local: LocalDrive,
     input_file: &Path,
     wnfs_path: &Path,
 ) -> Result<String, NativeError> {

@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::api::{
     client::Client,
     error::ApiError,
-    models::bucket_key::BucketKey,
+    models::drive_access::BucketKey,
     requests::{
         core::buckets::{
             create::{CreateBucket, CreateBucketResponse},
@@ -245,8 +245,8 @@ pub mod test {
         error::ApiError,
         models::{
             account::test::{authenticated_client, unauthenticated_client},
-            bucket::{Bucket, BucketType, StorageClass},
-            bucket_key::BucketKey,
+            drive::{Bucket, BucketType, StorageClass},
+            drive_access::BucketKey,
             metadata::test::push_metadata_and_snapshot,
         },
         utils::generate_bucket_key,

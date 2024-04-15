@@ -1,10 +1,10 @@
 //#[cfg(feature = "cli")]
 use crate::cli::specifiers::DriveSpecifier;
 use crate::{
-    api::models::bucket::{Bucket as RemoteBucket, BucketType, StorageClass},
+    api::models::drive::{Drive as RemoteDrive, DriveType, StorageClass},
     native::{
         configuration::globalconfig::GlobalConfig,
-        sync::{LocalBucket, SyncState},
+        sync::{LocalDrive, SyncState},
         NativeError,
     },
 };
@@ -18,18 +18,18 @@ use std::{
 use tomb_crypt::prelude::{PrivateKey, PublicKey};
 use uuid::Uuid;
 
-/// Struct for representing the ambiguity between local and remote copies of a Bucket
+/// Struct for representing the ambiguity between local and remote copies of a Drive
 #[derive(Debug, Clone)]
-pub struct OmniBucket {
-    /// The local Bucket
-    local: Option<LocalBucket>,
-    /// The remote Bucket
-    remote: Option<RemoteBucket>,
+pub struct OmniDrive {
+    /// The local Drive
+    local: Option<LocalDrive>,
+    /// The remote Drive
+    remote: Option<RemoteDrive>,
     /// The sync state
     pub sync_state: SyncState,
 }
 
-impl OmniBucket {
+impl OmniDrive {
     /// Use local and remote to find
     //#[cfg(feature = "cli")]
     pub async fn from_specifier(drive_specifier: &DriveSpecifier) -> Self {
@@ -40,21 +40,21 @@ impl OmniBucket {
         };
 
         if let Ok(global) = GlobalConfig::from_disk().await {
-            let local_result = global.buckets.clone().into_iter().find(|bucket| {
-                let check_remote = bucket.remote_id == drive_specifier.drive_id;
-                let check_origin = Some(bucket.origin.clone()) == drive_specifier.origin;
-                let check_name = Some(bucket.name.clone()) == drive_specifier.name;
+            let local_result = global.drives.clone().into_iter().find(|drive| {
+                let check_remote = drive.remote_id == drive_specifier.drive_id;
+                let check_origin = Some(drive.origin.clone()) == drive_specifier.origin;
+                let check_name = Some(drive.name.clone()) == drive_specifier.name;
                 check_remote || check_origin || check_name
             });
             omni.local = local_result;
 
             if let Ok(mut client) = global.get_client().await {
-                let all_remote_buckets = RemoteBucket::read_all(&mut client)
+                let all_remote_drives = RemoteDrive::read_all(&mut client)
                     .await
                     .unwrap_or(Vec::new());
-                let remote_result = all_remote_buckets.into_iter().find(|bucket| {
-                    let check_id = Some(bucket.id) == drive_specifier.drive_id;
-                    let check_name = Some(bucket.name.clone()) == drive_specifier.name;
+                let remote_result = all_remote_drives.into_iter().find(|drive| {
+                    let check_id = Some(drive.id) == drive_specifier.drive_id;
+                    let check_name = Some(drive.name.clone()) == drive_specifier.name;
                     check_id || check_name
                 });
                 omni.remote = remote_result;
@@ -74,19 +74,19 @@ impl OmniBucket {
     }
 
     /// Initialize w/ local
-    pub fn from_local(bucket: &LocalBucket) -> Self {
+    pub fn from_local(drive: &LocalDrive) -> Self {
         Self {
-            local: Some(bucket.clone()),
+            local: Some(drive.clone()),
             remote: None,
             sync_state: SyncState::Unpublished,
         }
     }
 
     /// Initialize w/ remote
-    pub fn from_remote(bucket: &RemoteBucket) -> Self {
+    pub fn from_remote(drive: &RemoteDrive) -> Self {
         Self {
             local: None,
-            remote: Some(bucket.clone()),
+            remote: Some(drive.clone()),
             sync_state: SyncState::Unlocalized,
         }
     }
@@ -103,40 +103,40 @@ impl OmniBucket {
     }
 
     /// Get the local config
-    pub fn get_local(&self) -> Result<LocalBucket, NativeError> {
+    pub fn get_local(&self) -> Result<LocalDrive, NativeError> {
         self.local.clone().ok_or(NativeError::missing_local_drive())
     }
 
     /// Get the remote config
-    pub fn get_remote(&self) -> Result<RemoteBucket, NativeError> {
+    pub fn get_remote(&self) -> Result<RemoteDrive, NativeError> {
         self.remote
             .clone()
             .ok_or(NativeError::missing_remote_drive())
     }
 
-    /// Update the LocalBucket
-    pub fn set_local(&mut self, local: LocalBucket) {
+    /// Update the LocalDrive
+    pub fn set_local(&mut self, local: LocalDrive) {
         self.local = Some(local);
     }
 
-    /// Update the RemoteBucket
-    pub fn set_remote(&mut self, remote: RemoteBucket) {
+    /// Update the RemoteDrive
+    pub fn set_remote(&mut self, remote: RemoteDrive) {
         self.remote = Some(remote);
     }
 
-    /// Create a new bucket
-    pub async fn create(name: &str, origin: &Path) -> Result<OmniBucket, NativeError> {
+    /// Create a new drive
+    pub async fn create(name: &str, origin: &Path) -> Result<OmniDrive, NativeError> {
         let mut global = GlobalConfig::from_disk().await?;
 
-        let mut omni = OmniBucket {
+        let mut omni = OmniDrive {
             local: None,
             remote: None,
             sync_state: SyncState::Unknown,
         };
 
-        // If this bucket already exists both locally and remotely
-        if let Some(bucket) = global.get_bucket(origin) {
-            if bucket.remote_id.is_some() {
+        // If this drive already exists both locally and remotely
+        if let Some(drive) = global.get_drive(origin) {
+            if drive.remote_id.is_some() {
                 // Prevent the user from re-creating it
                 return Err(NativeError::unique_error());
             }
@@ -148,10 +148,10 @@ impl OmniBucket {
         let pem = String::from_utf8(public_key.export().await?)?;
 
         // Initialize remotely
-        if let Ok((remote, _)) = RemoteBucket::create(
+        if let Ok((remote, _)) = RemoteDrive::create(
             name.to_string(),
             pem,
-            BucketType::Interactive,
+            DriveType::Interactive,
             StorageClass::Hot,
             &mut global.get_client().await?,
         )
@@ -162,8 +162,8 @@ impl OmniBucket {
         }
 
         // Initialize locally
-        if let Ok(mut local) = global.get_or_init_bucket(name, origin).await {
-            // If a remote bucket was made successfully
+        if let Ok(mut local) = global.get_or_init_drive(name, origin).await {
+            // If a remote drive was made successfully
             if let Ok(remote) = omni.get_remote() {
                 // Also save that in the local obj
                 local.remote_id = Some(remote.id);
@@ -176,7 +176,7 @@ impl OmniBucket {
         Ok(omni)
     }
 
-    /// Delete an individual Bucket
+    /// Delete an individual Drive
     pub async fn delete(
         &self,
         local_deletion: bool,
@@ -184,12 +184,12 @@ impl OmniBucket {
     ) -> Result<String, NativeError> {
         let mut global = GlobalConfig::from_disk().await?;
         if local_deletion {
-            global.remove_bucket(&self.get_local()?)?;
+            global.remove_drive(&self.get_local()?)?;
         }
 
         if remote_deletion {
             remote_deletion =
-                RemoteBucket::delete_by_id(&mut global.get_client().await?, self.get_remote()?.id)
+                RemoteDrive::delete_by_id(&mut global.get_client().await?, self.get_remote()?.id)
                     .await
                     .is_ok();
         }
@@ -202,35 +202,35 @@ impl OmniBucket {
         ))
     }
 
-    /// List all available Buckets
-    pub async fn ls() -> Result<Vec<OmniBucket>, NativeError> {
+    /// List all available Drives
+    pub async fn ls() -> Result<Vec<OmniDrive>, NativeError> {
         let mut client = GlobalConfig::from_disk().await?.get_client().await?;
-        let local_buckets = if let Ok(global) = GlobalConfig::from_disk().await {
-            global.buckets
+        let local_drives = if let Ok(global) = GlobalConfig::from_disk().await {
+            global.drives
         } else {
             Vec::new()
         };
-        let remote_buckets = match RemoteBucket::read_all(&mut client).await {
-            Ok(buckets) => buckets,
+        let remote_drives = match RemoteDrive::read_all(&mut client).await {
+            Ok(drives) => drives,
             Err(_) => {
                 error!(
                     "{}",
-                    "Unable to fetch remote Buckets. Check your authentication!".red()
+                    "Unable to fetch remote Drives. Check your authentication!".red()
                 );
-                <Vec<RemoteBucket>>::new()
+                <Vec<RemoteDrive>>::new()
             }
         };
 
-        let mut map: HashMap<Option<Uuid>, OmniBucket> = HashMap::new();
+        let mut map: HashMap<Option<Uuid>, OmniDrive> = HashMap::new();
 
-        for local in local_buckets {
-            map.insert(local.remote_id, OmniBucket::from_local(&local));
+        for local in local_drives {
+            map.insert(local.remote_id, OmniDrive::from_local(&local));
         }
 
-        for remote in remote_buckets {
+        for remote in remote_drives {
             let key = Some(remote.id);
             if let Some(omni) = map.get(&key) {
-                let mut omni = OmniBucket {
+                let mut omni = OmniDrive {
                     local: omni.local.clone(),
                     remote: Some(remote),
                     sync_state: SyncState::Unknown,
@@ -240,14 +240,14 @@ impl OmniBucket {
 
                 map.insert(key, omni);
             } else {
-                map.insert(key, OmniBucket::from_remote(&remote));
+                map.insert(key, OmniDrive::from_remote(&remote));
             }
         }
 
-        Ok(map.into_values().collect::<Vec<OmniBucket>>())
+        Ok(map.into_values().collect::<Vec<OmniDrive>>())
     }
 
-    /// Get the origin for this bucket or create one in the default tomb directory if a local bucket does not yet exist
+    /// Get the origin for this drive or create one in the default tomb directory if a local drive does not yet exist
     pub async fn get_or_init_origin(&mut self) -> Result<PathBuf, NativeError> {
         if let Ok(local) = self.get_local() {
             Ok(local.origin)
@@ -259,11 +259,11 @@ impl OmniBucket {
             remove_dir_all(&new_local_origin).ok();
             create_dir_all(&new_local_origin)?;
 
-            // Create a new local bucket
+            // Create a new local drive
             self.set_local({
                 let mut value = GlobalConfig::from_disk()
                     .await?
-                    .get_or_init_bucket(&self.get_remote()?.name, &new_local_origin)
+                    .get_or_init_drive(&self.get_remote()?.name, &new_local_origin)
                     .await?;
                 value.remote_id = Some(self.get_remote()?.id);
                 value
@@ -293,7 +293,7 @@ fn bool_colorized(value: bool) -> ColoredString {
     }
 }
 
-impl Display for OmniBucket {
+impl Display for OmniDrive {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut info = format!(
             "{}\nlocally tracked:\t{}\nremotely tracked:\t{}",

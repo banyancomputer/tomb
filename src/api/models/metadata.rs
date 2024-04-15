@@ -1,4 +1,4 @@
-use cid::Cid;
+use banyanfs::codec::Cid;
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, fmt::Display};

@@ -2,10 +2,10 @@ use crate::{
     api::client::{Client, Credentials},
     native::{
         configuration::{
-            keys::{load_api_key, new_api_key, new_wrapping_key, save_api_key, wrapping_key},
-            xdg::{config_path, default_api_key_path, default_wrapping_key_path},
+            keys::{load_user_key, new_user_key, save_user_key},
+            xdg::{config_path, default_user_key_path},
         },
-        sync::LocalBucket,
+        sync::LocalDrive,
         NativeError,
     },
     utils::get_read,
@@ -26,15 +26,13 @@ pub struct GlobalConfig {
     /// Tomb version
     version: String,
     /// Location of wrapping key on disk in PEM format
-    pub wrapping_key_path: PathBuf,
-    /// Location of api key on disk in PEM format
-    pub api_key_path: PathBuf,
+    pub user_key_path: PathBuf,
     /// Remote endpoint
     endpoint: Url,
     /// Remote account id
     remote_user_id: Option<Uuid>,
     /// Drive Configurations
-    pub(crate) drives: Vec<LocalBucket>,
+    pub(crate) drives: Vec<LocalDrive>,
 }
 
 impl Default for GlobalConfig {
@@ -49,10 +47,9 @@ impl Default for GlobalConfig {
         Self {
             version: env!("CARGO_PKG_VERSION").to_string(),
             endpoint,
-            wrapping_key_path: default_wrapping_key_path(),
-            api_key_path: default_api_key_path(),
+            user_key_path: default_user_key_path(),
             remote_user_id: None,
-            buckets: Vec::new(),
+            drives: Vec::new(),
         }
     }
 }
@@ -66,27 +63,16 @@ impl GlobalConfig {
         config.to_disk()?;
 
         // Do not blindly overwrite key files if they exist
-        if !config.wrapping_key_path.exists() {
-            let _wrapping_key = new_wrapping_key(&config.wrapping_key_path).await?;
+        if !config.user_key_path.exists() {
+            new_user_key(&config.user_key_path).await?;
         }
-        if !config.api_key_path.exists() {
-            let _api_key = new_api_key(&config.api_key_path).await?;
-        }
-
         // Ok
         Ok(config)
     }
 
-    /// Get the wrapping key
-    pub async fn wrapping_key(&self) -> Result<EcEncryptionKey, NativeError> {
-        wrapping_key(&self.wrapping_key_path)
-            .await
-            .map_err(|_| NativeError::missing_wrapping_key())
-    }
-
-    /// Get the api key
-    pub async fn api_key(&self) -> Result<EcSignatureKey, NativeError> {
-        load_api_key(&self.api_key_path)
+    /// Get the user key
+    pub async fn user_key(&self) -> Result<EcSignatureKey, NativeError> {
+        load_user_key(&self.api_key_path)
             .await
             .map_err(|_| NativeError::missing_api_key())
     }
@@ -95,7 +81,7 @@ impl GlobalConfig {
     async fn get_credentials(&self) -> Result<Credentials, NativeError> {
         Ok(Credentials {
             user_id: self.remote_user_id.ok_or(NativeError::missing_user_id())?,
-            signing_key: self.api_key().await?,
+            signing_key: self.user_key().await?,
         })
     }
 
@@ -127,7 +113,7 @@ impl GlobalConfig {
         // If the Client has an API key
         if let Some(api_key) = client.signing_key {
             // Save the API key to disk
-            save_api_key(&self.api_key_path, api_key).await?;
+            save_user_key(&self.api_key_path, api_key).await?;
         }
 
         self.to_disk()
@@ -163,7 +149,7 @@ impl GlobalConfig {
     }
 
     /// Remove a BucketConfig for an origin
-    pub fn remove_bucket(&mut self, bucket: &LocalBucket) -> Result<(), NativeError> {
+    pub fn remove_bucket(&mut self, bucket: &LocalDrive) -> Result<(), NativeError> {
         // Remove bucket data
         bucket.remove_data()?;
         // Find index of bucket
@@ -192,7 +178,7 @@ impl GlobalConfig {
     }
 
     /// Update a given BucketConfig
-    pub fn update_config(&mut self, bucket: &LocalBucket) -> Result<(), NativeError> {
+    pub fn update_config(&mut self, bucket: &LocalDrive) -> Result<(), NativeError> {
         // Find index
         let index = self
             .buckets
@@ -209,9 +195,9 @@ impl GlobalConfig {
         &mut self,
         name: &str,
         origin: &Path,
-    ) -> Result<LocalBucket, NativeError> {
+    ) -> Result<LocalDrive, NativeError> {
         let wrapping_key = self.wrapping_key().await?;
-        let mut bucket = LocalBucket::new(origin, &wrapping_key).await?;
+        let mut bucket = LocalDrive::new(origin, &wrapping_key).await?;
         bucket.name = name.to_string();
         self.buckets.push(bucket.clone());
         self.to_disk()?;
@@ -219,7 +205,7 @@ impl GlobalConfig {
     }
 
     /// Get a Bucket configuration by the origin
-    pub fn get_bucket(&self, origin: &Path) -> Option<LocalBucket> {
+    pub fn get_bucket(&self, origin: &Path) -> Option<LocalDrive> {
         self.buckets
             .iter()
             .find(|bucket| bucket.origin == origin)
@@ -231,7 +217,7 @@ impl GlobalConfig {
         &mut self,
         name: &str,
         origin: &Path,
-    ) -> Result<LocalBucket, NativeError> {
+    ) -> Result<LocalDrive, NativeError> {
         if let Some(config) = self.get_bucket(origin) {
             Ok(config.clone())
         } else {
@@ -249,7 +235,7 @@ mod test {
     use crate::native::{
         configuration::{
             globalconfig::GlobalConfig,
-            xdg::{config_path, default_api_key_path, default_wrapping_key_path},
+            xdg::{config_path, default_user_key_path},
         },
         NativeError,
     };
@@ -263,12 +249,7 @@ mod test {
         if known_path.exists() {
             remove_file(&known_path)?;
         }
-        let known_path = default_wrapping_key_path();
-        // Remove it if it exists
-        if known_path.exists() {
-            remove_file(&known_path)?;
-        }
-        let known_path = default_api_key_path();
+        let known_path = default_user_key_path();
         // Remove it if it exists
         if known_path.exists() {
             remove_file(&known_path)?;
@@ -290,25 +271,14 @@ mod test {
         if known_path.exists() {
             remove_file(&known_path)?;
         }
-        let known_path = default_wrapping_key_path();
-        // Remove it if it exists
-        if known_path.exists() {
-            remove_file(&known_path)?;
-        }
-        let known_path = default_api_key_path();
+        let known_path = default_user_key_path();
         // Remove it if it exists
         if known_path.exists() {
             remove_file(&known_path)?;
         }
         // Load from disk
         let reconstructed = GlobalConfig::new().await?;
-        // Assert that it is just the default config
-        let known_path = default_wrapping_key_path();
-        // Remove it if it exists
-        if known_path.exists() {
-            remove_file(&known_path)?;
-        }
-        let known_path = default_api_key_path();
+        let known_path = default_user_key_path();
         // Remove it if it exists
         if known_path.exists() {
             remove_file(&known_path)?;

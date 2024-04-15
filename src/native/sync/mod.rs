@@ -11,7 +11,7 @@ use crate::{
         client::Client,
         error::ApiError,
         models::{
-            bucket::{Bucket, BucketType, StorageClass},
+            drive::{Bucket, BucketType, StorageClass},
             metadata::Metadata,
             storage_ticket::StorageTicket,
         },
@@ -21,8 +21,8 @@ use crate::{
 };
 use colored::Colorize;
 use futures_util::StreamExt;
-pub use local::LocalBucket;
-pub use omni::OmniBucket;
+pub use local::LocalDrive;
+pub use omni::OmniDrive;
 use std::{collections::BTreeSet, fmt::Display};
 use tokio::io::AsyncWriteExt;
 use tomb_crypt::prelude::{PrivateKey, PublicKey};
@@ -63,7 +63,7 @@ impl Display for SyncState {
     }
 }
 
-impl OmniBucket {
+impl OmniDrive {
     /// Determine the Sync State of an omni bucket
     pub async fn determine_sync_state(&mut self) -> Result<(), NativeError> {
         let bucket_id = match self.get_id() {
