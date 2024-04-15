@@ -1,11 +1,8 @@
 use std::{fmt::Display, path::PathBuf, string::FromUtf8Error};
 
-use banyanfs::error::BanyanFsError;
+use banyanfs::{api::ApiError, error::BanyanFsError};
 use colored::Colorize;
-use tomb_crypt::prelude::TombCryptError;
 use uuid::Uuid;
-
-use crate::api::error::ApiError;
 
 //#[cfg(feature = "cli")]
 //use {crate::cli::specifiers::DriveSpecifier, std::path::PathBuf, uuid::Uuid};
@@ -37,9 +34,6 @@ impl Display for NativeError {
             }
             NativeErrorKind::BadData => "bad data".to_owned(),
             NativeErrorKind::Custom(msg) => msg.to_owned(),
-            NativeErrorKind::Cryptographic(err) => {
-                format!("{} {err}", "CRYPTOGRAPHIC ERROR:".underline())
-            }
             NativeErrorKind::Filesystem(err) => {
                 format!("{} {err}", "FILESYSTEM ERROR:".underline())
             }
@@ -110,13 +104,7 @@ impl NativeError {
         }
     }
 
-    pub fn cryptographic(err: TombCryptError) -> Self {
-        Self {
-            kind: NativeErrorKind::Cryptographic(err),
-        }
-    }
-
-    pub fn filesytem(err: BanyanFsError) -> Self {
+    pub fn filesystem(err: BanyanFsError) -> Self {
         Self {
             kind: NativeErrorKind::Filesystem(err),
         }
@@ -160,17 +148,16 @@ enum NativeErrorKind {
     UniqueDriveError,
     BadData,
     Custom(String),
-    Cryptographic(TombCryptError),
-    Fs(banyanfs::error::BanyanFsError),
-    Api(ApiError),
+    Filesystem(BanyanFsError),
+    Api(ApiClientError),
     Io(std::io::Error),
     UnknownDrivePath(PathBuf),
     UnknownDriveId(Uuid),
 }
 
-impl From<TombCryptError> for NativeError {
-    fn from(value: TombCryptError) -> Self {
-        Self::cryptographic(value)
+impl From<BanyanFsError> for NativeError {
+    fn from(value: BanyanFsError) -> Self {
+        Self::filesystem(value)
     }
 }
 

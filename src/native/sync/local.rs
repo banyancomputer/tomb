@@ -1,4 +1,7 @@
-use crate::{datastore::DiskDataStore, native::configuration::xdg::*};
+use crate::{
+    drive::{DiskDataStore, LocalSyncStore},
+    native::configuration::xdg::*,
+};
 use banyanfs::prelude::*;
 use colored::Colorize;
 use rand::{distributions::Alphanumeric, Rng};
@@ -23,14 +26,7 @@ pub struct LocalDrive {
     local_id: String,
     /// Drive Uuid on the remote server
     pub(crate) remote_id: Option<Uuid>,
-    /// Storage ticket in case we lose track of non-metadata components
-    //pub(crate) storage_ticket: Option<StorageTicket>,
-    /// Locally deleted blocks the server needs to be notified of
-    pub sync_tracker: MemorySyncTracker,
-    /// DataStore for storing metadata and file content
-    pub content: DiskDataStore,
-    /// Previous root cid of the metadata DataStore, if there is one
-    pub previous_cid: Option<Cid>,
+    pub storage: LocalSyncStore,
 }
 
 impl Display for LocalDrive {

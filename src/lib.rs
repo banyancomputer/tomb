@@ -13,7 +13,7 @@
 //pub(crate) mod car;
 
 // we do want a custom disk based datastore
-pub(crate) mod datastore;
+pub(crate) mod drive;
 
 // we can just use the banyanfs
 //pub(crate) mod filesystem;

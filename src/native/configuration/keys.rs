@@ -1,18 +1,19 @@
 use crate::native::NativeError;
+use banyanfs::prelude::*;
 use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
 };
-use tomb_crypt::prelude::{EcEncryptionKey, EcSignatureKey, PrivateKey};
 
 /// Generate a new Ecdsa key to use for authentication
 /// Writes the key to the config path
-pub async fn new_user_key(path: &PathBuf) -> Result<EcSignatureKey, NativeError> {
+pub async fn new_user_key(path: &PathBuf) -> Result<SigningKey, NativeError> {
     if path.exists() {
         load_user_key(path).await?;
     }
-    let key = EcSignatureKey::generate().await?;
+    let mut rng = banyanfs::utils::crypto_rng();
+    let key = SigningKey::generate(&mut rng).await?;
     let pem_bytes = key.export().await?;
     let mut f = File::create(path)?;
     f.write_all(&pem_bytes)?;
@@ -20,16 +21,16 @@ pub async fn new_user_key(path: &PathBuf) -> Result<EcSignatureKey, NativeError>
 }
 
 /// Read the API key from disk
-pub async fn load_user_key(path: &PathBuf) -> Result<EcSignatureKey, NativeError> {
+pub async fn load_user_key(path: &PathBuf) -> Result<SigningKey, NativeError> {
     let mut reader = File::open(path)?;
     let mut pem_bytes = Vec::new();
     reader.read_to_end(&mut pem_bytes)?;
-    let key = EcSignatureKey::import(&pem_bytes).await?;
+    let key = SigningKey::import(&pem_bytes).await?;
     Ok(key)
 }
 
 /// Save the API key to disk
-pub async fn save_user_key(path: &PathBuf, key: EcSignatureKey) -> Result<(), NativeError> {
+pub async fn save_user_key(path: &PathBuf, key: SigningKey) -> Result<(), NativeError> {
     let mut writer = File::create(path)?;
     // Write the PEM bytes
     writer.write_all(&key.export().await?)?;

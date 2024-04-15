@@ -1,5 +1,4 @@
 use crate::{
-    banyanfs::platform::api::client::{Client, Credentials},
     native::{
         configuration::{
             keys::{load_user_key, new_user_key, save_user_key},
@@ -10,13 +9,14 @@ use crate::{
     },
     utils::get_read,
 };
+use banyanfs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{remove_file, OpenOptions},
     path::{Path, PathBuf},
     str::FromStr,
+    sync::Arc,
 };
-use tomb_crypt::prelude::{EcEncryptionKey, EcSignatureKey};
 use url::Url;
 use uuid::Uuid;
 
@@ -71,12 +71,13 @@ impl GlobalConfig {
     }
 
     /// Get the user key
-    pub async fn user_key(&self) -> Result<EcSignatureKey, NativeError> {
-        load_user_key(&self.api_key_path)
+    pub async fn user_key(&self) -> Result<SigningKey, NativeError> {
+        load_user_key(&self.user_key_path)
             .await
             .map_err(|_| NativeError::missing_api_key())
     }
 
+    /*
     // Get the Gredentials
     async fn get_credentials(&self) -> Result<Credentials, NativeError> {
         Ok(Credentials {
@@ -84,23 +85,25 @@ impl GlobalConfig {
             signing_key: self.user_key().await?,
         })
     }
+    */
 
-    /// Get the Client data
-    pub async fn get_client(&self) -> Result<Client, NativeError> {
-        // Create a new Client
-        let mut client = Client::new(self.endpoint.as_ref())?;
-        // If there are already credentials
-        if let Ok(credentials) = self.get_credentials().await {
-            // Set the credentials
-            client.with_credentials(credentials);
-        }
-        // Return the Client
-        Ok(client)
+    /// Get the ApiClient data
+    pub async fn get_client(&self) -> Result<ApiClient, NativeError> {
+        let user_key = Arc::new(self.user_key().await?);
+        // Create a new ApiClient
+        ApiClient::new(
+            &self.endpoint.to_string(),
+            "",
+            //self.account_id,
+            user_key,
+        )
+        .map_err(|err| NativeError::custom_error(&format!("client creation: {err}")))
     }
 
     #[allow(unused)]
-    /// Save the Client data to the config
-    pub async fn save_client(&mut self, client: Client) -> Result<(), NativeError> {
+    /// Save the ApiClient data to the config
+    pub async fn save_client(&mut self, client: ApiClient) -> Result<(), NativeError> {
+        /*
         // Update the Remote endpoints
         self.endpoint = client.remote_core;
         // If there is a Claim
@@ -110,11 +113,12 @@ impl GlobalConfig {
                 Some(Uuid::from_str(token.sub()?).map_err(|_| NativeError::bad_data())?);
         }
 
-        // If the Client has an API key
+        // If the ApiClient has an API key
         if let Some(api_key) = client.signing_key {
             // Save the API key to disk
             save_user_key(&self.api_key_path, api_key).await?;
         }
+        */
 
         self.to_disk()
     }

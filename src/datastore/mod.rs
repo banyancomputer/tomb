@@ -1,8 +1,8 @@
-//mod api;
-//mod carv2_disk;
-//mod carv2_memory;
 mod disk;
-//mod error;
-//mod multi_carv2_disk;
+mod error;
+mod tracker;
 
-pub use disk::DiskDataStore;
+use banyanfs::stores::ApiSyncableStore;
+use disk::DiskDataStore;
+
+pub type DataStorage = ApiSyncableStore<DiskDataStore, DiskSyncTracker>;

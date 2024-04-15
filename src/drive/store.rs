@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use async_trait::async_trait;
 use banyanfs::{
     codec::Cid,
@@ -11,12 +13,12 @@ pub struct DiskDataStore {
 }
 
 impl DiskDataStore {
-    pub fn new_at_path(prefix: &Path) -> Self {
-        let fs = LocalFileSystem::new_with_prefix(prefix).unwrap();
-        Self {
-            fs,
-            drive_name: prefix.to_string(),
-        }
+    pub fn new_at_path(parent: PathBuf, drive_name: String) -> Result<Self, DataStoreError> {
+        let prefix = parent.join(&drive_name);
+        let fs = LocalFileSystem::new_with_prefix(prefix).map_err(|_| {
+            DataStoreError::Implementation(String::from("failed to initalize local filesystem"))
+        })?;
+        Ok(Self { fs, drive_name })
     }
 
     fn cid_as_path(&self, cid: &Cid) -> Path {
