@@ -2,6 +2,8 @@ use std::{env, fs::create_dir_all, path::PathBuf};
 const HOME_ERROR: &str = "cant find home directory";
 const GLOBAL_CONFIG_NAME: &str = "config.json";
 const PRIMARY_USER_KEY_NAME: &str = "primary.pem";
+const METADATA_DRIVE_NAME: &str = "metadata.car";
+const CONTENT_DRIVE_NAME: &str = "content";
 
 /// Grab config path
 pub fn xdg_config_home() -> PathBuf {
@@ -41,4 +43,16 @@ pub fn config_path() -> PathBuf {
 /// Grab path to API Key
 pub fn default_user_key_path() -> PathBuf {
     xdg_data_home().join("keys").join(PRIMARY_USER_KEY_NAME)
+}
+
+fn drive_data_home(local_id: &str) -> PathBuf {
+    xdg_data_home().join(local_id)
+}
+
+fn drive_metadata_path(name: &str) -> PathBuf {
+    xdg_data_home().join(name).join(METADATA_DRIVE_NAME)
+}
+
+fn drive_content_path(name: &str) -> PathBuf {
+    xdg_data_home().join(name).join(CONTENT_DRIVE_NAME)
 }

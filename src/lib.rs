@@ -5,9 +5,17 @@
 /// CLI Parsing
 //#[cfg(feature = "cli")]
 //pub mod cli;
-pub(crate) mod api;
+
+// we can just use banyanfs platform
+//pub(crate) mod api;
+
+// we dont need car filing in the client anymore i dont think
 //pub(crate) mod car;
+
+// we do want a custom disk based datastore
 pub(crate) mod datastore;
+
+// we can just use the banyanfs
 //pub(crate) mod filesystem;
 pub mod native;
 pub(crate) mod utils;

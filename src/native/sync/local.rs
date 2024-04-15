@@ -1,8 +1,5 @@
-use crate::{
-    api::models::storage_ticket::StorageTicket, datastore::DiskDataStore,
-    native::configuration::xdg::xdg_data_home,
-};
-use banyanfs::codec::Cid;
+use crate::{datastore::DiskDataStore, native::configuration::xdg::*};
+use banyanfs::prelude::*;
 use colored::Colorize;
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
@@ -12,23 +9,7 @@ use std::{
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
 };
-use tomb_crypt::prelude::EcEncryptionKey;
 use uuid::Uuid;
-
-const BUCKET_METADATA_FILE_NAME: &str = "metadata.car";
-const BUCKET_CONTENT_DIR_NAME: &str = "content";
-
-fn drive_data_home(local_id: &str) -> PathBuf {
-    xdg_data_home().join(local_id)
-}
-
-fn drive_metadata_path(name: &str) -> PathBuf {
-    xdg_data_home().join(name).join(BUCKET_METADATA_FILE_NAME)
-}
-
-fn drive_content_path(name: &str) -> PathBuf {
-    xdg_data_home().join(name).join(BUCKET_CONTENT_DIR_NAME)
-}
 
 // TODO: This is maybe better concieved of as a Drive
 /// Configuration for an individual Drive / FileSystem
@@ -43,11 +24,9 @@ pub struct LocalDrive {
     /// Drive Uuid on the remote server
     pub(crate) remote_id: Option<Uuid>,
     /// Storage ticket in case we lose track of non-metadata components
-    pub(crate) storage_ticket: Option<StorageTicket>,
+    //pub(crate) storage_ticket: Option<StorageTicket>,
     /// Locally deleted blocks the server needs to be notified of
-    pub(crate) deleted_block_cids: BTreeSet<Cid>,
-    /// DataStore for storing metadata only
-    pub metadata: DiskDataStore,
+    pub sync_tracker: MemorySyncTracker,
     /// DataStore for storing metadata and file content
     pub content: DiskDataStore,
     /// Previous root cid of the metadata DataStore, if there is one
@@ -76,10 +55,7 @@ impl Display for LocalDrive {
 
 impl LocalDrive {
     /// Given a directory, initialize a configuration for it
-    pub async fn new(
-        origin: &Path,
-        wrapping_key: &EcEncryptionKey,
-    ) -> Result<Self, FilesystemError> {
+    pub async fn new(origin: &Path, user_key: &EcSignatureKey) -> Result<Self, FilesystemError> {
         create_dir_all(origin).expect("already exists");
         let name = origin
             .file_name()
@@ -98,12 +74,13 @@ impl LocalDrive {
         create_dir_all(drive_home).expect("already exists");
         let metadata_path = drive_metadata_path(&local_id);
         let content_path = drive_content_path(&local_id);
-        let metadata = CarV2DiskBlockStore::new(&metadata_path)?;
-        let mut content = MultiCarV2DiskBlockStore::new(&content_path)?;
+        let metadata = DiskDataStore::new_at_path(&metadata_path)?;
+        let mut content = DiskDataStore::new_at_path(&content_path)?;
         content.add_delta()?;
 
-        // Initialize the fs metadata
-        let mut fs = FsMetadata::init(wrapping_key).await?;
+        let mut rng = banyanfs::utils::crypto_rng();
+        let drive = Drive::initialize_private(&mut rng, user_key).await?;
+
         // Save our fs to establish map
         fs.save(&metadata, &content).await?;
         Ok(Self {
@@ -128,10 +105,7 @@ impl LocalDrive {
     }
 
     /// Shortcut for unlocking a filesystem
-    pub async fn unlock_fs(
-        &self,
-        wrapping_key: &EcEncryptionKey,
-    ) -> Result<FsMetadata, FilesystemError> {
+    pub async fn unlock_fs(&self, user_key: &EcSignatureKey) -> Result<Drive, FilesystemError> {
         FsMetadata::unlock(wrapping_key, &self.metadata).await
     }
 

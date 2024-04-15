@@ -11,11 +11,11 @@ pub struct DiskDataStore {
 }
 
 impl DiskDataStore {
-    pub fn new(drive_name: &str) -> Self {
-        let fs = LocalFileSystem::new_with_prefix(drive_name).unwrap();
+    pub fn new_at_path(prefix: &Path) -> Self {
+        let fs = LocalFileSystem::new_with_prefix(prefix).unwrap();
         Self {
             fs,
-            drive_name: drive_name.to_string(),
+            drive_name: prefix.to_string(),
         }
     }
 

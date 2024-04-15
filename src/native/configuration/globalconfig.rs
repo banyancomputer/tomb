@@ -1,5 +1,5 @@
 use crate::{
-    api::client::{Client, Credentials},
+    banyanfs::platform::api::client::{Client, Credentials},
     native::{
         configuration::{
             keys::{load_user_key, new_user_key, save_user_key},

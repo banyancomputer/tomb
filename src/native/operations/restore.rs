@@ -1,7 +1,8 @@
 use crate::native::{
-    configuration::globalconfig::GlobalConfig, sync::OmniBucket, utils::get_progress_bar,
+    configuration::globalconfig::GlobalConfig, sync::OmniDrive, utils::get_progress_bar,
     NativeError,
 };
+use banyanfs::{filesystem::Drive, stores::DataStore};
 use std::{fs::File, io::Write, os::unix::fs::symlink, path::PathBuf};
 use tracing::{info, warn};
 
@@ -16,7 +17,7 @@ use tracing::{info, warn};
 ///
 /// # Return Type
 /// Returns `Ok(())` on success, otherwise returns an error.
-pub async fn pipeline(mut omni: OmniBucket) -> Result<String, NativeError> {
+pub async fn pipeline(mut omni: OmniDrive) -> Result<String, NativeError> {
     let fs = omni.unlock().await?;
     let local = omni.get_local()?;
     let mut global = GlobalConfig::from_disk().await?;
@@ -51,12 +52,18 @@ pub async fn pipeline(mut omni: OmniBucket) -> Result<String, NativeError> {
 
 /// Restore all nodes
 pub async fn restore_nodes(
-    fs: &FsMetadata,
-    all_nodes: Vec<(PrivateNode, PathBuf)>,
+    fs: &Drive,
     restored: PathBuf,
-    metadata_store: &impl RootedBlockStore,
-    content_store: &impl RootedBlockStore,
+    metadata_store: &impl DataStore,
+    content_store: &impl DataStore,
 ) -> Result<(), NativeError> {
+    let count = 0;
+    let nodes = fs.for_each_node(|node| match node.kind() {
+        //NodeType::
+        NodeKind::NativeMount => Ok(Some(())),
+        _ => Ok(None),
+    });
+
     // Initialize the progress bar using the number of Nodes to process
     let progress_bar = get_progress_bar(all_nodes.len() as u64);
     // For each node path tuple in the FS Metadata

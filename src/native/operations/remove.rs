@@ -1,8 +1,10 @@
-use crate::native::{configuration::globalconfig::GlobalConfig, sync::LocalBucket, NativeError};
+use crate::native::{configuration::globalconfig::GlobalConfig, sync::LocalDrive, NativeError};
 use std::path::Path;
 
+use super::compression::path_to_segments;
+
 /// The pipeline for removing an individual file from a WNFS
-pub async fn pipeline(mut local: LocalBucket, wnfs_path: &Path) -> Result<(), NativeError> {
+pub async fn pipeline(mut local: LocalDrive, wnfs_path: &Path) -> Result<(), NativeError> {
     // Global config
     let mut global = GlobalConfig::from_disk().await?;
     let wrapping_key = global.clone().wrapping_key().await?;

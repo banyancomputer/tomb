@@ -1,14 +1,11 @@
-use crate::{
-    api::models::metadata::Metadata,
-    native::{
-        configuration::globalconfig::GlobalConfig,
-        file_scanning::{grouper, spider, spider_plans::PreparePipelinePlan},
-        sync::OmniDrive,
-        utils::get_progress_bar,
-        NativeError,
-    },
+use crate::native::{
+    configuration::globalconfig::GlobalConfig,
+    file_scanning::{grouper, spider, spider_plans::PreparePipelinePlan},
+    sync::OmniDrive,
+    utils::get_progress_bar,
+    NativeError,
 };
-use banyanfs::prelude::*;
+use banyanfs::prelude::{platform::metadata, *};
 use std::{
     collections::HashSet,
     fs::File,
@@ -16,6 +13,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use tracing::info;
+
+use super::compression::path_to_segments;
 
 /// Given the input directory, the output directory, the manifest file, and other metadata,
 /// prepare the input directory into the output directory and store a record of how this
@@ -39,7 +38,7 @@ pub async fn pipeline(mut omni: OmniDrive, follow_links: bool) -> Result<String,
     // If there is a remote Bucket with metadatas that include a content root cid which has already been persisted
     if client.is_authenticated().await {
         if let Ok(remote) = omni.get_remote() {
-            if let Ok(metadatas) = Metadata::read_all(remote.id, &mut client).await {
+            if let Ok(metadatas) = metadata::get_all(remote.id, &mut client).await {
                 if metadatas.iter().any(|metadata| {
                     Some(metadata.root_cid.clone())
                         == local.content.get_root().map(|cid| cid.to_string())
@@ -158,10 +157,10 @@ pub async fn create_plans(
 
 /// Given a set of PreparePipelinePlans and required structs, process each
 pub async fn process_plans(
-    fs: &mut FsMetadata,
+    fs: &mut Drive,
     bundling_plan: Vec<PreparePipelinePlan>,
-    metadata_store: &impl RootedBlockStore,
-    content_store: &impl RootedBlockStore,
+    metadata_store: &impl DataStore,
+    content_store: &impl DataStore,
 ) -> Result<(), NativeError> {
     // Initialize the progress bar using the number of Nodes to process
     let progress_bar = get_progress_bar(bundling_plan.len() as u64);

@@ -61,11 +61,10 @@ reqwest = { version = "^0.11", features = [
 serde = { version = "^1", features = ["derive"] }
 serde_json = { version = "^1", features = ["std"] }
 thiserror = { version = "^1" }
-tomb-crypt = { git = "https://github.com/banyancomputer/tomb-crypt", branch = "main", version = "^0.1" }
 unsigned-varint = { version = "^0.8" }
 url = { version = "^2", features = ["serde"] }
 uuid = { version = "^1", features = ["serde", "v4"] }
-banyanfs = "0.2.1"
+banyanfs = { path = "../banyanfs/", features = ["banyan-api"] }
 object_store = "0.9.1"
 #banyan-object-store = { path = "../banyan-core/crates/banyan-object-store/" }
 
