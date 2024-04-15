@@ -1,8 +1,6 @@
 use colored::Colorize;
 use std::{fmt::Display, string::FromUtf8Error};
 
-use crate::native::NativeError;
-
 #[derive(Debug)]
 pub struct UtilityError {
     kind: UtilityErrorKind,
@@ -32,12 +30,6 @@ impl UtilityError {
             kind: UtilityErrorKind::Utf8(err),
         }
     }
-
-    pub fn native(err: NativeError) -> Self {
-        Self {
-            kind: UtilityErrorKind::Native(err),
-        }
-    }
 }
 
 impl Display for UtilityError {
@@ -47,7 +39,7 @@ impl Display for UtilityError {
             UtilityErrorKind::Varint(err) => format!("{} {err}", "VARINT ERROR:".underline()),
             UtilityErrorKind::Io(err) => format!("{} {err}", "IO ERROR:".underline()),
             UtilityErrorKind::Utf8(err) => format!("{} {err}", "UTF8 ERROR:".underline()),
-            UtilityErrorKind::Native(err) => format!("{} {err}", "NATIVE ERROR:".underline()),
+            //            UtilityErrorKind::Native(err) => format!("{} {err}", "NATIVE ERROR:".underline()),
         };
 
         f.write_str(&string)
@@ -60,8 +52,6 @@ pub enum UtilityErrorKind {
     Varint(unsigned_varint::decode::Error),
     Io(std::io::Error),
     Utf8(FromUtf8Error),
-    #[cfg(test)]
-    Native(NativeError),
 }
 
 impl From<unsigned_varint::decode::Error> for UtilityError {
@@ -79,17 +69,5 @@ impl From<std::io::Error> for UtilityError {
 impl From<FromUtf8Error> for UtilityError {
     fn from(value: FromUtf8Error) -> Self {
         Self::utf8(value)
-    }
-}
-
-impl From<NativeError> for UtilityError {
-    fn from(value: NativeError) -> Self {
-        Self::native(value)
-    }
-}
-
-impl From<FilesystemError> for UtilityError {
-    fn from(value: FilesystemError) -> Self {
-        Self::native(NativeError::filesytem(value))
     }
 }

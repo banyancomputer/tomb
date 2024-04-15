@@ -33,8 +33,8 @@ pub struct GlobalConfig {
     endpoint: Url,
     /// Remote account id
     remote_user_id: Option<Uuid>,
-    /// Bucket Configurations
-    pub(crate) buckets: Vec<LocalBucket>,
+    /// Drive Configurations
+    pub(crate) drives: Vec<LocalBucket>,
 }
 
 impl Default for GlobalConfig {

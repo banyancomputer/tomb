@@ -5,7 +5,7 @@
 /// CLI Parsing
 //#[cfg(feature = "cli")]
 //pub mod cli;
-pub(crate) mod api;
+//pub(crate) mod api;
 //pub(crate) mod car;
 pub(crate) mod datastore;
 //pub(crate) mod filesystem;

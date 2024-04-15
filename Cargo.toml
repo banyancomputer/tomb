@@ -66,6 +66,8 @@ unsigned-varint = { version = "^0.8" }
 url = { version = "^2", features = ["serde"] }
 uuid = { version = "^1", features = ["serde", "v4"] }
 banyanfs = "0.2.1"
+object_store = "0.9.1"
+#banyan-object-store = { path = "../banyan-core/crates/banyan-object-store/" }
 
 [dev-dependencies]
 fake-file = { version = "^0.1" }
