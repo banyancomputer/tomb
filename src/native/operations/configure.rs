@@ -9,14 +9,14 @@ pub async fn init(name: &str, path: &Path) -> Result<(), NativeError> {
         Ok(global) => global,
         Err(_) => GlobalConfig::new().await?,
     };
-    global.get_or_init_bucket(name, path).await.map(|_| ())
+    global.get_or_init_drive(name, path).await.map(|_| ())
 }
 
 /// Remove all configuration data for a given bucket
 pub async fn deinit(path: &Path) -> Result<(), NativeError> {
     if let Ok(mut global) = GlobalConfig::from_disk().await {
-        if let Some(local) = global.get_bucket(path) {
-            global.remove_bucket(&local)?;
+        if let Some(local) = global.get_drive(path) {
+            global.remove_drive(&local)?;
         }
     }
 

@@ -7,6 +7,7 @@ pub mod specifiers;
 /// Debug level
 pub mod verbosity;
 
+/*
 #[cfg(test)]
 mod test {
     #[cfg(feature = "integration-tests")]
@@ -155,3 +156,4 @@ mod test {
         test_teardown(test_name).await
     }
 }
+*/

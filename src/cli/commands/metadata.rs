@@ -1,19 +1,15 @@
 use std::collections::BTreeSet;
 
-use crate::{
-    api::models::metadata::Metadata,
-    filesystem::FilesystemError,
-    native::{configuration::globalconfig::GlobalConfig, sync::OmniBucket, NativeError},
-    prelude::blockstore::RootedBlockStore,
-};
+use crate::native::{configuration::globalconfig::GlobalConfig, sync::OmniDrive, NativeError};
 
 use super::{
     super::specifiers::{DriveSpecifier, MetadataSpecifier},
     RunnableCommand,
 };
 use async_trait::async_trait;
+use banyanfs::api::platform::*;
+use banyanfs::prelude::*;
 use clap::Subcommand;
-use wnfs::{libipld::Cid, private::PrivateNode};
 
 /// Subcommand for Bucket Metadata
 #[derive(Subcommand, Clone, Debug)]
@@ -35,9 +31,8 @@ impl RunnableCommand<NativeError> for MetadataCommand {
         match self {
             // List all Metadata for a Bucket
             MetadataCommand::Ls(drive_specifier) => {
-                let omni = OmniBucket::from_specifier(&drive_specifier).await;
-                let bucket_id = omni.get_id()?;
-                Metadata::read_all(bucket_id, &mut client)
+                let omni = OmniDrive::from_specifier(&drive_specifier).await;
+                metadata::get_all(&mut client, omni.get_id()?)
                     .await
                     .map(|metadatas| {
                         metadatas.iter().fold(String::from("\n"), |acc, metadata| {
@@ -49,36 +44,36 @@ impl RunnableCommand<NativeError> for MetadataCommand {
             // Read an existing metadata
             MetadataCommand::Read(metadata_specifier) => {
                 // Get Bucket config
-                let omni = OmniBucket::from_specifier(&metadata_specifier.drive_specifier).await;
+                let omni = OmniDrive::from_specifier(&metadata_specifier.drive_specifier).await;
                 // If we can get the metadata
                 let remote_id = omni.get_id()?;
-                Metadata::read(remote_id, metadata_specifier.metadata_id, &mut client)
+                metadata::get(&mut client, remote_id, metadata_specifier.metadata_id)
                     .await
                     .map(|metadata| format!("{:?}", metadata))
                     .map_err(NativeError::api)
             }
             // Read the current Metadata
             MetadataCommand::ReadCurrent(drive_specifier) => {
-                let omni = OmniBucket::from_specifier(&drive_specifier).await;
-                let bucket_id = omni.get_id()?;
-                Metadata::read_current(bucket_id, &mut client)
+                let omni = OmniDrive::from_specifier(&drive_specifier).await;
+                metadata::get_current(&mut client, omni.get_id()?)
                     .await
                     .map(|metadata| format!("{:?}", metadata))
                     .map_err(NativeError::api)
             }
             // Take a Cold Snapshot of the remote metadata
             MetadataCommand::Snapshot(metadata_specifier) => {
-                let omni = OmniBucket::from_specifier(&metadata_specifier.drive_specifier).await;
+                let omni = OmniDrive::from_specifier(&metadata_specifier.drive_specifier).await;
                 let bucket_id = omni.get_id().expect("no remote id");
                 let metadata =
-                    Metadata::read(bucket_id, metadata_specifier.metadata_id, &mut client).await?;
+                    metadata::get(&mut client, omni.get_id()?, metadata_specifier.metadata_id)
+                        .await?;
 
                 // Grab the local filesystem
                 let local = omni.get_local()?;
 
                 // If the root of our currently stored metadata BlockStore doesn't actually match the metadata we're trying to snapshot
                 if local.metadata.get_root().map(|cid| cid.to_string())
-                    != Some(metadata.metadata_cid.clone())
+                    != Some(metadata.metadata_cid())
                 {
                     return Err(NativeError::custom_error("this is the wrong metadata"));
                 }
@@ -95,6 +90,7 @@ impl RunnableCommand<NativeError> for MetadataCommand {
                     .collect::<BTreeSet<Cid>>();
 
                 // For every node that is a PrivateFile
+                /*
                 for (node, _) in fs.get_all_nodes(&local.metadata).await? {
                     if let PrivateNode::File(file) = node {
                         // Extend with all the cids in the file
@@ -105,6 +101,7 @@ impl RunnableCommand<NativeError> for MetadataCommand {
                         )
                     }
                 }
+                */
 
                 metadata
                     .snapshot(active_cids, &mut client)

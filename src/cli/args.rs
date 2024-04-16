@@ -1,6 +1,6 @@
 use clap::{command, Parser};
 
-use super::{commands::TombCommand, verbosity::MyVerbosity};
+use super::{commands::BanyanCommand, verbosity::MyVerbosity};
 
 /// Arguments to tomb
 #[derive(Parser, Debug)]
@@ -8,7 +8,7 @@ use super::{commands::TombCommand, verbosity::MyVerbosity};
 pub struct Args {
     /// Command passed
     #[command(subcommand)]
-    pub command: TombCommand,
+    pub command: BanyanCommand,
     /// Verbosity level.
     #[arg(short, long, help = "verbosity level", default_value = "normal")]
     pub verbose: MyVerbosity,

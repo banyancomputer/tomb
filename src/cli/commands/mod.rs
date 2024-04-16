@@ -16,6 +16,7 @@ pub use drives::DrivesCommand;
 pub use keys::KeyCommand;
 pub use metadata::MetadataCommand;
 pub use runnable_command::RunnableCommand;
+use tracing::info;
 
 /// Prompt the user for a y/n answer
 pub fn prompt_for_bool(msg: &str) -> bool {
@@ -33,7 +34,7 @@ pub fn prompt_for_bool(msg: &str) -> bool {
 
 /// Defines the types of commands that can be executed from the CLI.
 #[derive(Debug, Subcommand, Clone)]
-pub enum TombCommand {
+pub enum BanyanCommand {
     /// Manually configure remote endpoints
     Api {
         /// Subcommand
@@ -55,12 +56,12 @@ pub enum TombCommand {
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for TombCommand {
+impl RunnableCommand<NativeError> for BanyanCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
         match self {
-            TombCommand::Api { command } => Ok(command.run_internal().await?),
-            TombCommand::Account { command } => Ok(command.run_internal().await?),
-            TombCommand::Drives { command } => command.run_internal().await,
+            BanyanCommand::Api { command } => Ok(command.run_internal().await?),
+            BanyanCommand::Account { command } => Ok(command.run_internal().await?),
+            BanyanCommand::Drives { command } => command.run_internal().await,
         }
     }
 }

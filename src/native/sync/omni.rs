@@ -15,7 +15,6 @@ use std::{
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
 };
-use tomb_crypt::prelude::{PrivateKey, PublicKey};
 use uuid::Uuid;
 
 /// Struct for representing the ambiguity between local and remote copies of a Drive

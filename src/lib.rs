@@ -4,7 +4,7 @@
 
 /// CLI Parsing
 //#[cfg(feature = "cli")]
-//pub mod cli;
+pub mod cli;
 
 // we can just use banyanfs platform
 //pub(crate) mod api;

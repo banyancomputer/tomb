@@ -5,7 +5,7 @@ use crate::native::{
     utils::get_progress_bar,
     NativeError,
 };
-use banyanfs::prelude::{platform::metadata, *};
+use banyanfs::prelude::*;
 use std::{
     collections::HashSet,
     fs::File,
@@ -34,22 +34,6 @@ pub async fn pipeline(mut omni: OmniDrive, follow_links: bool) -> Result<String,
     let mut local = omni.get_local()?;
     let mut global = GlobalConfig::from_disk().await?;
     let mut client = global.get_client().await?;
-
-    // If there is a remote Bucket with metadatas that include a content root cid which has already been persisted
-    if client.is_authenticated().await {
-        if let Ok(remote) = omni.get_remote() {
-            if let Ok(metadatas) = metadata::get_all(remote.id, &mut client).await {
-                if metadatas.iter().any(|metadata| {
-                    Some(metadata.root_cid.clone())
-                        == local.content.get_root().map(|cid| cid.to_string())
-                }) {
-                    info!("Starting a new delta...");
-                    local.content.add_delta()?;
-                    omni.set_local(local.clone());
-                }
-            }
-        }
-    }
 
     // Create bundling plan
     let bundling_plan = create_plans(&local.origin, follow_links).await?;

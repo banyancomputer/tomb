@@ -30,7 +30,7 @@ pub struct GlobalConfig {
     /// Remote endpoint
     endpoint: Url,
     /// Remote account id
-    remote_user_id: Option<Uuid>,
+    account_id: Option<Uuid>,
     /// Drive Configurations
     pub(crate) drives: Vec<LocalDrive>,
 }
@@ -48,7 +48,7 @@ impl Default for GlobalConfig {
             version: env!("CARGO_PKG_VERSION").to_string(),
             endpoint,
             user_key_path: default_user_key_path(),
-            remote_user_id: None,
+            account_id: None,
             drives: Vec::new(),
         }
     }
@@ -89,38 +89,18 @@ impl GlobalConfig {
 
     /// Get the ApiClient data
     pub async fn get_client(&self) -> Result<ApiClient, NativeError> {
-        let user_key = Arc::new(self.user_key().await?);
-        // Create a new ApiClient
-        ApiClient::new(
-            &self.endpoint.to_string(),
-            "",
-            //self.account_id,
-            user_key,
-        )
-        .map_err(|err| NativeError::custom_error(&format!("client creation: {err}")))
-    }
-
-    #[allow(unused)]
-    /// Save the ApiClient data to the config
-    pub async fn save_client(&mut self, client: ApiClient) -> Result<(), NativeError> {
-        /*
-        // Update the Remote endpoints
-        self.endpoint = client.remote_core;
-        // If there is a Claim
-        if let Some(token) = client.claims {
-            // Update the remote account ID
-            self.remote_user_id =
-                Some(Uuid::from_str(token.sub()?).map_err(|_| NativeError::bad_data())?);
+        if let Some(account_id) = self.account_id {
+            let user_key = Arc::new(self.user_key().await?);
+            // Create a new ApiClient
+            ApiClient::new(
+                &self.endpoint.to_string(),
+                &account_id.to_string(),
+                user_key,
+            )
+            .map_err(|err| NativeError::custom_error(&format!("client creation: {err}")))
+        } else {
+            return Err(NativeError::custom_error("no account id in config"));
         }
-
-        // If the ApiClient has an API key
-        if let Some(api_key) = client.signing_key {
-            // Save the API key to disk
-            save_user_key(&self.api_key_path, api_key).await?;
-        }
-        */
-
-        self.to_disk()
     }
 
     #[allow(unused)]
@@ -153,24 +133,24 @@ impl GlobalConfig {
     }
 
     /// Remove a BucketConfig for an origin
-    pub fn remove_bucket(&mut self, bucket: &LocalDrive) -> Result<(), NativeError> {
+    pub fn remove_drive(&mut self, bucket: &LocalDrive) -> Result<(), NativeError> {
         // Remove bucket data
         bucket.remove_data()?;
         // Find index of bucket
         let index = self
-            .buckets
+            .drives
             .iter()
             .position(|b| b == bucket)
             .expect("cannot find index in buckets");
         // Remove bucket config from global config
-        self.buckets.remove(index);
+        self.drives.remove(index);
         self.to_disk()
     }
 
     /// Remove Config data associated with each Bucket
     pub fn remove_all_data(&self) -> Result<(), NativeError> {
         // Remove bucket data
-        for bucket in &self.buckets {
+        for bucket in &self.drives {
             bucket.remove_data()?;
         }
         // Remove global
@@ -182,50 +162,46 @@ impl GlobalConfig {
     }
 
     /// Update a given BucketConfig
-    pub fn update_config(&mut self, bucket: &LocalDrive) -> Result<(), NativeError> {
+    pub fn update_config(&mut self, drive: &LocalDrive) -> Result<(), NativeError> {
         // Find index
         let index = self
-            .buckets
+            .drives
             .iter()
-            .position(|b| b.origin == bucket.origin)
+            .position(|b| b.origin == drive.origin)
             .ok_or(NativeError::missing_local_drive())?;
         // Update bucket at index
-        self.buckets[index] = bucket.clone();
+        self.drives[index] = drive.clone();
         self.to_disk()
     }
 
     /// Create a new bucket
-    async fn create_bucket(
-        &mut self,
-        name: &str,
-        origin: &Path,
-    ) -> Result<LocalDrive, NativeError> {
-        let wrapping_key = self.wrapping_key().await?;
-        let mut bucket = LocalDrive::new(origin, &wrapping_key).await?;
+    async fn create_drive(&mut self, name: &str, origin: &Path) -> Result<LocalDrive, NativeError> {
+        let user_key = self.user_key().await?;
+        let mut bucket = LocalDrive::new(origin, &user_key).await?;
         bucket.name = name.to_string();
-        self.buckets.push(bucket.clone());
+        self.drives.push(bucket.clone());
         self.to_disk()?;
         Ok(bucket)
     }
 
     /// Get a Bucket configuration by the origin
-    pub fn get_bucket(&self, origin: &Path) -> Option<LocalDrive> {
-        self.buckets
+    pub fn get_drive(&self, origin: &Path) -> Option<LocalDrive> {
+        self.drives
             .iter()
-            .find(|bucket| bucket.origin == origin)
+            .find(|drive| drive.origin == origin)
             .cloned()
     }
 
     /// Create a bucket if it doesn't exist, return the object either way
-    pub async fn get_or_init_bucket(
+    pub async fn get_or_init_drive(
         &mut self,
         name: &str,
         origin: &Path,
     ) -> Result<LocalDrive, NativeError> {
-        if let Some(config) = self.get_bucket(origin) {
+        if let Some(config) = self.get_drive(origin) {
             Ok(config.clone())
         } else {
-            Ok(self.create_bucket(name, origin).await?)
+            Ok(self.create_drive(name, origin).await?)
         }
     }
 }
@@ -305,12 +281,12 @@ mod test {
 
         // Create
         let mut original = GlobalConfig::new().await?;
-        let original_bucket = original.get_or_init_bucket("new", origin).await?;
+        let original_bucket = original.get_or_init_drive("new", origin).await?;
         // Save
         original.to_disk()?;
         let reconstructed = GlobalConfig::from_disk().await?;
         let reconstructed_bucket = reconstructed
-            .get_bucket(origin)
+            .get_drive(origin)
             .expect("bucket config does not exist for this origin");
 
         // Assert equality

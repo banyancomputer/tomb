@@ -26,7 +26,12 @@ pub struct LocalDrive {
     local_id: String,
     /// Drive Uuid on the remote server
     pub(crate) remote_id: Option<Uuid>,
-    pub storage: LocalSyncStore,
+
+    /// These are the three fields required to reconstruct a LocalSyncStore
+    // Encoded version of the DiskDataStore
+    data_store: PathBuf,
+    // Associated Tracker
+    //tracker: MemorySyncTracker,
 }
 
 impl Display for LocalDrive {
