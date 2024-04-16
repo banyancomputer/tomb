@@ -21,15 +21,14 @@
 
 mod error;
 
-#[allow(unused_extern_crates)]
-extern crate core;
 /// Local configurations
 pub(crate) mod configuration;
-
+/*
 /// Scanning local filesystems
 pub(crate) mod file_scanning;
 /// Operations which can be performed
 pub mod operations;
+*/
 pub(crate) mod sync;
 /// Simple helper utils
 pub mod utils;

@@ -1,6 +1,6 @@
 use crate::{
     cli::{
-        commands::{prompt_for_bool, KeyCommand, MetadataCommand, RunnableCommand},
+        commands::{AccessCommand, MetadataCommand, RunnableCommand},
         specifiers::DriveSpecifier,
     },
     native::{

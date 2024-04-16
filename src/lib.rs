@@ -9,7 +9,7 @@
 pub mod cli;
 
 /// Ways of referring to and accessing drives
-pub(crate) mod drive;
+//pub(crate) mod drive;
 
 /// Native operations
 pub mod native;

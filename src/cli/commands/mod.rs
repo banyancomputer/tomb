@@ -6,11 +6,14 @@ mod access;
 mod account;
 /// View / Change API endpoint
 mod api;
-///
-//mod drives;
-/// View Drive Metadata? do we even want this
-//mod metadata;
-mod runnable_command;
+/// Drive interaction
+mod drives;
+
+/// Export all commands
+pub use access::*;
+pub use account::*;
+pub use api::*;
+pub use drives::*;
 
 /// Defines the types of commands that can be executed from the CLI.
 #[derive(Debug, Subcommand, Clone)]
@@ -35,9 +38,9 @@ pub enum BanyanCommand {
     },
 }
 
+use super::RunnableCommand;
 use crate::native::NativeError;
 use async_trait::async_trait;
-use runnable_command::RunnableCommand;
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for BanyanCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
