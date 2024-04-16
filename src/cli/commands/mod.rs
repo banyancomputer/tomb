@@ -7,7 +7,7 @@ mod account;
 /// View / Change API endpoint
 mod api;
 ///
-mod drives;
+//mod drives;
 /// View Drive Metadata? do we even want this
 //mod metadata;
 mod runnable_command;
