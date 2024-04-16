@@ -1,20 +1,24 @@
+/// View / Modify Drive Access
+mod access;
+/// Login / Logout Account
 mod account;
+/// View / Change API endpoint
 mod api;
+///
 mod drives;
-mod keys;
-mod metadata;
+/// View Drive Metadata? do we even want this
+//mod metadata;
 mod runnable_command;
 
 use std::io::Read;
 
 use crate::native::NativeError;
+pub use access::KeyCommand;
 pub use account::AccountCommand;
 pub use api::ApiCommand;
 use async_trait::async_trait;
 use clap::Subcommand;
 pub use drives::DrivesCommand;
-pub use keys::KeyCommand;
-pub use metadata::MetadataCommand;
 pub use runnable_command::RunnableCommand;
 use tracing::info;
 

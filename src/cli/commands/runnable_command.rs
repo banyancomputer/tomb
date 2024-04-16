@@ -1,18 +1,16 @@
 use std::fmt::Display;
 
-use crate::{
-    native::configuration::{globalconfig::GlobalConfig, xdg::config_path},
-    WnfsError,
-};
+use crate::native::configuration::{globalconfig::GlobalConfig, xdg::config_path};
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;
+use tracing::*;
 
 /// Async function for running a command
 #[async_trait(?Send)]
 pub trait RunnableCommand<ErrorType>: Subcommand
 where
-    ErrorType: Into<WnfsError> + std::fmt::Debug + Display,
+    ErrorType: std::error::Error + std::fmt::Debug + Display,
 {
     /// The internal running operation
     async fn run_internal(self) -> Result<String, ErrorType>;

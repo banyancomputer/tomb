@@ -3,10 +3,10 @@ use clap::Args;
 
 /// Unified way of specifying a Key
 #[derive(Debug, Clone, Args)]
-pub struct KeySpecifier {
+pub struct AccessSpecifier {
     #[clap(flatten)]
     pub(crate) drive_specifier: DriveSpecifier,
-    /// Key Identifier
+    /// User Key fingerprint
     #[arg(short, long)]
     pub(crate) fingerprint: String,
 }

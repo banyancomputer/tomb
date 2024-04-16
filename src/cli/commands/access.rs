@@ -1,7 +1,7 @@
 use crate::native::{configuration::globalconfig::GlobalConfig, sync::OmniDrive, NativeError};
 
 use super::{
-    super::specifiers::{DriveSpecifier, KeySpecifier},
+    super::specifiers::{AccessSpecifier, DriveSpecifier},
     RunnableCommand,
 };
 use async_trait::async_trait;
@@ -17,11 +17,11 @@ pub enum KeyCommand {
     /// List all Keys in a Drive
     Ls(DriveSpecifier),
     /// Get information about an individual Drive Key
-    Info(KeySpecifier),
+    Info(AccessSpecifier),
     /// Delete a given Key
-    Delete(KeySpecifier),
+    Delete(AccessSpecifier),
     /// Reject or remove a key and sync that witht the remote endpoint
-    Reject(KeySpecifier),
+    Reject(AccessSpecifier),
 }
 
 #[async_trait(?Send)]
@@ -116,7 +116,7 @@ impl RunnableCommand<NativeError> for KeyCommand {
 
 async fn get_key_info(
     client: &Client,
-    key_specifier: &KeySpecifier,
+    key_specifier: &AccessSpecifier,
 ) -> Result<(Uuid, Uuid), NativeError> {
     let bucket_id = OmniBucket::from_specifier(&key_specifier.drive_specifier)
         .await

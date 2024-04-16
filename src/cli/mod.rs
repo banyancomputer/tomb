@@ -1,11 +1,21 @@
-/// Arguments consist of Command an Verbosity
-pub mod args;
 /// Commands to run
 pub mod commands;
 /// Ways of specifying resources
 pub mod specifiers;
 /// Debug level
 pub mod verbosity;
+
+/// CLI Args
+#[derive(clap::Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct Args {
+    /// Command passed
+    #[command(subcommand)]
+    pub command: commands::BanyanCommand,
+    /// Verbosity level.
+    #[arg(short, long, help = "verbosity level", default_value = "normal")]
+    pub verbose: verbosity::MyVerbosity,
+}
 
 /*
 #[cfg(test)]
