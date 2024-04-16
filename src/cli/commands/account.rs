@@ -1,25 +1,11 @@
 use super::RunnableCommand;
-use crate::{
-    api::{
-        client::Credentials,
-        models::account::Account,
-        requests::core::auth::device_api_key::regwait::start::{
-            StartRegwait, StartRegwaitResponse,
-        },
-    },
-    native::{configuration::globalconfig::GlobalConfig, NativeError},
-    prelude::api::requests::core::auth::who_am_i::read::ReadWhoAmI,
-};
+use crate::native::{configuration::globalconfig::GlobalConfig, NativeError};
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
 use tokio::task::JoinHandle;
-use tomb_crypt::{
-    hex_fingerprint,
-    prelude::{PrivateKey, PublicKey},
-};
 
 /// Subcommand for Authentication
 #[derive(Subcommand, Clone, Debug)]
@@ -28,9 +14,6 @@ pub enum AccountCommand {
     RegisterDevice,
     /// Log out from this device
     Logout,
-    /// Register
-    #[cfg(feature = "integration-tests")]
-    Register,
     /// Ask the server who I am
     WhoAmI,
     /// Get info about Account usage

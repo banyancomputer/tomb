@@ -1,7 +1,4 @@
-use crate::{
-    api::{client::Client, models::bucket_key::BucketKey},
-    native::{configuration::globalconfig::GlobalConfig, sync::OmniBucket, NativeError},
-};
+use crate::native::{configuration::globalconfig::GlobalConfig, sync::OmniDrive, NativeError};
 
 use super::{
     super::specifiers::{DriveSpecifier, KeySpecifier},
@@ -10,10 +7,6 @@ use super::{
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;
-use tomb_crypt::{
-    hex_fingerprint,
-    prelude::{PrivateKey, PublicKey},
-};
 use uuid::Uuid;
 
 /// Subcommand for Drive Keys
