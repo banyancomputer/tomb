@@ -13,3 +13,7 @@ pub mod drive;
 
 /// Configuration
 pub mod config;
+
+/// Error
+mod error;
+pub use error::*;

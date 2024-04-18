@@ -1,4 +1,4 @@
-use crate::native::{configuration::globalconfig::GlobalConfig, sync::OmniDrive, NativeError};
+use crate::{config::GlobalConfig, NativeError};
 
 use super::{
     super::specifiers::{AccessSpecifier, DriveSpecifier},

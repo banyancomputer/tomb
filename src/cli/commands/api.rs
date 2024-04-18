@@ -1,5 +1,5 @@
 use super::RunnableCommand;
-use crate::native::{configuration::globalconfig::GlobalConfig, NativeError};
+use crate::{config::GlobalConfig, NativeError};
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;

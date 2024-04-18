@@ -1,14 +1,4 @@
-use crate::{
-    native::{
-        configuration::{
-            keys::{load_user_key, new_user_key, save_user_key},
-            xdg::{config_path, default_user_key_path},
-        },
-        sync::LocalDrive,
-        NativeError,
-    },
-    utils::get_read,
-};
+use crate::{drive::DiskDrive, NativeError};
 use banyanfs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -20,10 +10,12 @@ use std::{
 use url::Url;
 use uuid::Uuid;
 
+use super::*;
+
 /// Represents the Global contents of the tomb configuration file in a user's .config
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GlobalConfig {
-    /// Tomb version
+    /// Banyan-Cli version
     version: String,
     /// Location of wrapping key on disk in PEM format
     pub user_key_path: PathBuf,
@@ -32,7 +24,7 @@ pub struct GlobalConfig {
     /// Remote account id
     account_id: Option<Uuid>,
     /// Drive Configurations
-    pub(crate) drives: Vec<LocalDrive>,
+    pub(crate) drives: Vec<DriveConfig>,
 }
 
 impl Default for GlobalConfig {

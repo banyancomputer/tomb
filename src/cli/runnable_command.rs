@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::native::configuration::{globalconfig::GlobalConfig, xdg::config_path};
+use crate::{
+    config::{config_path, GlobalConfig},
+    NativeError,
+};
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;

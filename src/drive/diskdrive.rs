@@ -1,7 +1,8 @@
 use super::datastore::DiskDataStore;
-use crate::config::xdg::xdg_data_home;
+use crate::config::xdg_data_home;
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, error::BanyanFsResult, utils::crypto_rng};
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, fs::create_dir_all, path::PathBuf, sync::Arc};
 use tokio::fs::{File, OpenOptions};
 use tokio_util::compat::TokioAsyncReadCompatExt;
@@ -58,7 +59,9 @@ impl DiskDrive {
             .compat();
 
         self.drive
-            .encode(&mut rng, ContentOptions::everything(), &mut fh);
+            .encode(&mut rng, ContentOptions::everything(), &mut fh)
+            .await
+            .unwrap();
     }
 
     async fn read(&mut self, user_key: Arc<SigningKey>) {

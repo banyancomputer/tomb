@@ -1,6 +1,12 @@
+mod driveconfig;
 /// Global level configurations
-pub mod globalconfig;
+mod globalconfig;
 /// Key config
-pub mod keys;
+mod keys;
 /// XDG config
-pub mod xdg;
+mod xdg;
+
+pub use driveconfig::*;
+pub use globalconfig::*;
+pub use keys::*;
+pub use xdg::*;
