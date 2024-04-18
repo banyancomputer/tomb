@@ -66,6 +66,7 @@ url = { version = "^2", features = ["serde"] }
 uuid = { version = "^1", features = ["serde", "v4"] }
 banyanfs = { path = "../banyanfs/", features = ["banyan-api"] }
 object_store = "0.9.1"
+tokio-util = "0.7.10"
 #banyan-object-store = { path = "../banyan-core/crates/banyan-object-store/" }
 
 [dev-dependencies]

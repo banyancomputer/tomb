@@ -8,6 +8,7 @@
 /// CLI Parsing
 pub mod cli;
 
+pub mod drive;
 /// Ways of referring to and accessing drives
 //pub(crate) mod drive;
 

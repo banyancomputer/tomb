@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
 
 use async_trait::async_trait;
 use banyanfs::{
@@ -8,33 +8,26 @@ use banyanfs::{
 use object_store::{local::LocalFileSystem, path::Path, ObjectStore};
 
 pub struct DiskDataStore {
-    fs: LocalFileSystem,
-    drive_name: String,
+    pub lfs: LocalFileSystem,
 }
 
 impl DiskDataStore {
-    pub fn new_at_path(parent: PathBuf, drive_name: String) -> Result<Self, DataStoreError> {
-        let prefix = parent.join(&drive_name);
-        let fs = LocalFileSystem::new_with_prefix(prefix).map_err(|_| {
+    pub fn new_at_path(prefix: String) -> Result<Self, DataStoreError> {
+        let lfs = LocalFileSystem::new_with_prefix(prefix).map_err(|_| {
             DataStoreError::Implementation(String::from("failed to initalize local filesystem"))
         })?;
-        Ok(Self { fs, drive_name })
+        Ok(Self { lfs })
     }
 
     fn cid_as_path(&self, cid: &Cid) -> Path {
-        Path::parse(&format!(
-            "/{}/{}",
-            self.drive_name,
-            cid.as_base64url_multicodec()
-        ))
-        .unwrap()
+        Path::parse(&format!("/{}", cid.as_base64url_multicodec())).unwrap()
     }
 }
 
 #[async_trait(?Send)]
 impl DataStore for DiskDataStore {
     async fn contains_cid(&self, cid: Cid) -> Result<bool, DataStoreError> {
-        match self.fs.head(&self.cid_as_path(&cid)).await {
+        match self.lfs.head(&self.cid_as_path(&cid)).await {
             Ok(_) => Ok(true),
             Err(object_store::Error::NotFound { path: _, source: _ }) => Ok(false),
             Err(_) => Err(DataStoreError::LookupFailure),
@@ -42,7 +35,7 @@ impl DataStore for DiskDataStore {
     }
 
     async fn remove(&mut self, cid: Cid, _recusrive: bool) -> Result<(), DataStoreError> {
-        self.fs
+        self.lfs
             .delete(&self.cid_as_path(&cid))
             .await
             .map_err(|_| DataStoreError::StoreFailure)
@@ -50,7 +43,7 @@ impl DataStore for DiskDataStore {
 
     async fn retrieve(&self, cid: Cid) -> Result<Vec<u8>, DataStoreError> {
         let result = self
-            .fs
+            .lfs
             .get(&self.cid_as_path(&cid))
             .await
             .map_err(|_| DataStoreError::RetrievalFailure)?;
@@ -68,7 +61,7 @@ impl DataStore for DiskDataStore {
         data: Vec<u8>,
         _immediate: bool,
     ) -> Result<(), DataStoreError> {
-        self.fs
+        self.lfs
             .put(&self.cid_as_path(&cid), data.into())
             .await
             .map_err(|_| DataStoreError::StoreFailure)

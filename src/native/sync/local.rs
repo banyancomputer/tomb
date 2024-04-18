@@ -1,5 +1,5 @@
 use crate::{
-    drive::{DiskDataStore, LocalSyncStore},
+    drive::{DiskApiSyncStore, DiskDataStore},
     native::configuration::xdg::*,
 };
 use banyanfs::prelude::*;
