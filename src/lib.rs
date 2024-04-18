@@ -14,6 +14,8 @@ pub mod drive;
 /// Configuration
 pub mod config;
 
+pub mod utils;
+
 /// Error
 mod error;
 pub use error::*;

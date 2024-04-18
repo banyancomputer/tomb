@@ -1,6 +1,9 @@
 use std::{fmt::Display, path::PathBuf, string::FromUtf8Error};
 
-use banyanfs::{api::ApiError, error::BanyanFsError};
+use banyanfs::{
+    api::{ApiClientError, ApiError},
+    error::BanyanFsError,
+};
 use colored::Colorize;
 use uuid::Uuid;
 
@@ -149,7 +152,7 @@ enum NativeErrorKind {
     BadData,
     Custom(String),
     Filesystem(BanyanFsError),
-    Api(ApiClientError),
+    Api(ApiError),
     Io(std::io::Error),
     UnknownDrivePath(PathBuf),
     UnknownDriveId(Uuid),
