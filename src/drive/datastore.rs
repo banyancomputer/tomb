@@ -1,5 +1,3 @@
-use std::{fmt::Display, path::PathBuf};
-
 use async_trait::async_trait;
 use banyanfs::{
     codec::Cid,

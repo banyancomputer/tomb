@@ -8,14 +8,8 @@
 /// CLI Parsing
 pub mod cli;
 
+/// Drive structs
 pub mod drive;
-/// Ways of referring to and accessing drives
-//pub(crate) mod drive;
 
-/// Native operations
-pub mod native;
-
-/// Internal utils
-pub(crate) mod utils;
-
-// pub mod prelude { }
+/// Configuration
+pub mod config;

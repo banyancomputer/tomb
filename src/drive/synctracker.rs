@@ -45,7 +45,7 @@ impl Serialize for DiskSyncTracker {
     }
 }
 
-impl Deserialize for DiskSyncTracker {}
+//impl Deserialize for DiskSyncTracker {}
 
 #[async_trait(?Send)]
 impl SyncTracker for DiskSyncTracker {
