@@ -1,9 +1,6 @@
-//! This crate contains all modules in our project. TODO(organizedgrime) write something useful here.
+//! This crate contains all modules in our project.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(rust_2018_idioms)]
-
-// we dont need car filing in the client anymore i dont think
-//pub(crate) mod car;
 
 /// CLI Parsing
 pub mod cli;
