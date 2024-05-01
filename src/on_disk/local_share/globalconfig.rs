@@ -46,6 +46,8 @@ impl DiskData<String> for GlobalConfig {
     const SUFFIX: &'static str = "";
     const EXTENSION: &'static str = "json";
 
+    // TODO async serde_json?
+
     async fn encode(&self, identifier: &String) -> Result<(), DiskDataError> {
         let mut writer = File::create(Self::path(identifier)?)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;

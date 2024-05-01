@@ -4,7 +4,8 @@ pub mod config;
 pub mod local_share;
 use async_trait::async_trait;
 use std::{fmt::Display, fs::create_dir, path::PathBuf};
-
+use tokio::fs::{File, OpenOptions};
+use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 #[derive(Debug)]
 pub enum DiskDataError {
     // Common error types we might find
@@ -65,6 +66,18 @@ pub trait DiskData<I: Display>: Sized {
             Self::EXTENSION
         )))
     }
+
+    async fn get_writer(identifier: &I) -> Result<Compat<File>, DiskDataError> {
+        let mut file_opts = OpenOptions::new();
+        file_opts.write(true);
+        file_opts.create(true);
+        file_opts.truncate(true);
+        Ok(file_opts.open(Self::path(identifier)?).await?.compat())
+    }
+    async fn get_reader(identifier: &I) -> Result<Compat<File>, DiskDataError> {
+        Ok(File::open(Self::path(identifier)?).await?.compat())
+    }
+
     async fn encode(&self, identifier: &I) -> Result<(), DiskDataError>;
     async fn decode(identifier: &I) -> Result<Self, DiskDataError>;
 }

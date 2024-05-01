@@ -2,15 +2,13 @@ use std::fmt::Display;
 
 use tokio::fs::{File, OpenOptions};
 
+use crate::on_disk::{DataType, DiskData, DiskDataError};
 use async_trait::async_trait;
 use banyanfs::{
     codec::{crypto::SigningKey, header::ContentOptions},
     filesystem::{Drive, DriveLoader},
     utils::crypto_rng,
 };
-use tokio_util::compat::TokioAsyncReadCompatExt;
-
-use crate::on_disk::{DataType, DiskData, DiskDataError};
 
 //
 #[derive(Debug)]
@@ -30,30 +28,20 @@ impl DiskData<DriveId> for Drive {
     const SUFFIX: &'static str = "drives";
     const EXTENSION: &'static str = "bfs";
 
-    //async fn encode(&self, identifier: String) {
     async fn encode(&self, identifier: &DriveId) -> Result<(), DiskDataError> {
-        let path = Self::path(identifier)?;
-        let mut rng = crypto_rng();
-        let mut file_opts = OpenOptions::new();
-        file_opts.write(true);
-        file_opts.create(true);
-        file_opts.truncate(true);
-
-        let mut fh = file_opts.open(path).await.unwrap().compat();
-
-        self.encode(&mut rng, ContentOptions::everything(), &mut fh)
-            .await
-            .unwrap();
+        self.encode(
+            &mut crypto_rng(),
+            ContentOptions::everything(),
+            &mut Self::get_writer(identifier).await?,
+        )
+        .await?;
         Ok(())
     }
 
-    //async fn read(&mut self, user_key: Arc<SigningKey>) {
     async fn decode(identifier: &DriveId) -> Result<Self, DiskDataError> {
-        let path = Self::path(identifier)?;
-        let mut fh = File::open(path).await.unwrap().compat();
-        let user_key = SigningKey::decode(&identifier.user_key_id).await.unwrap();
+        let user_key = SigningKey::decode(&identifier.user_key_id).await?;
         let drive = DriveLoader::new(&user_key)
-            .from_reader(&mut fh)
+            .from_reader(&mut Self::get_reader(identifier).await?)
             .await
             .map_err(|err| DiskDataError::Implementation(err.to_string()))?;
         Ok(drive)
