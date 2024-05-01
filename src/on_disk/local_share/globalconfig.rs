@@ -1,9 +1,7 @@
-use super::*;
 use crate::on_disk::{DataType, DiskData, DiskDataError};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use url::Url;
 use uuid::Uuid;
 
 /// Represents the Global contents of the tomb configuration file in a user's .config
@@ -11,6 +9,8 @@ use uuid::Uuid;
 pub struct GlobalConfig {
     /// Banyan-Cli version
     version: String,
+    /// User Key Identifier of Key in Use
+    selected_user_key_id: Option<String>,
     /// User Key Identifiers
     user_key_ids: Vec<String>,
     /// Drive Identifiers
@@ -23,8 +23,9 @@ impl Default for GlobalConfig {
     fn default() -> Self {
         Self {
             version: env!("CARGO_PKG_VERSION").to_string(),
-            drive_ids: vec![],
+            selected_user_key_id: None,
             user_key_ids: vec![],
+            drive_ids: vec![],
             account_id: None,
         }
     }
