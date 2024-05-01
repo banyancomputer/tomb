@@ -53,18 +53,18 @@ impl DataType {
 }
 
 #[async_trait(?Send)]
-pub trait DiskData: Sized {
+pub trait DiskData<I: Display>: Sized {
     const TYPE: DataType;
     const SUFFIX: &'static str;
     const EXTENSION: &'static str;
 
-    fn path(identifier: &str) -> Result<PathBuf, DiskDataError> {
+    fn path(identifier: &I) -> Result<PathBuf, DiskDataError> {
         Ok(Self::TYPE.root()?.join(Self::SUFFIX).join(format!(
             "{}.{}",
             identifier,
             Self::EXTENSION
         )))
     }
-    async fn encode(&self, identifier: &str) -> Result<(), DiskDataError>;
-    async fn decode(identifier: &str) -> Result<Self, DiskDataError>;
+    async fn encode(&self, identifier: &I) -> Result<(), DiskDataError>;
+    async fn decode(identifier: &I) -> Result<Self, DiskDataError>;
 }

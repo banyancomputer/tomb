@@ -34,7 +34,6 @@ impl Default for GlobalConfig {
             version: env!("CARGO_PKG_VERSION").to_string(),
             drive_ids: vec![],
             user_key_ids: vec![],
-
             endpoint,
             account_id: None,
         }
@@ -42,17 +41,17 @@ impl Default for GlobalConfig {
 }
 
 #[async_trait(?Send)]
-impl DiskData for GlobalConfig {
+impl DiskData<String> for GlobalConfig {
     const TYPE: DataType = DataType::Config;
     const SUFFIX: &'static str = "";
     const EXTENSION: &'static str = "json";
 
-    async fn encode(&self, identifier: &str) -> Result<(), DiskDataError> {
+    async fn encode(&self, identifier: &String) -> Result<(), DiskDataError> {
         let mut writer = File::create(Self::path(identifier)?)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
         Ok(())
     }
-    async fn decode(identifier: &str) -> Result<Self, DiskDataError> {
+    async fn decode(identifier: &String) -> Result<Self, DiskDataError> {
         let mut reader = File::open(Self::path(identifier)?)?;
         Ok(serde_json::from_reader(&mut reader)?)
     }
