@@ -14,17 +14,19 @@ use std::{
 
 #[derive(Debug)]
 pub enum DiskDataError {
+    // Common error types we might find
+    Var(std::env::VarError),
     Disk(std::io::Error),
     SerdeJson(serde_json::Error),
+    //
+    Implementation(String),
 }
 
-impl Display for DiskDataError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{:?}", self))
+impl From<std::env::VarError> for DiskDataError {
+    fn from(value: std::env::VarError) -> Self {
+        Self::Var(value)
     }
 }
-impl std::error::Error for DiskDataError {}
-
 impl From<std::io::Error> for DiskDataError {
     fn from(value: std::io::Error) -> Self {
         Self::Disk(value)
@@ -36,23 +38,30 @@ impl From<serde_json::Error> for DiskDataError {
     }
 }
 
+impl Display for DiskDataError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{:?}", self))
+    }
+}
+impl std::error::Error for DiskDataError {}
+
 pub enum DataType {
     Config,
     LocalShare,
 }
 impl DataType {
-    pub fn root(&self) -> PathBuf {
-        let home = std::env::var("HOME").expect("Set the $HOME env var");
+    pub fn root(&self) -> Result<PathBuf, DiskDataError> {
+        let home = std::env::var("HOME")?;
         let path = match self {
             DataType::Config => PathBuf::from(format!("{home}/.local/share/banyan")),
             DataType::LocalShare => PathBuf::from(format!("{home}/.config/banyan")),
         };
 
         if !path.exists() {
-            create_dir(&path).expect("Creating dir failed");
+            create_dir(&path)?;
         }
 
-        path
+        Ok(path)
     }
 }
 
@@ -62,11 +71,12 @@ pub trait DiskData: Sized {
     const SUFFIX: &'static str;
     const EXTENSION: &'static str;
 
-    fn path(identifier: &str) -> PathBuf {
-        Self::TYPE
-            .root()
-            .join(Self::SUFFIX)
-            .join(format!("{}.{}", identifier, Self::EXTENSION))
+    fn path(identifier: &str) -> Result<PathBuf, DiskDataError> {
+        Ok(Self::TYPE.root()?.join(Self::SUFFIX).join(format!(
+            "{}.{}",
+            identifier,
+            Self::EXTENSION
+        )))
     }
     async fn encode(&self, identifier: &str) -> Result<(), DiskDataError>;
     async fn decode(identifier: &str) -> Result<Self, DiskDataError>;

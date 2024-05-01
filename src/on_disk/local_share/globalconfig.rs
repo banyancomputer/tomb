@@ -45,12 +45,12 @@ impl DiskData for GlobalConfig {
     const EXTENSION: &'static str = "json";
 
     async fn encode(&self, identifier: &str) -> Result<(), DiskDataError> {
-        let mut writer = File::create(Self::path(identifier))?;
+        let mut writer = File::create(Self::path(identifier)?)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
         Ok(())
     }
     async fn decode(identifier: &str) -> Result<Self, DiskDataError> {
-        let mut reader = File::open(Self::path(identifier))?;
+        let mut reader = File::open(Self::path(identifier)?)?;
         Ok(serde_json::from_reader(&mut reader)?)
     }
 }

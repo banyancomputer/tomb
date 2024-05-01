@@ -18,7 +18,7 @@ impl DiskData for Drive {
 
     //async fn encode(&self, identifier: String) {
     async fn encode(&self, identifier: &str) -> Result<(), DiskDataError> {
-        let path = Self::path(identifier);
+        let path = Self::path(identifier)?;
         let mut rng = crypto_rng();
         let mut file_opts = OpenOptions::new();
         file_opts.write(true);
@@ -35,7 +35,7 @@ impl DiskData for Drive {
 
     //async fn read(&mut self, user_key: Arc<SigningKey>) {
     async fn decode(identifier: &str) -> Result<Self, DiskDataError> {
-        let path = Self::path(identifier);
+        let path = Self::path(identifier)?;
         let mut fh = File::open(path).await.unwrap().compat();
         let user_key = SigningKey::decode("owner".into()).await.unwrap();
         let drive = DriveLoader::new(&user_key)
