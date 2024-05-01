@@ -1,5 +1,6 @@
 use super::datastore::DiskDataStore;
-use crate::config::xdg_data_home;
+use crate::on_disk::*;
+use async_trait::async_trait;
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, error::BanyanFsResult, utils::crypto_rng};
 use serde::{Deserialize, Serialize};
@@ -19,8 +20,9 @@ impl Display for DiskDrive {
     }
 }
 
+/*
 impl DiskDrive {
-    pub async fn new(name: String, user_key: Arc<SigningKey>) -> BanyanFsResult<Self> {
+    async fn new(name: String, user_key: Arc<SigningKey>) -> BanyanFsResult<Self> {
         // Determine the paths we'll be working from
         let root = xdg_data_home().join(name);
         let lfs_root = root.join("store");
@@ -44,8 +46,19 @@ impl DiskDrive {
         disk_drive.read(user_key);
         Ok(disk_drive)
     }
+}
 
-    async fn write(&self) {
+*/
+
+#[async_trait(?Send)]
+impl DiskData for DiskDrive {
+    const TYPE: DataType = DataType::LocalShare;
+    const SUFFIX: String = String::from("bfs");
+    const EXTENSION: String = String::from("bfs");
+
+    //async fn encode(&self, identifier: String) {
+    async fn encode(&self, identifier: String) -> Result<(), DiskDataError> {
+        /*
         let mut rng = crypto_rng();
         let mut file_opts = OpenOptions::new();
         file_opts.write(true);
@@ -62,9 +75,13 @@ impl DiskDrive {
             .encode(&mut rng, ContentOptions::everything(), &mut fh)
             .await
             .unwrap();
+            */
+        Ok(())
     }
 
-    async fn read(&mut self, user_key: Arc<SigningKey>) {
+    //async fn read(&mut self, user_key: Arc<SigningKey>) {
+    async fn decode(identifier: String) -> Result<Self, DiskDataError> {
+        /*
         let mut fh = File::open(self.root.join("drive.bfs"))
             .await
             .unwrap()
@@ -73,5 +90,7 @@ impl DiskDrive {
             .from_reader(&mut fh)
             .await
             .unwrap();
+            */
+        todo!()
     }
 }

@@ -3,7 +3,7 @@
 #![warn(rust_2018_idioms)]
 
 /// CLI Parsing
-pub mod cli;
+//pub mod cli;
 
 /// Drive structs
 pub mod drive;
