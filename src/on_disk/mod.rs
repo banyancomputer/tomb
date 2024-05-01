@@ -15,6 +15,7 @@ use std::{
 #[derive(Debug)]
 pub enum DiskDataError {
     Disk(std::io::Error),
+    SerdeJson(serde_json::Error),
 }
 
 impl Display for DiskDataError {
@@ -27,6 +28,11 @@ impl std::error::Error for DiskDataError {}
 impl From<std::io::Error> for DiskDataError {
     fn from(value: std::io::Error) -> Self {
         Self::Disk(value)
+    }
+}
+impl From<serde_json::Error> for DiskDataError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::SerdeJson(value)
     }
 }
 
@@ -43,7 +49,7 @@ impl DataType {
         };
 
         if !path.exists() {
-            create_dir(path).expect("Creating dir failed");
+            create_dir(&path).expect("Creating dir failed");
         }
 
         path
@@ -56,12 +62,12 @@ pub trait DiskData: Sized {
     const SUFFIX: &'static str;
     const EXTENSION: &'static str;
 
-    fn path(identifier: String) -> PathBuf {
+    fn path(identifier: &str) -> PathBuf {
         Self::TYPE
             .root()
             .join(Self::SUFFIX)
             .join(format!("{}.{}", identifier, Self::EXTENSION))
     }
-    async fn encode(&self, identifier: String) -> Result<(), DiskDataError>;
-    async fn decode(identifier: String) -> Result<Self, DiskDataError>;
+    async fn encode(&self, identifier: &str) -> Result<(), DiskDataError>;
+    async fn decode(identifier: &str) -> Result<Self, DiskDataError>;
 }

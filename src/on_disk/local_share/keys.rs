@@ -12,14 +12,14 @@ impl DiskData for SigningKey {
     const SUFFIX: &'static str = "user_keys";
     const EXTENSION: &'static str = "pem";
 
-    async fn encode(&self, identifier: String) -> Result<(), DiskDataError> {
+    async fn encode(&self, identifier: &str) -> Result<(), DiskDataError> {
         let mut writer = File::create(Self::path(identifier))?;
         let pem: String = self.to_pkcs8_pem().unwrap().to_string();
         writer.write_all(pem.as_bytes())?;
         return Ok(());
     }
 
-    async fn decode(identifier: String) -> Result<Self, DiskDataError> {
+    async fn decode(identifier: &str) -> Result<Self, DiskDataError> {
         let mut reader = File::open(Self::path(identifier))?;
         let mut pem_bytes = Vec::new();
         reader.read_to_end(&mut pem_bytes)?;
