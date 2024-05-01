@@ -1,5 +1,4 @@
 use super::RunnableCommand;
-use crate::{config::GlobalConfig, NativeError};
 use async_trait::async_trait;
 use banyanfs::api::platform::account::*;
 use bytesize::ByteSize;
@@ -10,7 +9,7 @@ use colored::Colorize;
 #[derive(Subcommand, Clone, Debug)]
 pub enum AccountCommand {
     /// Add Device API Key using browser session
-    RegisterDevice,
+    Login,
     /// Log out from this device
     Logout,
     /// Get info about Account usage
@@ -18,14 +17,14 @@ pub enum AccountCommand {
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for AccountCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
+impl RunnableCommand<String> for AccountCommand {
+    async fn run_internal(self) -> Result<String, String> {
         let mut global = GlobalConfig::from_disk().await?;
         let mut client = global.get_client().await?;
 
         // Process the command
         match self {
-            AccountCommand::RegisterDevice => {
+            AccountCommand::Login => {
                 // there is not currently a way to do this!
 
                 // Respond

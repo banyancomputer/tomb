@@ -1,15 +1,6 @@
-/// This represents data that should go in ~/.local/share
-mod driveconfig;
-/// Global level configurations
-mod globalconfig;
-/// Key config
-mod keys;
-
-mod client;
-/// Drive Impl
 mod drive;
-
+mod keys;
 pub use drive::*;
-pub use driveconfig::*;
-pub use globalconfig::*;
+/// This represents data that should go in ~/.local/share
+/// Key config
 pub use keys::*;

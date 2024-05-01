@@ -1,13 +1,11 @@
 use self::local_share::DriveAndKeyId;
-
 use super::datastore::DiskDataStore;
 use crate::on_disk::*;
 use async_trait::async_trait;
 use banyanfs::prelude::*;
-use banyanfs::{codec::crypto::SigningKey, error::BanyanFsResult, utils::crypto_rng};
+use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use object_store::local::LocalFileSystem;
-use serde::{Deserialize, Serialize};
-use std::{fmt::Display, fs::create_dir_all, path::PathBuf, sync::Arc};
+use std::fs::create_dir_all;
 
 pub struct DiskDriveAndStore {
     store: DiskDataStore,

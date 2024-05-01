@@ -67,6 +67,7 @@ pub trait DiskData<I: Display>: Sized {
         )))
     }
 
+    // Async compat reader/writer defaults
     async fn get_writer(identifier: &I) -> Result<Compat<File>, DiskDataError> {
         let mut file_opts = OpenOptions::new();
         file_opts.write(true);
