@@ -9,8 +9,8 @@ use std::{
 #[async_trait(?Send)]
 impl DiskData for SigningKey {
     const TYPE: DataType = DataType::LocalShare;
-    const SUFFIX: String = String::from("user_keys");
-    const EXTENSION: String = String::from("pem");
+    const SUFFIX: &'static str = "user_keys";
+    const EXTENSION: &'static str = "pem";
 
     async fn encode(&self, identifier: String) -> Result<(), DiskDataError> {
         let mut writer = File::create(Self::path(identifier))?;

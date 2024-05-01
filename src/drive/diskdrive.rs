@@ -9,15 +9,8 @@ use tokio::fs::{File, OpenOptions};
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 pub struct DiskDrive {
-    root: PathBuf,
     store: DiskDataStore,
     drive: Drive,
-}
-
-impl Display for DiskDrive {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("root:\t{}\n", self.root.display(),))
-    }
 }
 
 /*
@@ -51,46 +44,38 @@ impl DiskDrive {
 */
 
 #[async_trait(?Send)]
-impl DiskData for DiskDrive {
+impl DiskData for Drive {
     const TYPE: DataType = DataType::LocalShare;
-    const SUFFIX: String = String::from("bfs");
-    const EXTENSION: String = String::from("bfs");
+    const SUFFIX: &'static str = "drives";
+    const EXTENSION: &'static str = "bfs";
 
     //async fn encode(&self, identifier: String) {
     async fn encode(&self, identifier: String) -> Result<(), DiskDataError> {
-        /*
+        let path = Self::path(identifier);
         let mut rng = crypto_rng();
         let mut file_opts = OpenOptions::new();
         file_opts.write(true);
         file_opts.create(true);
         file_opts.truncate(true);
 
-        let mut fh = file_opts
-            .open(self.root.join("drive.bfs"))
-            .await
-            .unwrap()
-            .compat();
+        let mut fh = file_opts.open(path).await.unwrap().compat();
 
-        self.drive
-            .encode(&mut rng, ContentOptions::everything(), &mut fh)
+        self.encode(&mut rng, ContentOptions::everything(), &mut fh)
             .await
             .unwrap();
-            */
         Ok(())
     }
 
     //async fn read(&mut self, user_key: Arc<SigningKey>) {
     async fn decode(identifier: String) -> Result<Self, DiskDataError> {
-        /*
-        let mut fh = File::open(self.root.join("drive.bfs"))
-            .await
-            .unwrap()
-            .compat();
-        self.drive = DriveLoader::new(&user_key)
+        let path = Self::path(identifier);
+        let mut fh = File::open(path).await.unwrap().compat();
+        let user_key = SigningKey::decode("owner".into()).await.unwrap();
+        let drive = DriveLoader::new(&user_key)
             .from_reader(&mut fh)
             .await
             .unwrap();
-            */
-        todo!()
+
+        Ok(drive)
     }
 }

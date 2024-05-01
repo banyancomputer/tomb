@@ -35,7 +35,7 @@ pub enum DataType {
     LocalShare,
 }
 impl DataType {
-    fn root(&self) -> PathBuf {
+    pub fn root(&self) -> PathBuf {
         let home = std::env::var("HOME").expect("Set the $HOME env var");
         let path = match self {
             DataType::Config => PathBuf::from(format!("{home}/.local/share/banyan")),
@@ -53,8 +53,8 @@ impl DataType {
 #[async_trait(?Send)]
 pub trait DiskData: Sized {
     const TYPE: DataType;
-    const SUFFIX: String;
-    const EXTENSION: String;
+    const SUFFIX: &'static str;
+    const EXTENSION: &'static str;
 
     fn path(identifier: String) -> PathBuf {
         Self::TYPE
