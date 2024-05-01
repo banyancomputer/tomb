@@ -11,7 +11,7 @@ use std::{
 /// Metadata associated with a file, directory, or symlink that was processed by the spider
 pub struct SpiderMetadata {
     /// This is the path relative to the root of the backup
-    pub original_location: PathBuf,
+    pub bfs_path: Vec<String>,
     /// canonicalized path
     pub canonicalized_path: PathBuf,
     /// this is the metadata of the original file
@@ -40,7 +40,13 @@ impl SpiderMetadata {
             .path()
             .strip_prefix(path_root)
             .expect("failed to strip prefix")
-            .to_path_buf();
+            .to_path_buf()
+            .display()
+            .to_string()
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+            .collect();
         // Don't try to canonicalize if this is a symlink
         let canonicalized_path: PathBuf = if entry.path_is_symlink() {
             entry.path()
@@ -54,7 +60,7 @@ impl SpiderMetadata {
         let original_metadata = entry.metadata().expect("failed to get entry metadata");
         // Return the SpiderMetadata
         SpiderMetadata {
-            original_location,
+            bfs_path: original_location,
             canonicalized_path,
             original_metadata,
         }
@@ -104,26 +110,6 @@ impl TryFrom<&SpiderMetadata> for CodableMetadata {
             accessed: value.original_metadata.accessed()?,
             created: value.original_metadata.created()?,
             owner: (),
-        })
-    }
-}
-
-// Define how to construct a codable version of the SpiderMetadata struct
-impl TryFrom<&SpiderMetadata> for CodableSpiderMetadata {
-    type Error = std::io::Error;
-    fn try_from(value: &SpiderMetadata) -> Result<Self, Self::Error> {
-        // Most values can be simply cloned
-        let original_location = value.original_location.clone();
-
-        // Construct the metadata using the entirety of SpiderMetaData struct.
-        // Note that right now, not all of the information contained here is necessary to do this,
-        // but it may be in the future.
-        let original_metadata = CodableMetadata::try_from(value)?;
-
-        // Construct and return
-        Ok(CodableSpiderMetadata {
-            original_location,
-            original_metadata,
         })
     }
 }

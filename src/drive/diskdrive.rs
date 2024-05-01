@@ -6,10 +6,11 @@ use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use object_store::local::LocalFileSystem;
 use std::fs::create_dir_all;
+use std::path::PathBuf;
 
 pub struct DiskDriveAndStore {
-    store: DiskDataStore,
-    drive: Drive,
+    pub store: DiskDataStore,
+    pub drive: Drive,
 }
 
 impl DiskDriveAndStore {

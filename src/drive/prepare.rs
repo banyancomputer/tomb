@@ -1,0 +1,115 @@
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
+
+use banyanfs::utils::crypto_rng;
+use tokio::{fs::File, io::AsyncReadExt};
+use tracing::info;
+
+use crate::{
+    file_scanning::{grouper, spider, spider_plans::PreparePipelinePlan},
+    on_disk::DiskDataError,
+    utils::get_progress_bar,
+};
+
+use super::DiskDriveAndStore;
+
+impl DiskDriveAndStore {
+    async fn prepare(&self, origin: &PathBuf) -> Result<(), DiskDataError> {
+        // Create bundling plan
+        let bundling_plan = create_plans(&origin, true).await.unwrap();
+
+        todo!()
+    }
+}
+
+pub async fn create_plans(
+    origin: &Path,
+    follow_links: bool,
+) -> Result<Vec<PreparePipelinePlan>, ()> {
+    // HashSet to track files that have already been seen
+    let mut seen_files: HashSet<PathBuf> = HashSet::new();
+    // Vector holding all the PreparePipelinePlans for bundling
+    let mut bundling_plan: Vec<PreparePipelinePlan> = vec![];
+
+    info!("🔍 Deduplicating the filesystem at {}", origin.display());
+    // Group the filesystem provided to detect duplicates
+    let group_plans = grouper(origin, follow_links, &mut seen_files).unwrap();
+    // Extend the bundling plan
+    bundling_plan.extend(group_plans);
+
+    // TODO fix setting follow_links / do it right
+    info!(
+        "📁 Finding directories and symlinks to back up starting at {}",
+        origin.display()
+    );
+
+    // Spider the filesystem provided to include directories and symlinks
+    let spidered_files = spider(origin, follow_links, &mut seen_files).await.unwrap();
+    // Extend the bundling plan
+    bundling_plan.extend(spidered_files);
+
+    info!(
+        "💾 Total number of files to prepare: {}",
+        bundling_plan.len()
+    );
+
+    Ok(bundling_plan)
+}
+
+/// Given a set of PreparePipelinePlans and required structs, process each
+pub async fn process_plans(
+    ddas: &mut DiskDriveAndStore,
+    preparation_plan: Vec<PreparePipelinePlan>,
+) -> Result<(), DiskDataError> {
+    let mut root = ddas.drive.root().await.unwrap();
+    let mut rng = crypto_rng();
+
+    // First, write data which corresponds to real data
+    for plan in preparation_plan {
+        match plan {
+            PreparePipelinePlan::FileGroup(metadatas) => {
+                // Load the file from disk
+                let mut file = File::open(&metadatas[0].canonicalized_path).await?;
+                let mut content = <Vec<u8>>::new();
+                file.read_to_end(&mut content).await?;
+
+                root.write(
+                    &mut rng,
+                    &mut ddas.store,
+                    &metadatas[0]
+                        .bfs_path
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<&str>>(),
+                    &content,
+                );
+
+                // Duplicates need to be linked no matter what
+                for meta in &metadatas[1..] {
+                    // TODO
+                }
+            }
+            // If this is a directory or symlink
+            PreparePipelinePlan::Directory(meta) => {
+                // If the directory does not exist
+                root.mkdir(
+                    &mut rng,
+                    &meta
+                        .bfs_path
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<&str>>(),
+                    true,
+                )
+                .await
+                .unwrap();
+            }
+            PreparePipelinePlan::Symlink(_, _) => todo!("not sure on banyanfs"),
+        }
+    }
+
+    // Return Ok
+    Ok(())
+}

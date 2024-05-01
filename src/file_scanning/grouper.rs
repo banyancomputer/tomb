@@ -1,4 +1,4 @@
-use crate::native::{
+use crate::{
     file_scanning::{
         spider_plans::{PreparePipelinePlan, SpiderMetadata},
         FClonesLogger,
@@ -54,16 +54,22 @@ pub fn grouper(
             seen_files.insert(canonicalized_path.clone());
 
             // Construct the original location relative to the root
-            let original_location = file
+            let bfs_path = file
                 .path
                 .strip_prefix(&group_config.base_dir)
                 .expect("failed to strip prefix")
-                .to_path_buf();
+                .to_path_buf()
+                .display()
+                .to_string()
+                .split('/')
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect();
 
             // Construct the metadata
             let spider_metadata = Arc::new(SpiderMetadata {
                 // This is the path relative to the root of the backup
-                original_location,
+                bfs_path,
                 canonicalized_path,
                 // This is the metadata of the original file
                 original_metadata: fs::metadata(file_path_buf)

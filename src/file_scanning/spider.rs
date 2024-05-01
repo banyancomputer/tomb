@@ -1,4 +1,4 @@
-use crate::native::{
+use crate::{
     file_scanning::spider_plans::{PreparePipelinePlan, SpiderMetadata},
     NativeError,
 };
@@ -68,15 +68,6 @@ pub async fn spider(
                 .canonicalized_path
                 .to_str()
                 .expect("failed to represent path as string");
-            // The suffix of the canon path we'd like to drop
-            let canon_ignored_suffix = origin_data
-                .original_location
-                .to_str()
-                .expect("failed to represent path as string");
-            // The new canon path has the suffix removed
-            let canon_path = canon_path
-                .strip_suffix(canon_ignored_suffix)
-                .expect("failed to strip suffix");
 
             // A portion of this canon path will be prefixes of the symlink target that need to be removed
             // Transform the canon path into a set of prefixes
