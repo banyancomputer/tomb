@@ -15,26 +15,16 @@ pub struct GlobalConfig {
     user_key_ids: Vec<String>,
     /// Drive Identifiers
     drive_ids: Vec<String>,
-    /// Remote endpoint
-    endpoint: Url,
     /// Remote account id
     account_id: Option<Uuid>,
 }
 
 impl Default for GlobalConfig {
     fn default() -> Self {
-        let endpoint = Url::parse(if option_env!("DEV_ENDPOINTS").is_some() {
-            "http://127.0.0.1:3001"
-        } else {
-            "https://beta.data.banyan.computer"
-        })
-        .expect("unable to parse known URLs");
-
         Self {
             version: env!("CARGO_PKG_VERSION").to_string(),
             drive_ids: vec![],
             user_key_ids: vec![],
-            endpoint,
             account_id: None,
         }
     }
