@@ -32,8 +32,11 @@ impl Default for GlobalConfig {
 
         Self {
             version: env!("CARGO_PKG_VERSION").to_string(),
+            drive_ids: vec![],
+            user_key_ids: vec![],
+
             endpoint,
-            ..Default::default()
+            account_id: None,
         }
     }
 }

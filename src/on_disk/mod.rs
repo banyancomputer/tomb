@@ -1,32 +1,19 @@
-/// this represents data that is stored locally on disk
-pub mod local_share;
-//mod xdg;
+//! this represents data that is stored locally on disk
 
 pub mod config;
+pub mod local_share;
 use async_trait::async_trait;
-use banyanfs::prelude::*;
-use std::{
-    fmt::Display,
-    fs::{create_dir, File},
-    io::{Read, Write},
-    path::PathBuf,
-};
+use std::{fmt::Display, fs::create_dir, path::PathBuf};
 
 #[derive(Debug)]
 pub enum DiskDataError {
     // Common error types we might find
-    Var(std::env::VarError),
     Disk(std::io::Error),
     SerdeJson(serde_json::Error),
     //
     Implementation(String),
 }
 
-impl From<std::env::VarError> for DiskDataError {
-    fn from(value: std::env::VarError) -> Self {
-        Self::Var(value)
-    }
-}
 impl From<std::io::Error> for DiskDataError {
     fn from(value: std::io::Error) -> Self {
         Self::Disk(value)
@@ -51,7 +38,7 @@ pub enum DataType {
 }
 impl DataType {
     pub fn root(&self) -> Result<PathBuf, DiskDataError> {
-        let home = std::env::var("HOME")?;
+        let home = env!("HOME");
         let path = match self {
             DataType::Config => PathBuf::from(format!("{home}/.local/share/banyan")),
             DataType::LocalShare => PathBuf::from(format!("{home}/.config/banyan")),
