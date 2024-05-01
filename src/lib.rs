@@ -8,9 +8,10 @@ pub mod cli;
 /// Drive structs
 pub mod drive;
 
-/// Configuration
-pub mod config;
+/// Local share data
+pub mod on_disk;
 
+///
 pub mod utils;
 
 /// Error

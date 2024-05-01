@@ -393,7 +393,6 @@ dependencies = [
  "futures",
  "getrandom",
  "js-sys",
- "nom",
  "p384",
  "rand",
  "rand_chacha",

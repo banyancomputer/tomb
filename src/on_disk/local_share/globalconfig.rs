@@ -1,7 +1,9 @@
-use crate::{drive::DiskDrive, NativeError};
+use super::*;
+use crate::{drive::DiskDrive, utils::get_read, NativeError};
 use banyanfs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fs::{remove_file, OpenOptions},
     path::{Path, PathBuf},
     str::FromStr,
@@ -10,21 +12,21 @@ use std::{
 use url::Url;
 use uuid::Uuid;
 
-use super::*;
-
 /// Represents the Global contents of the tomb configuration file in a user's .config
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GlobalConfig {
     /// Banyan-Cli version
     version: String,
+
     /// Location of wrapping key on disk in PEM format
     pub user_key_path: PathBuf,
+
     /// Remote endpoint
     endpoint: Url,
     /// Remote account id
     account_id: Option<Uuid>,
     /// Drive Configurations
-    pub(crate) drives: Vec<DriveConfig>,
+    pub(crate) drives: HashMap<String, DriveConfig>,
 }
 
 impl Default for GlobalConfig {
@@ -41,7 +43,7 @@ impl Default for GlobalConfig {
             endpoint,
             user_key_path: default_user_key_path(),
             account_id: None,
-            drives: Vec::new(),
+            drives: HashMap::new(),
         }
     }
 }
@@ -56,7 +58,7 @@ impl GlobalConfig {
 
         // Do not blindly overwrite key files if they exist
         if !config.user_key_path.exists() {
-            new_user_key(&config.user_key_path).await?;
+            create(&config.user_key_path).await?;
         }
         // Ok
         Ok(config)
@@ -64,7 +66,7 @@ impl GlobalConfig {
 
     /// Get the user key
     pub async fn user_key(&self) -> Result<SigningKey, NativeError> {
-        load_user_key(&self.user_key_path)
+        save(&self.user_key_path)
             .await
             .map_err(|_| NativeError::missing_api_key())
     }
