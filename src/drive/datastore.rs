@@ -9,23 +9,14 @@ pub struct DiskDataStore {
     pub lfs: LocalFileSystem,
 }
 
-impl DiskDataStore {
-    pub fn new_at_path(prefix: String) -> Result<Self, DataStoreError> {
-        let lfs = LocalFileSystem::new_with_prefix(prefix).map_err(|_| {
-            DataStoreError::Implementation(String::from("failed to initalize local filesystem"))
-        })?;
-        Ok(Self { lfs })
-    }
-
-    fn cid_as_path(&self, cid: &Cid) -> Path {
-        Path::parse(&format!("/{}", cid.as_base64url_multicodec())).unwrap()
-    }
+fn cid_as_path(cid: &Cid) -> Path {
+    Path::parse(&format!("/{}", cid.as_base64url_multicodec())).unwrap()
 }
 
 #[async_trait(?Send)]
 impl DataStore for DiskDataStore {
     async fn contains_cid(&self, cid: Cid) -> Result<bool, DataStoreError> {
-        match self.lfs.head(&self.cid_as_path(&cid)).await {
+        match self.lfs.head(&cid_as_path(&cid)).await {
             Ok(_) => Ok(true),
             Err(object_store::Error::NotFound { path: _, source: _ }) => Ok(false),
             Err(_) => Err(DataStoreError::LookupFailure),
@@ -34,7 +25,7 @@ impl DataStore for DiskDataStore {
 
     async fn remove(&mut self, cid: Cid, _recusrive: bool) -> Result<(), DataStoreError> {
         self.lfs
-            .delete(&self.cid_as_path(&cid))
+            .delete(&cid_as_path(&cid))
             .await
             .map_err(|_| DataStoreError::StoreFailure)
     }
@@ -42,7 +33,7 @@ impl DataStore for DiskDataStore {
     async fn retrieve(&self, cid: Cid) -> Result<Vec<u8>, DataStoreError> {
         let result = self
             .lfs
-            .get(&self.cid_as_path(&cid))
+            .get(&cid_as_path(&cid))
             .await
             .map_err(|_| DataStoreError::RetrievalFailure)?;
 
@@ -60,7 +51,7 @@ impl DataStore for DiskDataStore {
         _immediate: bool,
     ) -> Result<(), DataStoreError> {
         self.lfs
-            .put(&self.cid_as_path(&cid), data.into())
+            .put(&cid_as_path(&cid), data.into())
             .await
             .map_err(|_| DataStoreError::StoreFailure)
             .map(|_| ())

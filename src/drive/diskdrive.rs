@@ -1,44 +1,55 @@
+use self::local_share::DriveAndKeyId;
+
 use super::datastore::DiskDataStore;
 use crate::on_disk::*;
 use async_trait::async_trait;
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, error::BanyanFsResult, utils::crypto_rng};
+use object_store::local::LocalFileSystem;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, fs::create_dir_all, path::PathBuf, sync::Arc};
-use tokio::fs::{File, OpenOptions};
-use tokio_util::compat::TokioAsyncReadCompatExt;
 
-pub struct DiskDrive {
+pub struct DiskDriveAndStore {
     store: DiskDataStore,
     drive: Drive,
 }
 
-/*
-impl DiskDrive {
-    async fn new(name: String, user_key: Arc<SigningKey>) -> BanyanFsResult<Self> {
-        // Determine the paths we'll be working from
-        let root = xdg_data_home().join(name);
-        let lfs_root = root.join("store");
-
-        // Error out if duplicate
-        if root.exists() {
-            return Err(String::from("drive with this name already exists").into());
-        }
-
-        // Create directory and new store
-        create_dir_all(&lfs_root).map_err(|e| e.to_string())?;
-        let store = DiskDataStore::new_at_path(lfs_root.to_string_lossy().to_string())
-            .map_err(|e| e.to_string())?;
-
-        // Create an initial
+impl DiskDriveAndStore {
+    async fn init(identifier: &DriveAndKeyId) -> Result<Self, DiskDataError> {
         let mut rng = crypto_rng();
-        let drive =
-            Drive::initialize_private(&mut rng, user_key.clone()).map_err(|e| e.to_string())?;
-        let mut disk_drive = Self { root, store, drive };
-        disk_drive.write();
-        disk_drive.read(user_key);
-        Ok(disk_drive)
+        let current_key = SigningKey::decode(&identifier.user_key_id).await?;
+        let drive = Drive::initialize_private(&mut rng, current_key.into())
+            .map_err(|err| DiskDataError::Implementation(err.to_string()))?;
+        let store_path = Self::path(identifier)?;
+        if !store_path.exists() {
+            create_dir_all(&store_path)?;
+        }
+        let store = DiskDataStore {
+            lfs: LocalFileSystem::new_with_prefix(store_path.display().to_string())
+                .map_err(|err| DiskDataError::Implementation(err.to_string()))?,
+        };
+
+        let ddas = Self { store, drive };
+        ddas.encode(identifier).await?;
+        Ok(ddas)
     }
 }
 
-*/
+#[async_trait(?Send)]
+impl DiskData<DriveAndKeyId> for DiskDriveAndStore {
+    const TYPE: DataType = DataType::LocalShare;
+    const SUFFIX: &'static str = "drive_data";
+    const EXTENSION: &'static str = "";
+
+    async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), DiskDataError> {
+        DiskData::encode(&self.drive, identifier).await
+    }
+    async fn decode(identifier: &DriveAndKeyId) -> Result<Self, DiskDataError> {
+        let drive: Drive = DiskData::decode(identifier).await?;
+        let store = DiskDataStore {
+            lfs: LocalFileSystem::new_with_prefix(Self::path(identifier)?.display().to_string())
+                .map_err(|err| DiskDataError::Implementation(err.to_string()))?,
+        };
+        Ok(Self { drive, store })
+    }
+}

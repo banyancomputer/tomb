@@ -12,23 +12,23 @@ use banyanfs::{
 
 //
 #[derive(Debug)]
-pub struct DriveId {
+pub struct DriveAndKeyId {
     pub drive_id: String,
     pub user_key_id: String,
 }
-impl Display for DriveId {
+impl Display for DriveAndKeyId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.drive_id))
     }
 }
 
 #[async_trait(?Send)]
-impl DiskData<DriveId> for Drive {
+impl DiskData<DriveAndKeyId> for Drive {
     const TYPE: DataType = DataType::LocalShare;
     const SUFFIX: &'static str = "drives";
     const EXTENSION: &'static str = "bfs";
 
-    async fn encode(&self, identifier: &DriveId) -> Result<(), DiskDataError> {
+    async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), DiskDataError> {
         self.encode(
             &mut crypto_rng(),
             ContentOptions::everything(),
@@ -38,7 +38,7 @@ impl DiskData<DriveId> for Drive {
         Ok(())
     }
 
-    async fn decode(identifier: &DriveId) -> Result<Self, DiskDataError> {
+    async fn decode(identifier: &DriveAndKeyId) -> Result<Self, DiskDataError> {
         let user_key = SigningKey::decode(&identifier.user_key_id).await?;
         let drive = DriveLoader::new(&user_key)
             .from_reader(&mut Self::get_reader(identifier).await?)

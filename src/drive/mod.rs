@@ -4,4 +4,4 @@ mod diskdrive;
 mod synctracker;
 
 pub use datastore::DiskDataStore;
-pub use diskdrive::DiskDrive;
+pub use diskdrive::DiskDriveAndStore;
