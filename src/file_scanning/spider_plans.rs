@@ -72,9 +72,9 @@ pub enum FileType {
 #[derive(Debug, Clone)]
 pub enum PreparationPlan {
     /// It was a directory, just create it
-    Directory(Arc<SpiderMetadata>),
+    Directory(SpiderMetadata),
     /// it was a symlink, just create it (with destination)
-    Symlink(Arc<SpiderMetadata>, PathBuf),
+    Symlink(SpiderMetadata, PathBuf),
     /// it was a group of identical files, here's the metadata for how they were encrypted and compressed
-    FileGroup(Vec<Arc<SpiderMetadata>>),
+    FileGroup(Vec<SpiderMetadata>),
 }

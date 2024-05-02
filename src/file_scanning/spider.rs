@@ -55,7 +55,7 @@ pub async fn spider(
         seen_files.insert(spidered.canonicalized_path.clone());
 
         // Construct Automatic Reference Counting pointer to the spidered metadata
-        let origin_data = Arc::new(spidered.clone());
+        let origin_data = spidered.clone();
         // If this is a directory
         if spidered.metadata.is_dir() {
             // Push a PreparePipelinePlan with this origin data

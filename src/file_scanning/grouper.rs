@@ -67,13 +67,13 @@ pub fn grouper(
                 .collect();
 
             // Construct the metadata
-            let spider_metadata = Arc::new(SpiderMetadata {
+            let spider_metadata = SpiderMetadata {
                 // This is the path relative to the root of the backup
                 bfs_path,
                 canonicalized_path,
                 // This is the metadata of the original file
                 metadata: fs::metadata(file_path_buf).expect("failed to obtain metadata for path"),
-            });
+            };
 
             // Append the metadata
             metadatas.push(spider_metadata);
