@@ -1,5 +1,5 @@
 use crate::{
-    file_scanning::spider_plans::{PreparePipelinePlan, SpiderMetadata},
+    file_scanning::spider_plans::{PreparationPlan, SpiderMetadata},
     NativeError,
 };
 use jwalk::WalkDir;
@@ -21,7 +21,7 @@ pub async fn spider(
     origin: &Path,
     _follow_links: bool,
     seen_files: &mut HashSet<PathBuf>,
-) -> Result<Vec<PreparePipelinePlan>, NativeError> {
+) -> Result<Vec<PreparationPlan>, NativeError> {
     // Canonicalize the path
     let path_root = origin.canonicalize()?;
 
@@ -57,12 +57,12 @@ pub async fn spider(
         // Construct Automatic Reference Counting pointer to the spidered metadata
         let origin_data = Arc::new(spidered.clone());
         // If this is a directory
-        if spidered.original_metadata.is_dir() {
+        if spidered.metadata.is_dir() {
             // Push a PreparePipelinePlan with this origin data
-            bundling_plan.push(PreparePipelinePlan::Directory(origin_data));
+            bundling_plan.push(PreparationPlan::Directory(origin_data));
         }
         // If this is a symlink
-        else if spidered.original_metadata.is_symlink() {
+        else if spidered.metadata.is_symlink() {
             // The canon path, as a String
             let canon_path = origin_data
                 .canonicalized_path
@@ -88,12 +88,12 @@ pub async fn spider(
             }
 
             // Push a PreparePipelinePlan with this origin data and symlink
-            bundling_plan.push(PreparePipelinePlan::Symlink(origin_data, symlink_target));
+            bundling_plan.push(PreparationPlan::Symlink(origin_data, symlink_target));
         }
         // If this is a file that was not in a group
         else {
             // Push a PreparePipelinePlan using fake file group of singular spidered metadata
-            bundling_plan.push(PreparePipelinePlan::FileGroup(vec![origin_data]));
+            bundling_plan.push(PreparationPlan::FileGroup(vec![origin_data]));
         }
     }
     Ok(bundling_plan)

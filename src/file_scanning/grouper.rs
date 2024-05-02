@@ -1,6 +1,6 @@
 use crate::{
     file_scanning::{
-        spider_plans::{PreparePipelinePlan, SpiderMetadata},
+        spider_plans::{PreparationPlan, SpiderMetadata},
         FClonesLogger,
     },
     NativeError,
@@ -30,7 +30,7 @@ pub fn grouper(
     input_dir: &Path,
     follow_links: bool,
     seen_files: &mut HashSet<PathBuf>,
-) -> Result<Vec<PreparePipelinePlan>, NativeError> {
+) -> Result<Vec<PreparationPlan>, NativeError> {
     // Construct the group config
     let group_config = create_group_config(input_dir, follow_links);
 
@@ -72,15 +72,14 @@ pub fn grouper(
                 bfs_path,
                 canonicalized_path,
                 // This is the metadata of the original file
-                original_metadata: fs::metadata(file_path_buf)
-                    .expect("failed to obtain metadata for path"),
+                metadata: fs::metadata(file_path_buf).expect("failed to obtain metadata for path"),
             });
 
             // Append the metadata
             metadatas.push(spider_metadata);
         }
         // Push a PreparePipelinePlan with this file group
-        bundling_plan.push(PreparePipelinePlan::FileGroup(metadatas));
+        bundling_plan.push(PreparationPlan::FileGroup(metadatas));
     }
     Ok(bundling_plan)
 }

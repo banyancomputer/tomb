@@ -8,7 +8,7 @@ use tokio::{fs::File, io::AsyncReadExt};
 use tracing::info;
 
 use crate::{
-    file_scanning::{grouper, spider, spider_plans::PreparePipelinePlan},
+    file_scanning::{grouper, spider, spider_plans::PreparationPlan},
     on_disk::DiskDataError,
     utils::get_progress_bar,
 };
@@ -24,14 +24,11 @@ impl DiskDriveAndStore {
     }
 }
 
-pub async fn create_plans(
-    origin: &Path,
-    follow_links: bool,
-) -> Result<Vec<PreparePipelinePlan>, ()> {
+pub async fn create_plans(origin: &Path, follow_links: bool) -> Result<Vec<PreparationPlan>, ()> {
     // HashSet to track files that have already been seen
     let mut seen_files: HashSet<PathBuf> = HashSet::new();
     // Vector holding all the PreparePipelinePlans for bundling
-    let mut bundling_plan: Vec<PreparePipelinePlan> = vec![];
+    let mut bundling_plan: Vec<PreparationPlan> = vec![];
 
     info!("🔍 Deduplicating the filesystem at {}", origin.display());
     // Group the filesystem provided to detect duplicates
@@ -61,7 +58,7 @@ pub async fn create_plans(
 /// Given a set of PreparePipelinePlans and required structs, process each
 pub async fn process_plans(
     ddas: &mut DiskDriveAndStore,
-    preparation_plan: Vec<PreparePipelinePlan>,
+    preparation_plan: Vec<PreparationPlan>,
 ) -> Result<(), DiskDataError> {
     let mut root = ddas.drive.root().await.unwrap();
     let mut rng = crypto_rng();
@@ -69,7 +66,7 @@ pub async fn process_plans(
     // First, write data which corresponds to real data
     for plan in preparation_plan {
         match plan {
-            PreparePipelinePlan::FileGroup(metadatas) => {
+            PreparationPlan::FileGroup(metadatas) => {
                 // Load the file from disk
                 let mut file = File::open(&metadatas[0].canonicalized_path).await?;
                 let mut content = <Vec<u8>>::new();
@@ -92,7 +89,7 @@ pub async fn process_plans(
                 }
             }
             // If this is a directory or symlink
-            PreparePipelinePlan::Directory(meta) => {
+            PreparationPlan::Directory(meta) => {
                 // If the directory does not exist
                 root.mkdir(
                     &mut rng,
@@ -106,7 +103,7 @@ pub async fn process_plans(
                 .await
                 .unwrap();
             }
-            PreparePipelinePlan::Symlink(_, _) => todo!("not sure on banyanfs"),
+            PreparationPlan::Symlink(_, _) => todo!("not sure on banyanfs"),
         }
     }
 

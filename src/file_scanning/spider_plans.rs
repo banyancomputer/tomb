@@ -10,23 +10,12 @@ use std::{
 #[derive(Debug, Clone)]
 /// Metadata associated with a file, directory, or symlink that was processed by the spider
 pub struct SpiderMetadata {
-    /// This is the path relative to the root of the backup
+    /// Relative path to root for banyanfs
     pub bfs_path: Vec<String>,
     /// canonicalized path
     pub canonicalized_path: PathBuf,
     /// this is the metadata of the original file
-    pub original_metadata: Metadata,
-}
-
-// TODO (organizedgrime) - these fields are literally identical. why not just keep a reference to the original SpiderMetadata?
-// there must be a way to make that look pretty.
-/// Codable version of the SpiderMetadata struct which can be written to disk using `serde` when required
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CodableSpiderMetadata {
-    /// This is the path relative to the root of the backup
-    pub original_location: PathBuf,
-    /// The metadata we scraped from the file when it was first processed
-    pub original_metadata: CodableMetadata,
+    pub metadata: Metadata,
 }
 
 impl SpiderMetadata {
@@ -36,7 +25,7 @@ impl SpiderMetadata {
     /// * `entry` - The individual file / directory being processed
     pub fn new(path_root: &Path, entry: DirEntry<((), ())>) -> Self {
         // Determine the location of the entry by stripping the root path from it
-        let original_location = entry
+        let bfs_path = entry
             .path()
             .strip_prefix(path_root)
             .expect("failed to strip prefix")
@@ -48,21 +37,19 @@ impl SpiderMetadata {
             .map(String::from)
             .collect();
         // Don't try to canonicalize if this is a symlink
-        let canonicalized_path: PathBuf = if entry.path_is_symlink() {
-            entry.path()
-        } else {
-            entry
-                .path()
+        let mut canonicalized_path: PathBuf = entry.path();
+        if !entry.path_is_symlink() {
+            canonicalized_path = canonicalized_path
                 .canonicalize()
                 .expect("failed to canonicalize path")
         };
         // Grab the metadata of the entry
-        let original_metadata = entry.metadata().expect("failed to get entry metadata");
+        let metadata = entry.metadata().expect("failed to get entry metadata");
         // Return the SpiderMetadata
         SpiderMetadata {
-            bfs_path: original_location,
+            bfs_path,
             canonicalized_path,
-            original_metadata,
+            metadata,
         }
     }
 }
@@ -78,48 +65,12 @@ pub enum FileType {
     File,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-/// Codable Metadata struct which can be written to disk using `serde` when required,
-/// containing more fields than are typically stored in Metadata.
-pub struct CodableMetadata {
-    file_type: FileType,
-    /// The length of the file in bytes
-    pub len: u64,
-    permissions: (), // TODO uuuugh permissions
-    modified: SystemTime,
-    accessed: SystemTime,
-    created: SystemTime,
-    owner: (), //TODO: figure out how to get owner
-               // TODO come up with more metadata to store
-}
-
-impl TryFrom<&SpiderMetadata> for CodableMetadata {
-    type Error = std::io::Error;
-    fn try_from(value: &SpiderMetadata) -> Result<Self, Self::Error> {
-        Ok(CodableMetadata {
-            file_type: match value.original_metadata.file_type().is_dir() {
-                true => FileType::Directory,
-                false => match value.original_metadata.file_type().is_symlink() {
-                    true => FileType::Symlink,
-                    false => FileType::File,
-                },
-            },
-            len: value.original_metadata.len(),
-            permissions: (), // TODO: figure out how to get permissions
-            modified: value.original_metadata.modified()?,
-            accessed: value.original_metadata.accessed()?,
-            created: value.original_metadata.created()?,
-            owner: (),
-        })
-    }
-}
-
 /// This struct is used to describe how a filesystem structure was processed. Either it was a duplicate/symlink/
 /// directory and there isn't much to do, or else we need to go through compression, partition, and
 /// encryption steps.
 /// this takes in pre-grouped files (for processing together) or marked directories/simlinks.
 #[derive(Debug, Clone)]
-pub enum PreparePipelinePlan {
+pub enum PreparationPlan {
     /// It was a directory, just create it
     Directory(Arc<SpiderMetadata>),
     /// it was a symlink, just create it (with destination)
