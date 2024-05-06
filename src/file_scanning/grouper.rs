@@ -35,7 +35,7 @@ pub fn grouper(
     let group_config = create_group_config(input_dir, follow_links);
 
     let file_groups = group_files(&group_config, &FClonesLogger::default())
-        .map_err(|err| NativeError::custom_error(&err.to_string()))?;
+        .map_err(|err| NativeError::Custom(err.to_string()))?;
     // Vector holding all the PreparePipelinePlans for bundling
     let mut bundling_plan = vec![];
     // go over the files- do it in groups

@@ -9,7 +9,7 @@ pub(crate) mod utils;
 /// Debug level
 pub mod verbosity;
 /// Export
-pub(crate) use runnable_command::RunnableCommand;
+pub use runnable_command::RunnableCommand;
 
 /// CLI Args
 #[derive(clap::Parser, Debug)]

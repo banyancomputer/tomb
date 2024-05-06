@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    config::{config_path, GlobalConfig},
+    on_disk::{config::GlobalConfig, DiskData},
     NativeError,
 };
 use async_trait::async_trait;
@@ -20,8 +20,11 @@ where
 
     /// Run the internal command, passing a reference to a global configuration which is saved after completion
     async fn run(self) -> Result<(), ErrorType> {
-        if !config_path().exists() {
-            GlobalConfig::new().await.expect("new config");
+        if GlobalConfig::decode(&"main".to_string()).await.is_err() {
+            GlobalConfig::default()
+                .encode(&"main".to_string())
+                .await
+                .expect("new config");
         }
 
         let result = self.run_internal().await;

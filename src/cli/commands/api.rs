@@ -1,5 +1,9 @@
+use crate::{
+    on_disk::{config::GlobalConfig, DiskData},
+    NativeError,
+};
+
 use super::RunnableCommand;
-use crate::{config::GlobalConfig, NativeError};
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;
@@ -16,33 +20,22 @@ pub enum ApiCommand {
         #[arg(short, long)]
         address: String,
     },
-    /// Return the endpoint to the original values
-    Reset,
 }
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for ApiCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
-        let mut global = GlobalConfig::from_disk().await?;
+        let mut global = GlobalConfig::decode(&"main".to_string()).await?;
         match self {
             ApiCommand::Display => Ok(format!(
                 "{}\n{}\n",
                 "| ADDRESS INFO |".yellow(),
-                global.get_endpoint()
+                env!("ENDPOINT"),
             )),
             ApiCommand::Set { address } => {
-                global.set_endpoint(Url::parse(&address).map_err(|_| NativeError::bad_data())?)?;
+                let _ = Url::parse(&address).map_err(|err| NativeError::Custom(err.to_string()));
+                std::env::set_var("ENDPOINT", address);
                 Ok(format!("{}", "<< ENDPOINT UPDATED SUCCESSFULLY >>".green()))
-            }
-            ApiCommand::Reset => {
-                let endpoint = Url::parse(if option_env!("DEV_ENDPOINTS").is_some() {
-                    "http://127.0.0.1:3001"
-                } else {
-                    "https://beta.data.banyan.computer"
-                })
-                .expect("unable to parse known URLs");
-                global.set_endpoint(endpoint)?;
-                Ok(format!("{}", "<< ENDPOINTS HAVE BEEN RESET >>".green()))
             }
         }
     }

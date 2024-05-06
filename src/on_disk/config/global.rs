@@ -33,7 +33,7 @@ impl Default for GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub async fn get_client(&self) -> Result<ApiClient, DiskDataError> {
+    pub async fn api_client(&self) -> Result<ApiClient, DiskDataError> {
         let suki = self
             .selected_user_key_id
             .clone()

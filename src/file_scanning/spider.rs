@@ -41,7 +41,7 @@ pub async fn spider(
         .into_iter()
         .map(move |item| {
             item.map(|entry| SpiderMetadata::new(&path_root, entry))
-                .map_err(|err| NativeError::custom_error(&err.to_string()))
+                .map_err(|err| NativeError::Custom(err.to_string()))
         })
         .collect::<Result<Vec<SpiderMetadata>, NativeError>>()?;
 

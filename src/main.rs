@@ -1,8 +1,5 @@
 use {
-    banyan_cli::{
-        self,
-        cli::{args::Args, commands::RunnableCommand},
-    },
+    banyan_cli::cli::{Args, RunnableCommand},
     clap::Parser,
     tracing::Level,
     tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer},
