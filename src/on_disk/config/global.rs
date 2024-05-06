@@ -1,7 +1,8 @@
 use crate::on_disk::{DataType, DiskData, DiskDataError};
 use async_trait::async_trait;
+use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::{fs::File, sync::Arc};
 use uuid::Uuid;
 
 /// Represents the Global contents of the tomb configuration file in a user's .config
@@ -28,6 +29,24 @@ impl Default for GlobalConfig {
             drive_ids: vec![],
             account_id: None,
         }
+    }
+}
+
+impl GlobalConfig {
+    pub async fn get_client(&self) -> Result<ApiClient, DiskDataError> {
+        let suki = self
+            .selected_user_key_id
+            .clone()
+            .ok_or(DiskDataError::Implementation(
+                "No user key selected".to_string(),
+            ))?;
+        let account_id = self
+            .account_id
+            .ok_or(DiskDataError::Implementation("No account id".to_string()))?
+            .to_string();
+        let key = Arc::new(SigningKey::decode(&suki).await?);
+        Ok(ApiClient::new(env!("ENDPOINT"), &account_id, key)
+            .map_err(|_| DiskDataError::Implementation("Api Client creation".to_string()))?)
     }
 }
 

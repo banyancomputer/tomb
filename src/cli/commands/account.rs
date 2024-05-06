@@ -1,6 +1,10 @@
+use std::fmt::Display;
+
+use crate::on_disk::{config::GlobalConfig, DiskData, DiskDataError};
+
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::api::platform::account::*;
+use banyanfs::api::{platform::account::*, ApiError};
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
@@ -17,9 +21,9 @@ pub enum AccountCommand {
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<String> for AccountCommand {
-    async fn run_internal(self) -> Result<String, String> {
-        let mut global = GlobalConfig::from_disk().await?;
+impl RunnableCommand<AccountCommandError> for AccountCommand {
+    async fn run_internal(self) -> Result<String, AccountCommandError> {
+        let mut global = GlobalConfig::decode(&String::from("main")).await?;
         let mut client = global.get_client().await?;
 
         // Process the command
@@ -54,9 +58,9 @@ impl RunnableCommand<String> for AccountCommand {
                 let usage_limit_result = current_usage_limit(&mut client).await;
 
                 if current_usage_result.is_err() && usage_limit_result.is_err() {
-                    return Err(NativeError::custom_error(
+                    return Err(AccountCommandError::Custom(String::from(
                         "Unable to obtain usage stats. Check your authentication!",
-                    ));
+                    )));
                 }
 
                 if let Ok(usage_current) = current_usage_result {
@@ -78,5 +82,36 @@ impl RunnableCommand<String> for AccountCommand {
                 Ok(output)
             }
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum AccountCommandError {
+    Api(ApiError),
+    Config(DiskDataError),
+    Custom(String),
+}
+
+impl Display for AccountCommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AccountCommandError::Api(err) => f.write_str(&err.to_string()),
+            AccountCommandError::Config(err) => f.write_str(&err.to_string()),
+            AccountCommandError::Custom(err) => f.write_str(err),
+        }
+    }
+}
+
+impl std::error::Error for AccountCommandError {}
+
+impl From<DiskDataError> for AccountCommandError {
+    fn from(value: DiskDataError) -> Self {
+        Self::Config(value)
+    }
+}
+
+impl From<ApiError> for AccountCommandError {
+    fn from(value: ApiError) -> Self {
+        Self::Api(value)
     }
 }

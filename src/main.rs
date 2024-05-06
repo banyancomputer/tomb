@@ -1,6 +1,3 @@
-//#[cfg(feature = "cli")]
-
-/*
 use {
     banyan_cli::{
         self,
@@ -11,9 +8,9 @@ use {
     tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer},
 };
 
-//#[cfg(feature = "cli")]
 #[tokio::main]
 async fn main() {
+    println!("Enable the CLI feature to interact with the CLI");
     // Parse command line arguments. see args.rs
     let cli = Args::parse();
 
@@ -34,17 +31,4 @@ async fn main() {
 
     // Determine the command being executed run appropriate subcommand
     let _ = cli.command.run().await;
-}
-
-/*
-#[cfg(not(feature = "cli"))]
-#[tokio::main]
-async fn main() {
-    println!("Enable the CLI feature to interact with the CLI");
-}
-*/
-*/
-
-fn main() {
-    println!("hey!!!");
 }
