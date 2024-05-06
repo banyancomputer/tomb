@@ -73,11 +73,6 @@ tokio-util = "0.7.10"
 fake-file = { version = "^0.1" }
 serial_test = { version = "^2" }
 
-# Native features
-[features]
-cli = []
-integration-tests = []
-
 [[bin]]
 name = "banyan"
 path = "src/main.rs"
