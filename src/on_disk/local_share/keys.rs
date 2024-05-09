@@ -5,12 +5,12 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
 #[async_trait(?Send)]
-impl DiskData<String> for SigningKey {
-    const TYPE: DataType = DataType::LocalShare;
+impl OnDisk<String> for SigningKey {
+    const TYPE: DiskType = DiskType::LocalShare;
     const SUFFIX: &'static str = "user_keys";
     const EXTENSION: &'static str = "pem";
 
-    async fn encode(&self, identifier: &String) -> Result<(), DiskDataError> {
+    async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
         let pem: String = self.to_pkcs8_pem().unwrap().to_string();
         Self::get_writer(identifier)
             .await?
@@ -20,7 +20,7 @@ impl DiskData<String> for SigningKey {
         return Ok(());
     }
 
-    async fn decode(identifier: &String) -> Result<Self, DiskDataError> {
+    async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
         let mut pem_bytes = Vec::new();
         Self::get_reader(identifier)
             .await?

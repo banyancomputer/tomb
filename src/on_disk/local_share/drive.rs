@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use tokio::fs::{File, OpenOptions};
 
-use crate::on_disk::{DataType, DiskData, DiskDataError};
+use crate::on_disk::{DiskType, OnDisk, OnDiskError};
 use async_trait::async_trait;
 use banyanfs::{
     codec::{crypto::SigningKey, header::ContentOptions},
@@ -23,12 +23,12 @@ impl Display for DriveAndKeyId {
 }
 
 #[async_trait(?Send)]
-impl DiskData<DriveAndKeyId> for Drive {
-    const TYPE: DataType = DataType::LocalShare;
+impl OnDisk<DriveAndKeyId> for Drive {
+    const TYPE: DiskType = DiskType::LocalShare;
     const SUFFIX: &'static str = "drives";
     const EXTENSION: &'static str = "bfs";
 
-    async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), DiskDataError> {
+    async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), OnDiskError> {
         self.encode(
             &mut crypto_rng(),
             ContentOptions::everything(),
@@ -38,12 +38,12 @@ impl DiskData<DriveAndKeyId> for Drive {
         Ok(())
     }
 
-    async fn decode(identifier: &DriveAndKeyId) -> Result<Self, DiskDataError> {
+    async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         let user_key = SigningKey::decode(&identifier.user_key_id).await?;
         let drive = DriveLoader::new(&user_key)
             .from_reader(&mut Self::get_reader(identifier).await?)
             .await
-            .map_err(|err| DiskDataError::Implementation(err.to_string()))?;
+            .map_err(|err| OnDiskError::Implementation(err.to_string()))?;
         Ok(drive)
     }
 }

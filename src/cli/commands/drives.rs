@@ -17,9 +17,6 @@ pub enum DrivesCommand {
     //Ls,
     /// Initialize a new Drive
     Create {
-        /// Drive Name
-        #[arg(short, long)]
-        name: String,
         /// Drive Root
         #[arg(short, long)]
         origin: Option<PathBuf>,
@@ -82,8 +79,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             */
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
-            DrivesCommand::Create { name, origin } => {
-                //let origin = origin.unwrap_or(current_dir()?);
+            DrivesCommand::Create { origin } => {
+                let origin = origin.unwrap_or(current_dir()?);
                 //let omni = OmniBucket::create(&name, &origin).await?;
                 //let output = format!("{}\n{}", "<< NEW DRIVE CREATED >>".green(), omni);
                 Ok(String::new())

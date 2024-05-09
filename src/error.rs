@@ -1,11 +1,11 @@
-use crate::on_disk::DiskDataError;
+use crate::on_disk::OnDiskError;
 use banyanfs::api::ApiError;
 use std::{fmt::Display, string::FromUtf8Error};
 
 #[derive(Debug)]
 pub enum NativeError {
     Api(ApiError),
-    Config(DiskDataError),
+    Config(OnDiskError),
     Custom(String),
 }
 
@@ -27,15 +27,15 @@ impl From<ApiError> for NativeError {
     }
 }
 
-impl From<DiskDataError> for NativeError {
-    fn from(value: DiskDataError) -> Self {
+impl From<OnDiskError> for NativeError {
+    fn from(value: OnDiskError) -> Self {
         Self::Config(value)
     }
 }
 
 impl From<std::io::Error> for NativeError {
     fn from(value: std::io::Error) -> Self {
-        Self::Config(DiskDataError::Disk(value))
+        Self::Config(OnDiskError::Disk(value))
     }
 }
 

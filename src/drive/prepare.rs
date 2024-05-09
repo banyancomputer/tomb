@@ -8,9 +8,8 @@ use tokio::{fs::File, io::AsyncReadExt};
 use tracing::{info, warn};
 use walkdir::{DirEntry, WalkDir};
 
-use crate::on_disk::DiskDataError;
-
 use super::DiskDriveAndStore;
+use crate::on_disk::OnDiskError;
 
 fn is_hidden(entry: &DirEntry) -> bool {
     entry
@@ -20,7 +19,7 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-pub async fn prepare(origin: &PathBuf) -> Result<(), DiskDataError> {
+pub async fn prepare(origin: &PathBuf) -> Result<(), OnDiskError> {
     let walker = WalkDir::new(origin).follow_links(true).into_iter();
     for entry in walker.filter_entry(|e| !is_hidden(e)) {
         match entry {

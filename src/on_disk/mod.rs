@@ -7,7 +7,7 @@ use std::{fmt::Display, fs::create_dir, path::PathBuf};
 use tokio::fs::{File, OpenOptions};
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 #[derive(Debug)]
-pub enum DiskDataError {
+pub enum OnDiskError {
     // Common error types we might find
     Disk(std::io::Error),
     SerdeJson(serde_json::Error),
@@ -15,34 +15,34 @@ pub enum DiskDataError {
     Implementation(String),
 }
 
-impl From<std::io::Error> for DiskDataError {
+impl From<std::io::Error> for OnDiskError {
     fn from(value: std::io::Error) -> Self {
         Self::Disk(value)
     }
 }
-impl From<serde_json::Error> for DiskDataError {
+impl From<serde_json::Error> for OnDiskError {
     fn from(value: serde_json::Error) -> Self {
         Self::SerdeJson(value)
     }
 }
 
-impl Display for DiskDataError {
+impl Display for OnDiskError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("{:?}", self))
     }
 }
-impl std::error::Error for DiskDataError {}
+impl std::error::Error for OnDiskError {}
 
-pub enum DataType {
+pub enum DiskType {
     Config,
     LocalShare,
 }
-impl DataType {
-    pub fn root(&self) -> Result<PathBuf, DiskDataError> {
+impl DiskType {
+    pub fn root(&self) -> Result<PathBuf, OnDiskError> {
         let home = env!("HOME");
         let path = match self {
-            DataType::Config => PathBuf::from(format!("{home}/.local/share/banyan")),
-            DataType::LocalShare => PathBuf::from(format!("{home}/.config/banyan")),
+            DiskType::Config => PathBuf::from(format!("{home}/.local/share/banyan")),
+            DiskType::LocalShare => PathBuf::from(format!("{home}/.config/banyan")),
         };
 
         if !path.exists() {
@@ -53,13 +53,15 @@ impl DataType {
     }
 }
 
+/// The purpose of this trait is to standardize file encoding and decoding implementations
+/// for files that need to live in XDG home.
 #[async_trait(?Send)]
-pub trait DiskData<I: Display>: Sized {
-    const TYPE: DataType;
+pub trait OnDisk<I: Display>: Sized {
+    const TYPE: DiskType;
     const SUFFIX: &'static str;
     const EXTENSION: &'static str;
 
-    fn path(identifier: &I) -> Result<PathBuf, DiskDataError> {
+    fn path(identifier: &I) -> Result<PathBuf, OnDiskError> {
         Ok(Self::TYPE.root()?.join(Self::SUFFIX).join(format!(
             "{}.{}",
             identifier,
@@ -68,17 +70,17 @@ pub trait DiskData<I: Display>: Sized {
     }
 
     // Async compat reader/writer defaults
-    async fn get_writer(identifier: &I) -> Result<Compat<File>, DiskDataError> {
+    async fn get_writer(identifier: &I) -> Result<Compat<File>, OnDiskError> {
         let mut file_opts = OpenOptions::new();
         file_opts.write(true);
         file_opts.create(true);
         file_opts.truncate(true);
         Ok(file_opts.open(Self::path(identifier)?).await?.compat())
     }
-    async fn get_reader(identifier: &I) -> Result<Compat<File>, DiskDataError> {
+    async fn get_reader(identifier: &I) -> Result<Compat<File>, OnDiskError> {
         Ok(File::open(Self::path(identifier)?).await?.compat())
     }
 
-    async fn encode(&self, identifier: &I) -> Result<(), DiskDataError>;
-    async fn decode(identifier: &I) -> Result<Self, DiskDataError>;
+    async fn encode(&self, identifier: &I) -> Result<(), OnDiskError>;
+    async fn decode(identifier: &I) -> Result<Self, OnDiskError>;
 }

@@ -5,7 +5,7 @@ use banyanfs::{
 };
 use object_store::{local::LocalFileSystem, path::Path, ObjectStore};
 
-pub struct DiskDataStore {
+pub struct OnDiskDataStore {
     pub lfs: LocalFileSystem,
 }
 
@@ -14,7 +14,7 @@ fn cid_as_path(cid: &Cid) -> Path {
 }
 
 #[async_trait(?Send)]
-impl DataStore for DiskDataStore {
+impl DataStore for OnDiskDataStore {
     async fn contains_cid(&self, cid: Cid) -> Result<bool, DataStoreError> {
         match self.lfs.head(&cid_as_path(&cid)).await {
             Ok(_) => Ok(true),

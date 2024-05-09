@@ -4,6 +4,6 @@ mod diskdrive;
 mod prepare;
 mod synctracker;
 
-pub use datastore::DiskDataStore;
+pub use datastore::OnDiskDataStore;
 pub use diskdrive::DiskDriveAndStore;
 pub use prepare::prepare;

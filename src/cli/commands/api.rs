@@ -1,5 +1,5 @@
 use crate::{
-    on_disk::{config::GlobalConfig, DiskData},
+    on_disk::{config::GlobalConfig, OnDisk},
     NativeError,
 };
 

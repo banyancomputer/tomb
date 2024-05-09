@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    on_disk::{config::GlobalConfig, DiskData},
+    on_disk::{config::GlobalConfig, OnDisk},
     NativeError,
 };
 use async_trait::async_trait;
