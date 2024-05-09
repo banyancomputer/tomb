@@ -35,8 +35,7 @@ colored = { version = "^2" }
 clap = { version = "^4", features = ["derive"] }
 
 # Filesystem Traversal
-fclones = { version = "^0.34" }
-jwalk = { version = "^0.8" }
+walkdir = { version = "2" }
 
 # Async
 tokio = { version = "^1", features = ["full", "io-util", "fs"] }

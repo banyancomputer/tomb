@@ -7,7 +7,7 @@ mod account;
 /// View / Change API endpoint
 mod api;
 /// Drive interaction
-//mod drives;
+mod drives;
 
 /// Export all commands
 //pub use access::*;
@@ -30,14 +30,12 @@ pub enum BanyanCommand {
         #[clap(subcommand)]
         command: account::AccountCommand,
     },
-    /*
     /// Drive management
     Drives {
         /// Subcommand
         #[clap(subcommand)]
         command: drives::DrivesCommand,
     },
-    */
 }
 
 use super::RunnableCommand;
@@ -49,7 +47,7 @@ impl RunnableCommand<NativeError> for BanyanCommand {
         match self {
             BanyanCommand::Api { command } => Ok(command.run_internal().await?),
             BanyanCommand::Account { command } => Ok(command.run_internal().await?),
-            //       BanyanCommand::Drives { command } => command.run_internal().await,
+            BanyanCommand::Drives { command } => command.run_internal().await,
         }
     }
 }

@@ -5,24 +5,46 @@ use std::{
 
 use banyanfs::utils::crypto_rng;
 use tokio::{fs::File, io::AsyncReadExt};
-use tracing::info;
+use tracing::{info, warn};
+use walkdir::{DirEntry, WalkDir};
 
-use crate::{
-    file_scanning::{grouper, spider, spider_plans::PreparationPlan},
-    on_disk::DiskDataError,
-};
+use crate::on_disk::DiskDataError;
 
 use super::DiskDriveAndStore;
 
-impl DiskDriveAndStore {
-    async fn prepare(&self, origin: &PathBuf) -> Result<(), DiskDataError> {
-        // Create bundling plan
-        let bundling_plan = create_plans(&origin, true).await.unwrap();
-
-        todo!()
-    }
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with("."))
+        .unwrap_or(false)
 }
 
+pub async fn prepare(origin: &PathBuf) -> Result<(), DiskDataError> {
+    let walker = WalkDir::new(origin).follow_links(true).into_iter();
+    for entry in walker.filter_entry(|e| !is_hidden(e)) {
+        match entry {
+            Ok(entry) => {
+                // Path on OS
+                let canonical_path = entry.path();
+                // Banyanfs path relative to root
+                let bfs_path = canonical_path.strip_prefix(origin);
+
+                info!("canonical: {:?}", canonical_path);
+                info!("bfs: {:?}", bfs_path);
+            }
+            Err(err) => {
+                warn!("Unable to process file or directory, you might not have permission to. {err:?}");
+            }
+        }
+    }
+
+    info!("finished preparing");
+
+    Ok(())
+}
+
+/*
 pub async fn create_plans(origin: &Path, follow_links: bool) -> Result<Vec<PreparationPlan>, ()> {
     // HashSet to track files that have already been seen
     let mut seen_files: HashSet<PathBuf> = HashSet::new();
@@ -109,3 +131,4 @@ pub async fn process_plans(
     // Return Ok
     Ok(())
 }
+*/
