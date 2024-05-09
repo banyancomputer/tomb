@@ -1,4 +1,4 @@
-use log::LevelFilter;
+use tracing::log::LevelFilter;
 
 /// Level of verbosity in debugs
 #[derive(Clone, Debug, clap::ValueEnum)]

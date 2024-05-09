@@ -13,12 +13,6 @@ impl UtilityError {
         }
     }
 
-    pub fn varint(err: unsigned_varint::decode::Error) -> Self {
-        Self {
-            kind: UtilityErrorKind::Varint(err),
-        }
-    }
-
     pub fn io(err: std::io::Error) -> Self {
         Self {
             kind: UtilityErrorKind::Io(err),
@@ -36,7 +30,6 @@ impl Display for UtilityError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match &self.kind {
             UtilityErrorKind::Custom(msg) => msg.to_owned(),
-            UtilityErrorKind::Varint(err) => format!("{} {err}", "VARINT ERROR:".underline()),
             UtilityErrorKind::Io(err) => format!("{} {err}", "IO ERROR:".underline()),
             UtilityErrorKind::Utf8(err) => format!("{} {err}", "UTF8 ERROR:".underline()),
             //            UtilityErrorKind::Native(err) => format!("{} {err}", "NATIVE ERROR:".underline()),
@@ -49,15 +42,8 @@ impl Display for UtilityError {
 #[derive(Debug)]
 pub enum UtilityErrorKind {
     Custom(String),
-    Varint(unsigned_varint::decode::Error),
     Io(std::io::Error),
     Utf8(FromUtf8Error),
-}
-
-impl From<unsigned_varint::decode::Error> for UtilityError {
-    fn from(value: unsigned_varint::decode::Error) -> Self {
-        Self::varint(value)
-    }
 }
 
 impl From<std::io::Error> for UtilityError {

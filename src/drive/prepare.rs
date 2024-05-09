@@ -10,7 +10,6 @@ use tracing::info;
 use crate::{
     file_scanning::{grouper, spider, spider_plans::PreparationPlan},
     on_disk::DiskDataError,
-    utils::get_progress_bar,
 };
 
 use super::DiskDriveAndStore;

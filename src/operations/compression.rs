@@ -24,15 +24,7 @@ impl CompressionScheme {
         R: std::io::Read,
         W: std::io::Write,
     {
-        match self.compression_info.as_str() {
-            "LZ4_FLEX" => {
-                let mut dest = lz4_flex::frame::FrameEncoder::new(destination);
-                std::io::copy(source, &mut dest)?;
-                dest.finish().unwrap();
-                Ok(())
-            }
-            _ => panic!("unsupported compression algorithm!"),
-        }
+        panic!("unsupported compression algorithm!")
     }
 
     /// Decode a file using the compression algorithm specified in the `CompressionScheme` struct
@@ -41,14 +33,7 @@ impl CompressionScheme {
         R: std::io::Read,
         W: std::io::Write,
     {
-        match self.compression_info.as_str() {
-            "LZ4_FLEX" => {
-                let mut source = lz4_flex::frame::FrameDecoder::new(source);
-                std::io::copy(&mut source, destination)?;
-                Ok(())
-            }
-            _ => panic!("unsupported compression algorithm!"),
-        }
+        panic!("unsupported compression algorithm!")
     }
 }
 

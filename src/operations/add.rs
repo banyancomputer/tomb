@@ -1,4 +1,3 @@
-use chrono::Utc;
 use rand::thread_rng;
 use std::path::Path;
 

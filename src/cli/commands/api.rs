@@ -7,7 +7,7 @@ use super::RunnableCommand;
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;
-use reqwest::Url;
+use url::Url;
 
 /// Subcommand for endpoint configuration
 #[derive(Subcommand, Clone, Debug)]

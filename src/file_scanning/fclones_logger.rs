@@ -2,8 +2,8 @@ use fclones::{
     log::{Log, LogLevel, ProgressBarLength},
     progress::ProgressTracker,
 };
-use log::{debug, error, warn};
 use std::sync::Arc;
+use tracing::log::{debug, error, warn};
 
 /// A custom logger for fclones that uses the normal-person logging crate
 #[derive(Debug, Default)]
