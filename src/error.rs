@@ -1,22 +1,49 @@
-use crate::on_disk::OnDiskError;
-use banyanfs::api::ApiError;
-use std::{fmt::Display, string::FromUtf8Error};
+use crate::on_disk::*;
+use banyanfs::{api::ApiError, codec::crypto::SigningKey};
+use std::{fmt::Display, path::PathBuf, string::FromUtf8Error};
 
 #[derive(Debug)]
 pub enum NativeError {
     Api(ApiError),
-    Config(OnDiskError),
+    Disk(OnDiskError),
+    ConfigState(ConfigStateError),
     Custom(String),
 }
-
 impl std::error::Error for NativeError {}
 
 impl Display for NativeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             NativeError::Api(err) => f.write_str(&err.to_string()),
-            NativeError::Config(err) => f.write_str(&err.to_string()),
+            NativeError::Disk(err) => f.write_str(&err.to_string()),
+            NativeError::ConfigState(err) => f.write_str(&err.to_string()),
             NativeError::Custom(err) => f.write_str(err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConfigStateError {
+    ExpectedPath(PathBuf),
+    NoKey,
+    NoKeySelected,
+    MissingKey(String),
+    MissingDrive(String),
+}
+
+impl Display for ConfigStateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConfigStateError::ExpectedPath(path) => f.write_str(&format!(
+                "EXPECTED PATH TO EXIST BUT DIDN'T {}",
+                path.display()
+            )),
+            ConfigStateError::NoKey => f.write_str("NO KEY ON DISK AT ALL"),
+            ConfigStateError::NoKeySelected => f.write_str("NO KEY SELECTED"),
+            ConfigStateError::MissingKey(id) => f.write_str(&format!("MISSING KEY WITH ID {}", id)),
+            ConfigStateError::MissingDrive(id) => {
+                f.write_str(&format!("MISSING DRIVE WITH ID {}", id))
+            }
         }
     }
 }
@@ -29,13 +56,19 @@ impl From<ApiError> for NativeError {
 
 impl From<OnDiskError> for NativeError {
     fn from(value: OnDiskError) -> Self {
-        Self::Config(value)
+        Self::Disk(value)
+    }
+}
+
+impl From<ConfigStateError> for NativeError {
+    fn from(value: ConfigStateError) -> Self {
+        Self::ConfigState(value)
     }
 }
 
 impl From<std::io::Error> for NativeError {
     fn from(value: std::io::Error) -> Self {
-        Self::Config(OnDiskError::Disk(value))
+        Self::Disk(OnDiskError::Disk(value))
     }
 }
 

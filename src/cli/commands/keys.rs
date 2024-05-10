@@ -4,7 +4,7 @@ use crate::{
         OnDisk, OnDiskExt,
     },
     utils::prompt_for_bool,
-    NativeError,
+    ConfigStateError, NativeError,
 };
 
 use super::RunnableCommand;
@@ -48,7 +48,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     .collect();
 
                 if fingerprints.is_empty() {
-                    Ok(format!("{}", "<< NO KEYS ON DISK, CREATE ONE >>".blue()))
+                    Ok(format!("{}", "<< NO KEYS ON DISK; CREATE ONE >>".blue()))
                 } else {
                     Ok(format!(
                         "{}\n{}",
@@ -81,7 +81,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     global.encode(&GlobalConfigId).await?;
                     Ok(format!("{}", "<< PREFERENCE SAVED >>".green()))
                 } else {
-                    Err(NativeError::Custom("Missing Key".into()))
+                    Err(ConfigStateError::MissingKey(fingerprint).into())
                 }
             }
         }

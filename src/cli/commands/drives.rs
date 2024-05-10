@@ -10,7 +10,7 @@ use crate::{
         OnDisk, OnDiskError,
     },
     utils::name_of,
-    NativeError,
+    ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
 use banyanfs::codec::crypto::SigningKey;
@@ -93,15 +93,13 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             DrivesCommand::Create { origin } => {
                 let origin = origin.unwrap_or(current_dir()?);
-                let drive_id =
-                    name_of(origin).ok_or(NativeError::Custom("invalid location".into()))?;
-                let user_key_id = global.selected_user_key_id.ok_or(NativeError::Config(
-                    OnDiskError::Implementation("No key!".into()),
-                ))?;
+                let drive_id = name_of(&origin).ok_or(ConfigStateError::ExpectedPath(origin))?;
+                let user_key_id = global.selected_user_key_id.ok_or(ConfigStateError::NoKey)?;
                 let id = DriveAndKeyId {
                     drive_id,
                     user_key_id,
                 };
+                // Create and encode the Drive and Store
                 let ddas = DiskDriveAndStore::init(&id).await?;
                 let output = format!(
                     "{}\n{:?}",
@@ -113,6 +111,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             DrivesCommand::Prepare { ds, follow_links } => {
                 let drive_id: DriveId = ds.into();
                 println!("drive_id: {drive_id:?}");
+
+                //let driv
 
                 //if let Some(origin) = drive_specifier.origin {
                 //prepare(&origin).await?;

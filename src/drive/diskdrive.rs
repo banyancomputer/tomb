@@ -40,13 +40,14 @@ impl DiskDriveAndStore {
 }
 
 /// ~/.local/share/banyan/drive_blocks
-/// Contains one folder per Drive
-/// Contains {cid}.bin files managed by the Drive
+/// Contains one folder per Drive, which in turn
+/// contain {cid}.bin files managed by the Drive
 #[async_trait(?Send)]
 impl OnDisk<DriveAndKeyId> for DiskDriveAndStore {
     const TYPE: DiskType = DiskType::LocalShare;
     const SUFFIX: &'static str = "drive_blocks";
-    const EXTENSION: &'static str = "bin";
+    // this is a dir
+    const EXTENSION: &'static str = "";
 
     async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), OnDiskError> {
         // Just save the drive, the data store is already saved deterministically in the location

@@ -23,7 +23,7 @@ impl OnDiskDataStore {
 }
 
 fn cid_as_path(cid: &Cid) -> Path {
-    Path::parse(&format!("/{}", cid.as_base64url_multicodec())).unwrap()
+    Path::parse(&format!("/{}.bin", cid.as_base64url_multicodec())).unwrap()
 }
 
 #[async_trait(?Send)]
