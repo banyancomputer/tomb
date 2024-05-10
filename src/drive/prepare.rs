@@ -29,6 +29,8 @@ pub async fn prepare(origin: &PathBuf) -> Result<(), OnDiskError> {
                 // Banyanfs path relative to root
                 let bfs_path = canonical_path.strip_prefix(origin);
 
+                //let file_name = canonical_path.file_name().zip;
+                //info!("file_name: {:?}", file_name);
                 info!("canonical: {:?}", canonical_path);
                 info!("bfs: {:?}", bfs_path);
             }

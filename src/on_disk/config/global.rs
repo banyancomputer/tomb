@@ -11,11 +11,11 @@ pub struct GlobalConfig {
     /// Banyan-Cli version
     version: String,
     /// User Key Identifier of Key in Use
-    selected_user_key_id: Option<String>,
+    pub selected_user_key_id: Option<String>,
     /// User Key Identifiers
     user_key_ids: Vec<String>,
     /// Drive Identifiers
-    drive_ids: Vec<String>,
+    pub drive_ids: Vec<String>,
     /// Remote account id
     account_id: Option<Uuid>,
 }
@@ -47,6 +47,16 @@ impl GlobalConfig {
         let key = Arc::new(SigningKey::decode(&suki).await?);
         Ok(ApiClient::new(env!("ENDPOINT"), &account_id, key)
             .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?)
+    }
+
+    pub async fn selected_key(&self) -> Result<SigningKey, OnDiskError> {
+        let key_id = self
+            .selected_user_key_id
+            .clone()
+            .ok_or(OnDiskError::Implementation(
+                "No user key selected".to_string(),
+            ))?;
+        SigningKey::decode(&key_id).await
     }
 }
 

@@ -1,6 +1,7 @@
 mod apidiskdrive;
 mod datastore;
 mod diskdrive;
+mod omni;
 mod prepare;
 mod synctracker;
 

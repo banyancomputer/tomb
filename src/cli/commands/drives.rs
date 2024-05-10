@@ -1,9 +1,14 @@
 use crate::{
-    cli::{commands::RunnableCommand, specifiers::DriveSpecifier},
+    cli::{
+        commands::RunnableCommand,
+        specifiers::{DriveId, DriveSpecifier},
+    },
     drive::*,
+    on_disk::{config::GlobalConfig, OnDisk},
     NativeError,
 };
 use async_trait::async_trait;
+use banyanfs::codec::crypto::SigningKey;
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
@@ -25,7 +30,7 @@ pub enum DrivesCommand {
     Prepare {
         /// Drive in question
         #[clap(flatten)]
-        drive_specifier: DriveSpecifier,
+        ds: DriveSpecifier,
 
         /// Follow symbolic links
         #[arg(short, long)]
@@ -64,6 +69,9 @@ pub enum DrivesCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DrivesCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
+        let global = GlobalConfig::decode(&"main".to_string()).await?;
+        let key = global.selected_key().await?;
+
         match self {
             /*
             // List all Buckets tracked remotely and locally
@@ -81,19 +89,20 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             DrivesCommand::Create { origin } => {
                 let origin = origin.unwrap_or(current_dir()?);
+                //let name: String = origin.file_name().into();
                 //let omni = OmniBucket::create(&name, &origin).await?;
                 //let output = format!("{}\n{}", "<< NEW DRIVE CREATED >>".green(), omni);
                 Ok(String::new())
             }
-            DrivesCommand::Prepare {
-                drive_specifier,
-                follow_links,
-            } => {
-                if let Some(origin) = drive_specifier.origin {
-                    prepare(&origin).await?;
-                } else {
-                    info!("wut!");
-                }
+            DrivesCommand::Prepare { ds, follow_links } => {
+                let drive_id: DriveId = ds.into();
+                println!("drive_id: {drive_id:?}");
+
+                //if let Some(origin) = drive_specifier.origin {
+                //prepare(&origin).await?;
+                //} else {
+                info!("wut!");
+                //}
                 Ok(String::new())
             } /*
                   DrivesCommand::Restore { drive_specifier } => {

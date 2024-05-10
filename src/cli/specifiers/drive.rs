@@ -1,13 +1,10 @@
 use clap::Args;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 /// Unified way of specifying a Bucket
 #[derive(Debug, Clone, Args)]
 #[group(required = true, multiple = false)]
-#[clap(
-    after_help = "If no bucket is specified manually, tomb will try to use the current directory."
-)]
 pub struct DriveSpecifier {
     /// Drive Id
     #[arg(short, long)]
@@ -20,31 +17,21 @@ pub struct DriveSpecifier {
     pub origin: Option<PathBuf>,
 }
 
-impl DriveSpecifier {
-    /// Create a new BucketSpecifier with an Id
-    pub fn with_id(id: Uuid) -> Self {
-        Self {
-            drive_id: Some(id),
-            name: None,
-            origin: None,
-        }
-    }
+#[derive(Debug, Clone)]
+pub enum DriveId {
+    DriveId(String),
+    Name(String),
+    Origin(PathBuf),
+}
 
-    /// Create a new BucketSpecifier with a Path
-    pub fn with_origin(path: &Path) -> Self {
-        Self {
-            drive_id: None,
-            name: None,
-            origin: Some(path.to_path_buf()),
+impl From<DriveSpecifier> for DriveId {
+    fn from(value: DriveSpecifier) -> Self {
+        if let Some(drive_id) = value.drive_id {
+            return Self::DriveId(drive_id.to_string());
         }
-    }
-
-    /// Create a new BucketSpecifier with a Path
-    pub fn with_name(name: &str) -> Self {
-        Self {
-            drive_id: None,
-            name: Some(name.to_string()),
-            origin: None,
+        if let Some(name) = value.name {
+            return Self::Name(name.to_string());
         }
+        return Self::Origin(value.origin.expect("failure"));
     }
 }
