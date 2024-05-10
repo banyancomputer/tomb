@@ -33,13 +33,13 @@ where
     }
 }
 
-/*
+/// Automatically implement that trait if its String
 #[async_trait(?Send)]
-impl<T> OnDiskExt for T
+impl<T> OnDiskExt<String> for T
 where
     T: OnDisk<String>,
 {
-    async fn decode_all() -> Result<Vec<Self>, OnDiskError> {
+    async fn id_from_string(value: String) -> Result<String, OnDiskError> {
+        Ok(value)
     }
 }
-*/

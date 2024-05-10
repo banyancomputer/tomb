@@ -34,17 +34,25 @@ impl RunnableCommand<NativeError> for KeysCommand {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             KeysCommand::Ls => {
-                /*
-                let all_public_keys: Vec<Fingerprint> = SigningKey::decode_all()
+                let fingerprints: Vec<String> = SigningKey::decode_all()
                     .await?
                     .into_iter()
                     .map(|key| key.verifying_key().fingerprint())
+                    .map(|fingerprint| format!("{fingerprint:?}"))
                     .collect();
-                println!("all_fingies: {:?}", all_public_keys);
-                */
-                //Fingerprint::key_id
+                println!("all_fingies: {:?}", fingerprints);
 
-                todo!()
+                if fingerprints.is_empty() {
+                    Ok(format!("{}", "<< NO KEYS ON DISK, CREATE ONE >>".blue()))
+                } else {
+                    Ok(format!(
+                        "{}\n{}",
+                        "<< KEY FINGERPRINTS >>".green(),
+                        fingerprints
+                            .into_iter()
+                            .fold(String::new(), |acc, f| format!("{acc}\n{f}"))
+                    ))
+                }
             }
             KeysCommand::Create => todo!(),
             KeysCommand::Select { fingerprint } => todo!(),
