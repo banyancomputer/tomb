@@ -49,6 +49,7 @@ impl GlobalConfig {
             .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?)
     }
 
+    /*
     pub async fn selected_key(&self) -> Result<SigningKey, OnDiskError> {
         let key_id = self
             .selected_user_key_id
@@ -58,6 +59,7 @@ impl GlobalConfig {
             ))?;
         SigningKey::decode(&key_id).await
     }
+    */
 }
 
 pub struct GlobalConfigId;

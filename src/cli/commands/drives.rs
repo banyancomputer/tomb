@@ -73,7 +73,6 @@ pub enum DrivesCommand {
 impl RunnableCommand<NativeError> for DrivesCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
-        let key = global.selected_key().await?;
 
         match self {
             /*

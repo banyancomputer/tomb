@@ -22,6 +22,8 @@ impl Display for DriveAndKeyId {
     }
 }
 
+/// ~/.local/share/banyan/drives
+/// Contains .bfs files representing drives
 #[async_trait(?Send)]
 impl OnDisk<DriveAndKeyId> for Drive {
     const TYPE: DiskType = DiskType::LocalShare;

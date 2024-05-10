@@ -8,25 +8,30 @@ use object_store::local::LocalFileSystem;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
 
+/// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct DiskDriveAndStore {
-    pub store: OnDiskDataStore,
+    /// BanyanFS Drive
     pub drive: Drive,
+    /// Stores CIDs on behalf of the Drive
+    pub store: OnDiskDataStore,
 }
 
 impl DiskDriveAndStore {
     async fn init(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         let mut rng = crypto_rng();
-        let current_key = SigningKey::decode(&identifier.user_key_id).await?;
-        let drive = Drive::initialize_private(&mut rng, current_key.into())
+        // Decode the specified UserKey
+        let user_key = SigningKey::decode(&identifier.user_key_id).await?;
+        // Initialize a new private Drive with this key
+        let drive = Drive::initialize_private(&mut rng, user_key.into())
             .map_err(|err| OnDiskError::Implementation(err.to_string()))?;
+
+        // Determine where we'll put our cid bins
         let store_path = Self::path(identifier)?;
+        // Create dir if needed
         if !store_path.exists() {
             create_dir_all(&store_path)?;
         }
-        let store = OnDiskDataStore {
-            lfs: LocalFileSystem::new_with_prefix(store_path.display().to_string())
-                .map_err(|err| OnDiskError::Implementation(err.to_string()))?,
-        };
+        let store = OnDiskDataStore::new(store_path)?;
 
         let ddas = Self { store, drive };
         ddas.encode(identifier).await?;
@@ -34,21 +39,24 @@ impl DiskDriveAndStore {
     }
 }
 
+/// ~/.local/share/banyan/drive_blocks
+/// Contains one folder per Drive
+/// Contains {cid}.bin files managed by the Drive
 #[async_trait(?Send)]
 impl OnDisk<DriveAndKeyId> for DiskDriveAndStore {
     const TYPE: DiskType = DiskType::LocalShare;
-    const SUFFIX: &'static str = "drive_data";
-    const EXTENSION: &'static str = "";
+    const SUFFIX: &'static str = "drive_blocks";
+    const EXTENSION: &'static str = "bin";
 
     async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), OnDiskError> {
+        // Just save the drive, the data store is already saved deterministically in the location
         OnDisk::encode(&self.drive, identifier).await
     }
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
+        // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;
-        let store = OnDiskDataStore {
-            lfs: LocalFileSystem::new_with_prefix(Self::path(identifier)?.display().to_string())
-                .map_err(|err| OnDiskError::Implementation(err.to_string()))?,
-        };
+        // Create a new
+        let store = OnDiskDataStore::new(Self::path(identifier)?)?;
         Ok(Self { drive, store })
     }
 }

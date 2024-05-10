@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use async_trait::async_trait;
 use banyanfs::{
     codec::Cid,
@@ -5,8 +7,19 @@ use banyanfs::{
 };
 use object_store::{local::LocalFileSystem, path::Path, ObjectStore};
 
+use crate::on_disk::{DiskType, OnDisk, OnDiskError};
+
 pub struct OnDiskDataStore {
-    pub lfs: LocalFileSystem,
+    lfs: LocalFileSystem,
+}
+
+impl OnDiskDataStore {
+    pub fn new(path: PathBuf) -> Result<Self, OnDiskError> {
+        Ok(OnDiskDataStore {
+            lfs: LocalFileSystem::new_with_prefix(path)
+                .map_err(|err| OnDiskError::Implementation(err.to_string()))?,
+        })
+    }
 }
 
 fn cid_as_path(cid: &Cid) -> Path {
@@ -57,3 +70,23 @@ impl DataStore for OnDiskDataStore {
             .map(|_| ())
     }
 }
+
+/*
+#[async_trait(?Send)]
+impl OnDisk<String> for OnDiskDataStore {
+    const TYPE: DiskType = DiskType::Config;
+    const SUFFIX: &'static str = "data_stores";
+    const EXTENSION: &'static str = "ds";
+
+    async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
+        let fix = self.lfs.prefix;
+        Ok(())
+    }
+
+    async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
+        Ok(Self {
+
+        })
+    }
+}
+*/
