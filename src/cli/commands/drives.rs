@@ -6,8 +6,10 @@ use crate::{
     drive::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
-        OnDisk,
+        local_share::DriveAndKeyId,
+        OnDisk, OnDiskError,
     },
+    utils::name_of,
     NativeError,
 };
 use async_trait::async_trait;
@@ -91,10 +93,22 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             DrivesCommand::Create { origin } => {
                 let origin = origin.unwrap_or(current_dir()?);
-                //let name: String = origin.file_name().into();
-                //let omni = OmniBucket::create(&name, &origin).await?;
-                //let output = format!("{}\n{}", "<< NEW DRIVE CREATED >>".green(), omni);
-                Ok(String::new())
+                let drive_id =
+                    name_of(origin).ok_or(NativeError::Custom("invalid location".into()))?;
+                let user_key_id = global.selected_user_key_id.ok_or(NativeError::Config(
+                    OnDiskError::Implementation("No key!".into()),
+                ))?;
+                let id = DriveAndKeyId {
+                    drive_id,
+                    user_key_id,
+                };
+                let ddas = DiskDriveAndStore::init(&id).await?;
+                let output = format!(
+                    "{}\n{:?}",
+                    "<< NEW DRIVE CREATED >>".green(),
+                    ddas.drive.id()
+                );
+                Ok(output)
             }
             DrivesCommand::Prepare { ds, follow_links } => {
                 let drive_id: DriveId = ds.into();

@@ -17,7 +17,7 @@ pub struct DiskDriveAndStore {
 }
 
 impl DiskDriveAndStore {
-    async fn init(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
+    pub async fn init(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         let mut rng = crypto_rng();
         // Decode the specified UserKey
         let user_key = SigningKey::decode(&identifier.user_key_id).await?;
