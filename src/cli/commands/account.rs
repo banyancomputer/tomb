@@ -1,5 +1,8 @@
 use crate::{
-    on_disk::{config::GlobalConfig, OnDisk},
+    on_disk::{
+        config::{GlobalConfig, GlobalConfigId},
+        OnDisk,
+    },
     NativeError,
 };
 
@@ -24,7 +27,7 @@ pub enum AccountCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for AccountCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
-        let mut global = GlobalConfig::decode(&String::from("main")).await?;
+        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         let mut client = global.api_client().await?;
 
         // Process the command

@@ -4,7 +4,10 @@ use crate::{
         specifiers::{DriveId, DriveSpecifier},
     },
     drive::*,
-    on_disk::{config::GlobalConfig, OnDisk},
+    on_disk::{
+        config::{GlobalConfig, GlobalConfigId},
+        OnDisk,
+    },
     NativeError,
 };
 use async_trait::async_trait;
@@ -69,7 +72,7 @@ pub enum DrivesCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DrivesCommand {
     async fn run_internal(self) -> Result<String, NativeError> {
-        let global = GlobalConfig::decode(&"main".to_string()).await?;
+        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         let key = global.selected_key().await?;
 
         match self {

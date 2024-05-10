@@ -2,7 +2,7 @@ use crate::on_disk::{DiskType, OnDisk, OnDiskError};
 use async_trait::async_trait;
 use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, sync::Arc};
+use std::{fmt::Display, fs::File, sync::Arc};
 use uuid::Uuid;
 
 /// Represents the Global contents of the tomb configuration file in a user's .config
@@ -60,20 +60,27 @@ impl GlobalConfig {
     }
 }
 
+pub struct GlobalConfigId;
+impl Display for GlobalConfigId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("global")
+    }
+}
+
 #[async_trait(?Send)]
-impl OnDisk<String> for GlobalConfig {
+impl OnDisk<GlobalConfigId> for GlobalConfig {
     const TYPE: DiskType = DiskType::Config;
     const SUFFIX: &'static str = "";
     const EXTENSION: &'static str = "json";
 
     // TODO async serde_json?
 
-    async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
+    async fn encode(&self, identifier: &GlobalConfigId) -> Result<(), OnDiskError> {
         let mut writer = File::create(Self::path(identifier)?)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
         Ok(())
     }
-    async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
+    async fn decode(identifier: &GlobalConfigId) -> Result<Self, OnDiskError> {
         let mut reader = File::open(Self::path(identifier)?)?;
         Ok(serde_json::from_reader(&mut reader)?)
     }

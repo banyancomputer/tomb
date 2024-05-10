@@ -8,6 +8,8 @@ mod account;
 mod api;
 /// Drive interaction
 mod drives;
+/// User Keys
+mod keys;
 
 /// Export all commands
 //pub use access::*;
@@ -36,6 +38,11 @@ pub enum BanyanCommand {
         #[clap(subcommand)]
         command: drives::DrivesCommand,
     },
+    Keys {
+        /// Subcommand
+        #[clap(subcommand)]
+        command: keys::KeysCommand,
+    },
 }
 
 use super::RunnableCommand;
@@ -48,6 +55,7 @@ impl RunnableCommand<NativeError> for BanyanCommand {
             BanyanCommand::Api { command } => Ok(command.run_internal().await?),
             BanyanCommand::Account { command } => Ok(command.run_internal().await?),
             BanyanCommand::Drives { command } => command.run_internal().await,
+            BanyanCommand::Keys { command } => command.run_internal().await,
         }
     }
 }
