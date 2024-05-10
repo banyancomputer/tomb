@@ -2,6 +2,8 @@ use clap::Args;
 use std::path::PathBuf;
 use uuid::Uuid;
 
+use crate::{utils::name_of, ConfigStateError};
+
 /// Unified way of specifying a Bucket
 #[derive(Debug, Clone, Args)]
 #[group(required = true, multiple = false)]
@@ -33,5 +35,19 @@ impl From<DriveSpecifier> for DriveId {
             return Self::Name(name.to_string());
         }
         return Self::Origin(value.origin.expect("failure"));
+    }
+}
+
+impl DriveId {
+    pub async fn get_id(&self) -> Result<String, ConfigStateError> {
+        match self {
+            // This will require either cached values in the Global config, OR it will require just
+            // asking the API directly (preferable)
+            DriveId::DriveId(_) => todo!("unimplemented!"),
+            DriveId::Name(name) => Ok(name.to_string()),
+            DriveId::Origin(origin) => name_of(origin).ok_or(ConfigStateError::MissingDrive(
+                format!("{}", origin.display()),
+            )),
+        }
     }
 }

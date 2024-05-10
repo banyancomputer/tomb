@@ -94,7 +94,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             DrivesCommand::Create { origin } => {
                 let origin = origin.unwrap_or(current_dir()?);
                 let drive_id = name_of(&origin).ok_or(ConfigStateError::ExpectedPath(origin))?;
-                let user_key_id = global.selected_user_key_id.ok_or(ConfigStateError::NoKey)?;
+                let user_key_id = global.selected_user_key_id()?;
                 let id = DriveAndKeyId {
                     drive_id,
                     user_key_id,
@@ -109,8 +109,16 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(output)
             }
             DrivesCommand::Prepare { ds, follow_links } => {
-                let drive_id: DriveId = ds.into();
+                let drive_id = Into::<DriveId>::into(ds).get_id().await?;
                 println!("drive_id: {drive_id:?}");
+                let user_key_id = global.selected_user_key_id()?;
+                println!("ukid: {user_key_id:?}");
+                let id = DriveAndKeyId {
+                    drive_id,
+                    user_key_id,
+                };
+                let ddas = DiskDriveAndStore::decode(&id).await?;
+                //println!("ddas: {ddas:?}");
 
                 //let driv
 

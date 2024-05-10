@@ -9,14 +9,10 @@ use crate::{
 
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::{
-    codec::crypto::{Fingerprint, SigningKey, VerifyingKey},
-    utils::crypto_rng,
-};
+use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use clap::Subcommand;
 use colored::Colorize;
 use tracing::info;
-use url::Url;
 
 /// Subcommand for endpoint configuration
 #[derive(Subcommand, Clone, Debug)]
@@ -67,7 +63,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 new_key.encode(&fingerprint).await?;
                 // Update the config if the user so wishes
                 if prompt_for_bool("Select this key for use?") {
-                    global.selected_user_key_id = Some(fingerprint);
+                    global.select_user_key_id(fingerprint);
                     global.encode(&GlobalConfigId).await?;
                     info!("{}", "<< PREFERENCE SAVED >>".green());
                 }
@@ -77,7 +73,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 // If we can successfully load the key
                 if SigningKey::decode(&fingerprint).await.is_ok() {
                     // Update the config
-                    global.selected_user_key_id = Some(fingerprint);
+                    global.select_user_key_id(fingerprint);
                     global.encode(&GlobalConfigId).await?;
                     Ok(format!("{}", "<< PREFERENCE SAVED >>".green()))
                 } else {

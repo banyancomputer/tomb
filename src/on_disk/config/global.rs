@@ -1,4 +1,7 @@
-use crate::on_disk::{DiskType, OnDisk, OnDiskError};
+use crate::{
+    on_disk::{DiskType, OnDisk, OnDiskError},
+    ConfigStateError,
+};
 use async_trait::async_trait;
 use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
 use serde::{Deserialize, Serialize};
@@ -11,7 +14,8 @@ pub struct GlobalConfig {
     /// Banyan-Cli version
     version: String,
     /// User Key Identifier of Key in Use
-    pub selected_user_key_id: Option<String>,
+    /// This is the fingerprint as produced by the public key's Fingerprint's Debug impl
+    selected_user_key_id: Option<String>,
     /// User Key Identifiers
     user_key_ids: Vec<String>,
     /// Drive Identifiers
@@ -49,17 +53,16 @@ impl GlobalConfig {
             .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?)
     }
 
-    /*
-    pub async fn selected_key(&self) -> Result<SigningKey, OnDiskError> {
-        let key_id = self
+    pub fn select_user_key_id(&mut self, user_key_id: String) {
+        self.selected_user_key_id = Some(user_key_id);
+    }
+
+    pub fn selected_user_key_id(&self) -> Result<String, ConfigStateError> {
+        Ok(self
             .selected_user_key_id
             .clone()
-            .ok_or(OnDiskError::Implementation(
-                "No user key selected".to_string(),
-            ))?;
-        SigningKey::decode(&key_id).await
+            .ok_or(ConfigStateError::NoKey)?)
     }
-    */
 }
 
 pub struct GlobalConfigId;
