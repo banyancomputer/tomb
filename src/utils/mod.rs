@@ -1,5 +1,7 @@
 mod io;
-
+use colored::{ColoredString, Colorize};
+use std::io::Read;
+use tracing::info;
 //pub(crate) mod testing;
 pub use io::{get_read, get_read_write, get_write};
 
@@ -20,4 +22,27 @@ pub fn is_visible(entry: &walkdir::DirEntry) -> bool {
         .to_str()
         .map(|s| !s.starts_with("."))
         .unwrap_or(true)
+}
+
+#[inline]
+fn bool_colorized(value: bool) -> ColoredString {
+    if value {
+        "Yes".green()
+    } else {
+        "No".red()
+    }
+}
+
+/// Prompt the user for a y/n answer
+pub fn prompt_for_bool(msg: &str) -> bool {
+    info!("{msg} y/n");
+    loop {
+        let mut input = [0];
+        let _ = std::io::stdin().read(&mut input);
+        match input[0] as char {
+            'y' | 'Y' => return true,
+            'n' | 'N' => return false,
+            _ => info!("y/n only please."),
+        }
+    }
 }

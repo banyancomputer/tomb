@@ -67,7 +67,12 @@ pub trait OnDisk<I: Display>: Sized {
     const EXTENSION: &'static str;
 
     fn container() -> Result<PathBuf, OnDiskError> {
-        Ok(Self::TYPE.root()?.join(Self::SUFFIX))
+        let root = Self::TYPE.root()?;
+        let path = root.join(Self::SUFFIX);
+        if !path.exists() {
+            create_dir(&path)?;
+        }
+        Ok(path)
     }
 
     fn path(identifier: &I) -> Result<PathBuf, OnDiskError> {

@@ -40,6 +40,10 @@ where
     T: OnDisk<String>,
 {
     async fn id_from_string(value: String) -> Result<String, OnDiskError> {
-        Ok(value)
+        if let Some(i) = value.chars().position(|c| c == '.') {
+            Ok(value[..i].into())
+        } else {
+            Ok(value)
+        }
     }
 }
