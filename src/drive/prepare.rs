@@ -9,19 +9,14 @@ use tracing::{info, warn};
 use walkdir::{DirEntry, WalkDir};
 
 use super::DiskDriveAndStore;
-use crate::on_disk::OnDiskError;
-
-fn is_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with("."))
-        .unwrap_or(false)
-}
+use crate::{on_disk::OnDiskError, utils::is_visible};
 
 pub async fn prepare(origin: &PathBuf) -> Result<(), OnDiskError> {
-    let walker = WalkDir::new(origin).follow_links(true).into_iter();
-    for entry in walker.filter_entry(|e| !is_hidden(e)) {
+    for entry in WalkDir::new(origin)
+        .follow_links(true)
+        .into_iter()
+        .filter_entry(is_visible)
+    {
         match entry {
             Ok(entry) => {
                 // Path on OS

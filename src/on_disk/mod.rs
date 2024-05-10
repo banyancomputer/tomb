@@ -6,6 +6,9 @@ use async_trait::async_trait;
 use std::{fmt::Display, fs::create_dir, path::PathBuf};
 use tokio::fs::{File, OpenOptions};
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
+use walkdir::WalkDir;
+
+use crate::utils::{is_visible, name_of};
 #[derive(Debug)]
 pub enum OnDiskError {
     // Common error types we might find
@@ -61,12 +64,12 @@ pub trait OnDisk<I: Display>: Sized {
     const SUFFIX: &'static str;
     const EXTENSION: &'static str;
 
+    fn container() -> Result<PathBuf, OnDiskError> {
+        Ok(Self::TYPE.root()?.join(Self::SUFFIX))
+    }
+
     fn path(identifier: &I) -> Result<PathBuf, OnDiskError> {
-        Ok(Self::TYPE.root()?.join(Self::SUFFIX).join(format!(
-            "{}.{}",
-            identifier,
-            Self::EXTENSION
-        )))
+        Ok(Self::container()?.join(format!("{}.{}", identifier, Self::EXTENSION)))
     }
 
     // Async compat reader/writer defaults
@@ -84,3 +87,22 @@ pub trait OnDisk<I: Display>: Sized {
     async fn encode(&self, identifier: &I) -> Result<(), OnDiskError>;
     async fn decode(identifier: &I) -> Result<Self, OnDiskError>;
 }
+/*
+fn get_all() -> Result<Vec<Self>, OnDiskError> {
+    for id in WalkDir::new(Self::container()?)
+        // Should never go deep
+        .min_depth(1)
+        .max_depth(1)
+        .into_iter()
+        // File is visible
+        .filter_entry(is_visible)
+        // User has permission
+        .filter_map(|e| e.ok())
+        // Turn into ids
+        .filter_map(|e| name_of(e.path()))
+        .map(|id| Self::decode(id))
+    {}
+
+    todo!()
+}
+*/

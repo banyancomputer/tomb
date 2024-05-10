@@ -13,3 +13,11 @@ pub(crate) use error::UtilityError;
 pub fn name_of(path: impl AsRef<std::path::Path>) -> Option<String> {
     Some(path.as_ref().file_name()?.to_str()?.to_string())
 }
+
+pub fn is_visible(entry: &walkdir::DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| !s.starts_with("."))
+        .unwrap_or(true)
+}
