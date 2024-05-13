@@ -76,7 +76,14 @@ pub trait OnDisk<I: Display>: Sized {
     }
 
     fn path(identifier: &I) -> Result<PathBuf, OnDiskError> {
-        Ok(Self::container()?.join(format!("{}.{}", identifier, Self::EXTENSION)))
+        // Folder path
+        if Self::EXTENSION.is_empty() {
+            Ok(Self::container()?.join(identifier.to_string()))
+        }
+        // File path
+        else {
+            Ok(Self::container()?.join(format!("{}.{}", identifier, Self::EXTENSION)))
+        }
     }
 
     // Async compat reader/writer defaults

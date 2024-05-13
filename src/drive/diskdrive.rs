@@ -53,6 +53,7 @@ impl OnDisk<DriveAndKeyId> for DiskDriveAndStore {
         // Just save the drive, the data store is already saved deterministically in the location
         OnDisk::encode(&self.drive, identifier).await
     }
+
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;

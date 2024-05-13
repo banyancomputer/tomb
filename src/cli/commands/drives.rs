@@ -118,6 +118,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     user_key_id,
                 };
                 let ddas = DiskDriveAndStore::decode(&id).await?;
+
                 //println!("ddas: {ddas:?}");
 
                 //let driv
