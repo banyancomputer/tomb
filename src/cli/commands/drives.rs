@@ -93,7 +93,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             DrivesCommand::Create { origin } => {
                 let origin = origin.unwrap_or(current_dir()?);
-                let drive_id = name_of(&origin).ok_or(ConfigStateError::ExpectedPath(origin))?;
+                let drive_id =
+                    name_of(&origin).ok_or(ConfigStateError::ExpectedPath(origin.clone()))?;
+                // Save location association
+                global.set_origin(&drive_id, &origin);
+                global.encode(&GlobalConfigId).await?;
                 let user_key_id = global.selected_user_key_id()?;
                 let id = DriveAndKeyId {
                     drive_id,
@@ -101,34 +105,33 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 };
                 // Create and encode the Drive and Store
                 let ddas = DiskDriveAndStore::init(&id).await?;
-                let output = format!(
+                Ok(format!(
                     "{}\n{:?}",
                     "<< NEW DRIVE CREATED >>".green(),
                     ddas.drive.id()
-                );
-                Ok(output)
+                ))
             }
             DrivesCommand::Prepare { ds, follow_links } => {
                 let drive_id = Into::<DriveId>::into(ds).get_id().await?;
+                let drive_origin = global.get_origin(&drive_id)?;
                 println!("drive_id: {drive_id:?}");
+                println!("origin: {drive_origin:?}");
+
                 let user_key_id = global.selected_user_key_id()?;
                 println!("ukid: {user_key_id:?}");
                 let id = DriveAndKeyId {
                     drive_id,
                     user_key_id,
                 };
-                let ddas = DiskDriveAndStore::decode(&id).await?;
+                let mut ddas = DiskDriveAndStore::decode(&id).await?;
+                ddas.prepare(&drive_origin).await.unwrap();
+                ddas.encode(&id).await?;
 
-                //println!("ddas: {ddas:?}");
-
-                //let driv
-
-                //if let Some(origin) = drive_specifier.origin {
-                //prepare(&origin).await?;
-                //} else {
-                info!("wut!");
-                //}
-                Ok(String::new())
+                Ok(format!(
+                    "{}\n{:?}",
+                    "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
+                    ddas.drive.id()
+                ))
             } /*
                   DrivesCommand::Restore { drive_specifier } => {
                       restore::pipeline(OmniBucket::from_specifier(&drive_specifier).await).await

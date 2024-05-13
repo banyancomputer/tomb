@@ -9,37 +9,66 @@ use tracing::{info, warn};
 use walkdir::{DirEntry, WalkDir};
 
 use super::DiskDriveAndStore;
-use crate::{on_disk::OnDiskError, utils::is_visible};
+use crate::{
+    on_disk::{OnDisk, OnDiskError},
+    utils::is_visible,
+};
 
-pub async fn prepare(origin: &PathBuf) -> Result<(), OnDiskError> {
-    for entry in WalkDir::new(origin)
-        .follow_links(true)
-        .into_iter()
-        .filter_entry(is_visible)
-    {
-        match entry {
-            Ok(entry) => {
-                // Path on OS
-                let canonical_path = entry.path();
-                // Banyanfs path relative to root
-                let bfs_path = canonical_path.strip_prefix(origin);
+impl DiskDriveAndStore {
+    pub async fn prepare(&mut self, origin: &PathBuf) -> Result<(), OnDiskError> {
+        let mut root = self.drive.root().await.unwrap();
+        let mut rng = crypto_rng();
 
-                //let file_name = canonical_path.file_name().zip;
-                //info!("file_name: {:?}", file_name);
-                info!("canonical: {:?}", canonical_path);
-                info!("bfs: {:?}", bfs_path);
-            }
-            Err(err) => {
-                warn!("Unable to process file or directory, you might not have permission to. {err:?}");
+        for entry in WalkDir::new(origin)
+            .follow_links(true)
+            .into_iter()
+            .filter_entry(is_visible)
+        {
+            match entry {
+                Ok(entry) => {
+                    // Path on OS
+                    let canonical_path = entry.path();
+                    // Banyanfs path relative to root
+                    let bfs_path = canonical_path.strip_prefix(origin).unwrap();
+                    info!("canonical: {:?}", canonical_path);
+                    info!("bfs: {:?}", bfs_path);
+
+                    let p: Vec<_> = bfs_path
+                        .components()
+                        .map(|v| v.as_os_str().to_str().unwrap())
+                        .collect();
+                    let v: Vec<&str> = p.iter().map(|x| &**x).collect();
+
+                    if !v.is_empty() {
+                        info!("v: {:?}", v);
+
+                        // If directory
+                        if canonical_path.is_dir() {
+                            root.mkdir(&mut rng, &v, true).await.unwrap();
+                        }
+                        // If file
+                        else {
+                            // Read in the data
+                            let mut data = Vec::new();
+                            let mut file = tokio::fs::File::open(&canonical_path).await.unwrap();
+                            file.read_to_end(&mut data).await?;
+                            root.write(&mut rng, &mut self.store, &v, &data)
+                                .await
+                                .unwrap();
+                        }
+                    }
+                }
+                Err(err) => {
+                    warn!("Unable to process file or directory, you might not have permission to. {err:?}");
+                }
             }
         }
+
+        info!("finished preparing");
+
+        Ok(())
     }
-
-    info!("finished preparing");
-
-    Ok(())
 }
-
 /*
 pub async fn create_plans(origin: &Path, follow_links: bool) -> Result<Vec<PreparationPlan>, ()> {
     // HashSet to track files that have already been seen

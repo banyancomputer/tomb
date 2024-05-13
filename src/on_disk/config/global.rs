@@ -1,11 +1,18 @@
 use crate::{
+    cli::specifiers::DriveId,
     on_disk::{DiskType, OnDisk, OnDiskError},
     ConfigStateError,
 };
 use async_trait::async_trait;
 use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, fs::File, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    fs::File,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use uuid::Uuid;
 
 /// Represents the Global contents of the tomb configuration file in a user's .config
@@ -18,8 +25,8 @@ pub struct GlobalConfig {
     selected_user_key_id: Option<String>,
     /// User Key Identifiers
     user_key_ids: Vec<String>,
-    /// Drive Identifiers
-    pub drive_ids: Vec<String>,
+    /// Drive Identifiers/Names -> Disk Locations
+    drive_origins: HashMap<String, PathBuf>,
     /// Remote account id
     account_id: Option<Uuid>,
 }
@@ -30,7 +37,7 @@ impl Default for GlobalConfig {
             version: env!("CARGO_PKG_VERSION").to_string(),
             selected_user_key_id: None,
             user_key_ids: vec![],
-            drive_ids: vec![],
+            drive_origins: HashMap::new(),
             account_id: None,
         }
     }
@@ -62,6 +69,17 @@ impl GlobalConfig {
             .selected_user_key_id
             .clone()
             .ok_or(ConfigStateError::NoKey)?)
+    }
+
+    pub fn set_origin(&mut self, drive_id: &String, origin: &Path) {
+        self.drive_origins
+            .insert(drive_id.to_string(), origin.to_path_buf());
+    }
+    pub fn get_origin(&self, drive_id: &String) -> Result<PathBuf, ConfigStateError> {
+        self.drive_origins
+            .get(drive_id)
+            .cloned()
+            .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
     }
 }
 

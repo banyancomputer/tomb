@@ -29,6 +29,7 @@ pub enum ConfigStateError {
     NoKeySelected,
     MissingKey(String),
     MissingDrive(String),
+    LostOrigin(String),
 }
 
 impl Display for ConfigStateError {
@@ -43,6 +44,9 @@ impl Display for ConfigStateError {
             ConfigStateError::MissingKey(id) => f.write_str(&format!("MISSING KEY WITH ID {}", id)),
             ConfigStateError::MissingDrive(id) => {
                 f.write_str(&format!("MISSING DRIVE WITH ID {}", id))
+            }
+            ConfigStateError::LostOrigin(id) => {
+                f.write_str(&format!("UNKNOWN ORIGIN OF DRIVE W ID {}", id))
             }
         }
     }

@@ -1,6 +1,6 @@
 mod io;
 use colored::{ColoredString, Colorize};
-use std::io::Read;
+use std::{io::Read, path::Path};
 use tracing::info;
 //pub(crate) mod testing;
 pub use io::{get_read, get_read_write, get_write};
@@ -45,4 +45,15 @@ pub fn prompt_for_bool(msg: &str) -> bool {
             _ => info!("y/n only please."),
         }
     }
+}
+
+/// Converts a PathBuf into a vector of path segments for use in WNFS.
+pub fn path_to_segments(path: impl AsRef<Path>) -> Result<Vec<String>, std::io::Error> {
+    let path = path.as_ref().to_path_buf().display().to_string();
+    let path_segments: Vec<String> = path
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect();
+    Ok(path_segments)
 }
