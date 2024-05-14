@@ -14,18 +14,7 @@ where
     async fn id_from_string(value: String) -> Result<I, OnDiskError>;
     async fn decode_all() -> Result<Vec<Self>, OnDiskError> {
         let mut entries = Vec::new();
-        for id in WalkDir::new(Self::container()?)
-            // Should never go deep
-            .min_depth(1)
-            .max_depth(1)
-            .into_iter()
-            // File is visible
-            .filter_entry(is_visible)
-            // User has permission
-            .filter_map(|e| e.ok())
-            // Turn into ids
-            .filter_map(|e| name_of(e.path()))
-        {
+        for id in Self::entries()? {
             entries.push(Self::decode(&Self::id_from_string(id).await?).await?);
         }
 
@@ -40,10 +29,6 @@ where
     T: OnDisk<String>,
 {
     async fn id_from_string(value: String) -> Result<String, OnDiskError> {
-        if let Some(i) = value.chars().position(|c| c == '.') {
-            Ok(value[..i].into())
-        } else {
-            Ok(value)
-        }
+        Ok(value)
     }
 }

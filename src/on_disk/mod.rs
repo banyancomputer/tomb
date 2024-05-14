@@ -101,6 +101,26 @@ pub trait OnDisk<I: Display>: Sized {
         }
     }
 
+    fn entries() -> Result<Vec<String>, OnDiskError> {
+        Ok(WalkDir::new(Self::container()?)
+            // Should never go deep
+            .min_depth(1)
+            .max_depth(1)
+            .into_iter()
+            // File is visible
+            .filter_entry(is_visible)
+            // User has permission
+            .filter_map(|e| e.ok())
+            // Turn into ids
+            .filter_map(|e| name_of(e.path()))
+            // Strip file extensions
+            .map(|id| {
+                id.trim_end_matches(&format!(".{}", Self::EXTENSION))
+                    .to_string()
+            })
+            .collect())
+    }
+
     // Async compat reader/writer defaults
     async fn get_writer(identifier: &I) -> Result<Compat<File>, OnDiskError> {
         let mut file_opts = OpenOptions::new();

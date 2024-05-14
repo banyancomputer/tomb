@@ -7,7 +7,7 @@ use crate::{
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         local_share::DriveAndKeyId,
-        OnDisk, OnDiskError,
+        OnDisk, OnDiskError, OnDiskExt,
     },
     utils::name_of,
     ConfigStateError, NativeError,
@@ -24,7 +24,7 @@ use tracing::info;
 #[derive(Subcommand, Clone, Debug)]
 pub enum DrivesCommand {
     /// List all Drives
-    //Ls,
+    Ls,
     /// Initialize a new Drive
     Create {
         /// Drive Root
@@ -73,19 +73,19 @@ impl RunnableCommand<NativeError> for DrivesCommand {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
 
         match self {
-            /*
             // List all Buckets tracked remotely and locally
             DrivesCommand::Ls => {
-                let omnis = OmniBucket::ls().await?;
-                if !omnis.is_empty() {
-                    Ok(omnis
-                        .iter()
-                        .fold(String::new(), |acc, bucket| format!("{acc}\n{bucket}")))
-                } else {
-                    Ok("No known Drives locally or remotely.".to_string())
+                let user_key_id = global.selected_user_key_id()?;
+                for entry in Drive::entries()? {
+                    let id = &DriveAndKeyId {
+                        drive_id: entry.clone(),
+                        user_key_id: user_key_id.clone(),
+                    };
+                    let unlocked = Drive::decode(&id).await.is_ok();
+                    info!(id=?entry, ?unlocked, "Drive");
                 }
+                Ok(String::new())
             }
-            */
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             DrivesCommand::Create { origin } => {
                 let origin = origin.unwrap_or(current_dir()?);
