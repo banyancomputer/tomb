@@ -131,23 +131,20 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 ))
             }
             DrivesCommand::Restore(ds) => {
-                todo!()
+                let ld = LoadedDrive::load(&ds, &global).await?;
+                ld.ddas.restore(&ld.origin).await?;
+
+                Ok(format!(
+                    "{}\n{:?}",
+                    "<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>".green(),
+                    ld.ddas.drive.id()
+                ))
             } /*
-                  DrivesCommand::Restore { drive_specifier } => {
-                      restore::pipeline(OmniBucket::from_specifier(&drive_specifier).await).await
-                  }
                   DrivesCommand::Sync(drive_specifier) => {
                       OmniBucket::from_specifier(&drive_specifier)
                           .await
                           .sync_bucket()
                           .await
-                  }
-                  DrivesCommand::Delete(drive_specifier) => {
-                      let omni = OmniBucket::from_specifier(&drive_specifier).await;
-                      let local_deletion = prompt_for_bool("Do you want to delete this Bucket locally?");
-                      let remote_deletion =
-                          prompt_for_bool("Do you want to delete this Bucket remotely?");
-                      omni.delete(local_deletion, remote_deletion).await
                   }
                   DrivesCommand::Info(drive_specifier) => {
                       let omni = OmniBucket::from_specifier(&drive_specifier).await;
@@ -171,7 +168,6 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                           })
                           .map_err(NativeError::api)
                   }
-                  DrivesCommand::Metadata { subcommand } => subcommand.run_internal().await,
                   DrivesCommand::Keys { subcommand } => subcommand.run_internal().await,
               */
         }

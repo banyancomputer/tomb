@@ -58,6 +58,7 @@ impl DiskDriveAndStore {
                 }
                 NodeKind::Directory => {
                     let new_handle = handle.cd(&[&name]).await?;
+                    paths.push(new_prefix.clone());
                     paths.extend(Self::bfs_paths(&new_prefix, &new_handle).await?);
                 }
                 _ => {}

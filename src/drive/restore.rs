@@ -6,30 +6,36 @@ use banyanfs::{
     filesystem::{DirectoryHandle, OperationError},
 };
 use tokio::{
-    fs::{create_dir_all, OpenOptions},
+    fs::{create_dir, create_dir_all, OpenOptions},
     io::AsyncWriteExt,
 };
 use tokio_util::compat::{
     FuturesAsyncWriteCompatExt, TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt,
 };
+use tracing::info;
 
 use crate::NativeError;
 
 use super::DiskDriveAndStore;
 
 impl DiskDriveAndStore {
-    pub async fn restore(&mut self, output: &Path) -> Result<(), NativeError> {
+    pub async fn restore(&self, output: &Path) -> Result<(), NativeError> {
+        if !output.exists() {
+            create_dir(output).await?;
+        }
         let mut file_opts = OpenOptions::new();
         file_opts.write(true);
         file_opts.create(true);
         file_opts.truncate(true);
 
+        let paths = self.all_bfs_paths().await?;
+        println!("paths: {:?}", paths);
+
         let root = self.drive.root().await?;
         for path in self.all_bfs_paths().await? {
             // Disk location
             let canon = output.join(&path);
-            // Writer
-            let writer = file_opts.open(&canon).await?.compat();
+            info!("canon: {}", canon.display());
             // Path on FS
             let bfs_path: Vec<&str> = path
                 .components()
@@ -40,11 +46,18 @@ impl DiskDriveAndStore {
                 // File
                 Ok(data) => {
                     // Write file data!
-                    writer.compat_write().write(&data).await?;
+                    info!("about to write!");
+                    file_opts
+                        .open(&canon)
+                        .await?
+                        .compat()
+                        .compat_write()
+                        .write(&data)
+                        .await?;
                 }
                 // Directory
                 Err(OperationError::NotReadable) => {
-                    create_dir_all(&canon).await?;
+                    create_dir(&canon).await?;
                 }
                 Err(err) => {
                     return Err(err.into());
