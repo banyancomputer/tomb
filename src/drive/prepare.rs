@@ -1,9 +1,15 @@
 use std::{
     collections::HashSet,
+    ops::Deref,
     path::{Path, PathBuf},
 };
 
-use banyanfs::utils::crypto_rng;
+use async_recursion::async_recursion;
+use banyanfs::{
+    codec::filesystem::NodeKind,
+    filesystem::{DirectoryEntry, DirectoryHandle},
+    utils::crypto_rng,
+};
 use tokio::{fs::File, io::AsyncReadExt};
 use tracing::{info, warn};
 use walkdir::{DirEntry, WalkDir};
@@ -11,7 +17,7 @@ use walkdir::{DirEntry, WalkDir};
 use super::DiskDriveAndStore;
 use crate::{
     on_disk::{OnDisk, OnDiskError},
-    utils::is_visible,
+    utils::{is_visible, prompt_for_bool},
 };
 
 impl DiskDriveAndStore {
@@ -19,6 +25,26 @@ impl DiskDriveAndStore {
         let mut root = self.drive.root().await.unwrap();
         let mut rng = crypto_rng();
 
+        // Iterate over every entry in the FileSystem
+        //let root_entry = self.drive.root_entry().await.unwrap();
+        for path in self.enumerate_paths(Path::new(""), &root).await? {
+            // Deterministically canonicalize the path
+            let canon = origin.join(&path);
+            //
+            if !canon.exists() {
+                warn!("{} was present in the FS but not on disk.", path.display());
+                if prompt_for_bool("Delete?") {
+                    let bfs_path: Vec<&str> = path
+                        .components()
+                        .map(|v| v.as_os_str().to_str().unwrap())
+                        .collect();
+
+                    root.rm(&mut self.store, &bfs_path).await.unwrap();
+                }
+            }
+        }
+
+        // Iterate over every entry on disk
         for entry in WalkDir::new(origin)
             .follow_links(true)
             .into_iter()
@@ -31,20 +57,16 @@ impl DiskDriveAndStore {
                     // Banyanfs path relative to root
                     let bfs_path = canonical_path.strip_prefix(origin).unwrap();
                     info!("canonical: {:?}", canonical_path);
-                    info!("bfs: {:?}", bfs_path);
-
-                    let p: Vec<_> = bfs_path
+                    let bfs_path: Vec<&str> = bfs_path
                         .components()
                         .map(|v| v.as_os_str().to_str().unwrap())
                         .collect();
-                    let v: Vec<&str> = p.iter().map(|x| &**x).collect();
+                    info!("bfs: {:?}", bfs_path);
 
-                    if !v.is_empty() {
-                        info!("v: {:?}", v);
-
+                    if !bfs_path.is_empty() {
                         // If directory
                         if canonical_path.is_dir() {
-                            root.mkdir(&mut rng, &v, true).await.unwrap();
+                            root.mkdir(&mut rng, &bfs_path, true).await.unwrap();
                         }
                         // If file
                         else {
@@ -52,7 +74,7 @@ impl DiskDriveAndStore {
                             let mut data = Vec::new();
                             let mut file = tokio::fs::File::open(&canonical_path).await.unwrap();
                             file.read_to_end(&mut data).await?;
-                            root.write(&mut rng, &mut self.store, &v, &data)
+                            root.write(&mut rng, &mut self.store, &bfs_path, &data)
                                 .await
                                 .unwrap();
                         }
@@ -67,6 +89,55 @@ impl DiskDriveAndStore {
         info!("finished preparing");
 
         Ok(())
+    }
+
+    /*
+    pub async fn enumerate_paths(
+        &self,
+        root: &DirectoryHandle,
+        prefix: &Path,
+        entry: DirectoryEntry,
+    ) -> Result<Vec<PathBuf>, OnDiskError> {
+        let mut paths = Vec::new();
+
+        match entry.kind() {
+            NodeKind::File => paths.push(prefix.join(entry.name().to_string())),
+            NodeKind::Directory => {
+                let
+                let handle = root.
+            }
+            _ => {}
+        }
+
+        Ok(paths)
+    }
+    */
+
+    #[async_recursion]
+    pub async fn enumerate_paths(
+        &self,
+        prefix: &Path,
+        handle: &DirectoryHandle,
+    ) -> Result<Vec<PathBuf>, OnDiskError> {
+        let mut paths = Vec::new();
+
+        for entry in handle.ls(&[]).await.unwrap() {
+            let name = entry.name().to_string();
+            let new_prefix = prefix.join(&name);
+
+            match entry.kind() {
+                NodeKind::File => {
+                    paths.push(new_prefix);
+                }
+                NodeKind::Directory => {
+                    let new_handle = handle.cd(&[&name]).await.unwrap();
+                    paths.extend(self.enumerate_paths(&new_prefix, &new_handle).await?);
+                }
+                _ => {}
+            }
+        }
+
+        Ok(paths)
     }
 }
 /*
