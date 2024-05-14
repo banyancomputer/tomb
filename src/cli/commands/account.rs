@@ -12,6 +12,7 @@ use banyanfs::api::platform::account::*;
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
+use tracing::info;
 
 /// Subcommand for Authentication
 #[derive(Subcommand, Clone, Debug)]
@@ -26,7 +27,7 @@ pub enum AccountCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for AccountCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
+    async fn run_internal(self) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         let mut client = global.api_client().await?;
 
@@ -36,24 +37,26 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 // there is not currently a way to do this!
 
                 // Respond
-                Ok(format!(
+                info!(
                     "{}\nuser_id:\t\t{}\ndevice_key_fingerprint:\t{}",
                     "<< DEVICE KEY SUCCESSFULLY ADDED TO ACCOUNT >>".green(),
                     "NO ID",
                     "NO FINGERPRINT",
                     //user_id,
                     //fingerprint
-                ))
+                );
+                Ok(())
             }
             AccountCommand::Logout => {
                 /*
                 client.logout();
                 global.save_client(client).await?;
                 */
-                Ok(format!(
+                info!(
                     "{}",
                     "<< SUCCESSFULLY LOGGED OUT OF REMOTE ACCESS >>".green()
-                ))
+                );
+                Ok(())
             }
             AccountCommand::Usage => {
                 let mut output = format!("{}", "| ACCOUNT USAGE INFO |".yellow());
@@ -83,7 +86,8 @@ impl RunnableCommand<NativeError> for AccountCommand {
                     );
                 }
 
-                Ok(output)
+                info!(output);
+                Ok(())
             }
         }
     }

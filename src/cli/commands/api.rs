@@ -10,6 +10,7 @@ use super::RunnableCommand;
 use async_trait::async_trait;
 use clap::Subcommand;
 use colored::Colorize;
+use tracing::info;
 use url::Url;
 
 /// Subcommand for endpoint configuration
@@ -27,18 +28,18 @@ pub enum ApiCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for ApiCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
+    async fn run_internal(self) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
-            ApiCommand::Display => Ok(format!(
-                "{}\n{}\n",
-                "| ADDRESS INFO |".yellow(),
-                env!("ENDPOINT"),
-            )),
+            ApiCommand::Display => {
+                info!("{}\n{}\n", "| ADDRESS INFO |".yellow(), env!("ENDPOINT"));
+                Ok(())
+            }
             ApiCommand::Set { address } => {
                 let _ = Url::parse(&address).map_err(|err| NativeError::Custom(err.to_string()));
                 std::env::set_var("ENDPOINT", address);
-                Ok(format!("{}", "<< ENDPOINT UPDATED SUCCESSFULLY >>".green()))
+                info!("{}", "<< ENDPOINT UPDATED SUCCESSFULLY >>".green());
+                Ok(())
             }
         }
     }

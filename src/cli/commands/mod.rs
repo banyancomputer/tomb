@@ -50,7 +50,7 @@ use crate::NativeError;
 use async_trait::async_trait;
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for BanyanCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
+    async fn run_internal(self) -> Result<(), NativeError> {
         match self {
             BanyanCommand::Api { command } => Ok(command.run_internal().await?),
             BanyanCommand::Account { command } => Ok(command.run_internal().await?),

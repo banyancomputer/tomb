@@ -69,7 +69,7 @@ pub enum DrivesCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DrivesCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
+    async fn run_internal(self) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
 
         match self {
@@ -84,7 +84,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     let unlocked = Drive::decode(&id).await.is_ok();
                     info!(id=?entry, ?unlocked, "Drive");
                 }
-                Ok(String::new())
+                Ok(())
             }
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             DrivesCommand::Create { origin } => {
@@ -101,21 +101,23 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 };
                 // Create and encode the Drive and Store
                 let ddas = DiskDriveAndStore::init(&id).await?;
-                Ok(format!(
+                info!(
                     "{}\n{:?}",
                     "<< NEW DRIVE CREATED >>".green(),
                     ddas.drive.id()
-                ))
+                );
+                Ok(())
             }
             DrivesCommand::Prepare { ds, follow_links } => {
                 let mut ld = LoadedDrive::load(&ds, &global).await?;
                 ld.ddas.prepare(&ld.origin).await?;
                 ld.ddas.encode(&ld.id).await?;
-                Ok(format!(
+                info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
                     ld.ddas.drive.id()
-                ))
+                );
+                Ok(())
             }
             DrivesCommand::Delete(ds) => {
                 let ld = LoadedDrive::load(&ds, &global).await?;
@@ -124,21 +126,23 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 DiskDriveAndStore::erase(&ld.id).await?;
                 global.encode(&GlobalConfigId).await?;
 
-                Ok(format!(
+                info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA DELETED SUCCESSFULLY >>".green(),
                     ld.ddas.drive.id()
-                ))
+                );
+                Ok(())
             }
             DrivesCommand::Restore(ds) => {
                 let ld = LoadedDrive::load(&ds, &global).await?;
                 ld.ddas.restore(&ld.origin).await?;
 
-                Ok(format!(
+                info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>".green(),
                     ld.ddas.drive.id()
-                ))
+                );
+                Ok(())
             } /*
                   DrivesCommand::Sync(drive_specifier) => {
                       OmniBucket::from_specifier(&drive_specifier)
