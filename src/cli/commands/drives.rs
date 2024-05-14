@@ -41,15 +41,11 @@ pub enum DrivesCommand {
         #[arg(short, long)]
         follow_links: bool,
     },
+    /// Reconstruct a Drive filesystem locally
+    Restore(DriveSpecifier),
     /// Delete a Drive
     Delete(DriveSpecifier),
     /*
-    /// Reconstruct a Drive filesystem locally
-    Restore {
-        /// Drive in question
-        #[clap(flatten)]
-        drive_specifier: DriveSpecifier,
-    },
     /// Sync Drive data to or from remote
     Sync(DriveSpecifier),
     /// Drive info
@@ -112,47 +108,30 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 ))
             }
             DrivesCommand::Prepare { ds, follow_links } => {
-                let drive_id = Into::<DriveId>::into(ds).get_id().await?;
-                let drive_origin = global.get_origin(&drive_id)?;
-                println!("drive_id: {drive_id:?}");
-                println!("origin: {drive_origin:?}");
-
-                let user_key_id = global.selected_user_key_id()?;
-                println!("ukid: {user_key_id:?}");
-                let id = DriveAndKeyId {
-                    drive_id,
-                    user_key_id,
-                };
-                let mut ddas = DiskDriveAndStore::decode(&id).await?;
-                ddas.prepare(&drive_origin).await?;
-                ddas.encode(&id).await?;
-
+                let mut ld = LoadedDrive::load(&ds, &global).await?;
+                ld.ddas.prepare(&ld.origin).await?;
+                ld.ddas.encode(&ld.id).await?;
                 Ok(format!(
                     "{}\n{:?}",
                     "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
-                    ddas.drive.id()
+                    ld.ddas.drive.id()
                 ))
             }
             DrivesCommand::Delete(ds) => {
-                let drive_id = Into::<DriveId>::into(ds).get_id().await?;
-                global.remove_origin(&drive_id)?;
-                let user_key_id = global.selected_user_key_id()?;
-                let id = DriveAndKeyId {
-                    drive_id,
-                    user_key_id,
-                };
-                let ddas = DiskDriveAndStore::decode(&id).await?;
-
-                Drive::erase(&id).await?;
-                DiskDriveAndStore::erase(&id).await?;
-
+                let ld = LoadedDrive::load(&ds, &global).await?;
+                global.remove_origin(&ld.id.drive_id)?;
+                Drive::erase(&ld.id).await?;
+                DiskDriveAndStore::erase(&ld.id).await?;
                 global.encode(&GlobalConfigId).await?;
 
                 Ok(format!(
                     "{}\n{:?}",
                     "<< DRIVE DATA DELETED SUCCESSFULLY >>".green(),
-                    ddas.drive.id()
+                    ld.ddas.drive.id()
                 ))
+            }
+            DrivesCommand::Restore(ds) => {
+                todo!()
             } /*
                   DrivesCommand::Restore { drive_specifier } => {
                       restore::pipeline(OmniBucket::from_specifier(&drive_specifier).await).await

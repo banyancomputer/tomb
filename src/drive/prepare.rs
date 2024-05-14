@@ -27,7 +27,8 @@ impl DiskDriveAndStore {
         let mut rng = crypto_rng();
 
         // Iterate over every entry in the FileSystem
-        for path in Self::enumerate_paths(Path::new(""), &root).await? {
+        for path in self.all_bfs_paths().await? {
+            //info!("enumerated: {:?}", path);
             // Deterministically canonicalize the path
             let canon = origin.join(&path);
             //
@@ -81,7 +82,9 @@ impl DiskDriveAndStore {
                             let mut data = Vec::new();
                             let mut file = tokio::fs::File::open(&canonical_path).await?;
                             file.read_to_end(&mut data).await?;
+                            // TODO this kinda sucks.
                             root.rm(&mut self.store, &bfs_path).await.ok();
+                            // Write doesn't work unless the thing isn't already there
                             root.write(&mut rng, &mut self.store, &bfs_path, &data)
                                 .await?;
                         }
@@ -96,31 +99,5 @@ impl DiskDriveAndStore {
         info!("finished preparing");
 
         Ok(())
-    }
-
-    #[async_recursion]
-    pub async fn enumerate_paths(
-        prefix: &Path,
-        handle: &DirectoryHandle,
-    ) -> Result<Vec<PathBuf>, NativeError> {
-        let mut paths = Vec::new();
-
-        for entry in handle.ls(&[]).await? {
-            let name = entry.name().to_string();
-            let new_prefix = prefix.join(&name);
-
-            match entry.kind() {
-                NodeKind::File => {
-                    paths.push(new_prefix);
-                }
-                NodeKind::Directory => {
-                    let new_handle = handle.cd(&[&name]).await?;
-                    paths.extend(Self::enumerate_paths(&new_prefix, &new_handle).await?);
-                }
-                _ => {}
-            }
-        }
-
-        Ok(paths)
     }
 }

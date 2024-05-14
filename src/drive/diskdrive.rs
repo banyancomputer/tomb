@@ -1,12 +1,14 @@
 use self::local_share::DriveAndKeyId;
 use super::datastore::OnDiskDataStore;
-use crate::on_disk::*;
+use crate::{on_disk::*, NativeError};
+use async_recursion::async_recursion;
 use async_trait::async_trait;
+use banyanfs::codec::filesystem::NodeKind;
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use object_store::local::LocalFileSystem;
 use std::fs::create_dir_all;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct DiskDriveAndStore {
@@ -36,6 +38,37 @@ impl DiskDriveAndStore {
         let ddas = Self { store, drive };
         ddas.encode(identifier).await?;
         Ok(ddas)
+    }
+
+    /// Enumerates paths in the banyanfs
+    #[async_recursion]
+    async fn bfs_paths(
+        prefix: &Path,
+        handle: &DirectoryHandle,
+    ) -> Result<Vec<PathBuf>, NativeError> {
+        let mut paths = Vec::new();
+
+        for entry in handle.ls(&[]).await? {
+            let name = entry.name().to_string();
+            let new_prefix = prefix.join(&name);
+
+            match entry.kind() {
+                NodeKind::File => {
+                    paths.push(new_prefix);
+                }
+                NodeKind::Directory => {
+                    let new_handle = handle.cd(&[&name]).await?;
+                    paths.extend(Self::bfs_paths(&new_prefix, &new_handle).await?);
+                }
+                _ => {}
+            }
+        }
+
+        Ok(paths)
+    }
+
+    pub async fn all_bfs_paths(&self) -> Result<Vec<PathBuf>, NativeError> {
+        Self::bfs_paths(Path::new(""), &self.drive.root().await?).await
     }
 }
 
