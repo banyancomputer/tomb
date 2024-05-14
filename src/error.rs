@@ -1,12 +1,17 @@
 use crate::on_disk::*;
-use banyanfs::{api::ApiError, codec::crypto::SigningKey};
-use std::{fmt::Display, path::PathBuf, string::FromUtf8Error};
+use banyanfs::{api::ApiError, codec::crypto::SigningKey, filesystem::OperationError};
+use std::{
+    fmt::Display,
+    path::{PathBuf, StripPrefixError},
+    string::FromUtf8Error,
+};
 
 #[derive(Debug)]
 pub enum NativeError {
     Api(ApiError),
     Disk(OnDiskError),
     ConfigState(ConfigStateError),
+    Operation(OperationError),
     Custom(String),
 }
 impl std::error::Error for NativeError {}
@@ -17,6 +22,7 @@ impl Display for NativeError {
             NativeError::Api(err) => f.write_str(&err.to_string()),
             NativeError::Disk(err) => f.write_str(&err.to_string()),
             NativeError::ConfigState(err) => f.write_str(&err.to_string()),
+            NativeError::Operation(err) => f.write_str(&err.to_string()),
             NativeError::Custom(err) => f.write_str(err),
         }
     }
@@ -76,8 +82,20 @@ impl From<std::io::Error> for NativeError {
     }
 }
 
+impl From<OperationError> for NativeError {
+    fn from(value: OperationError) -> Self {
+        Self::Operation(value)
+    }
+}
+
 impl From<FromUtf8Error> for NativeError {
     fn from(value: FromUtf8Error) -> Self {
         Self::Custom(format!("From UTF8: {value}"))
+    }
+}
+
+impl From<StripPrefixError> for NativeError {
+    fn from(value: StripPrefixError) -> Self {
+        Self::Custom(format!("Strip Prefix: {value}"))
     }
 }

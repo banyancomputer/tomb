@@ -41,6 +41,8 @@ pub enum DrivesCommand {
         #[arg(short, long)]
         follow_links: bool,
     },
+    /// Delete a Drive
+    Delete(DriveSpecifier),
     /*
     /// Reconstruct a Drive filesystem locally
     Restore {
@@ -50,8 +52,6 @@ pub enum DrivesCommand {
     },
     /// Sync Drive data to or from remote
     Sync(DriveSpecifier),
-    /// Delete a Drive
-    Delete(DriveSpecifier),
     /// Drive info
     Info(DriveSpecifier),
     /// Drive data usage
@@ -124,7 +124,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     user_key_id,
                 };
                 let mut ddas = DiskDriveAndStore::decode(&id).await?;
-                ddas.prepare(&drive_origin).await.unwrap();
+                ddas.prepare(&drive_origin).await?;
                 ddas.encode(&id).await?;
 
                 Ok(format!(
@@ -132,6 +132,21 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
                     ddas.drive.id()
                 ))
+            }
+            DrivesCommand::Delete(ds) => {
+                let drive_id = Into::<DriveId>::into(ds).get_id().await?;
+                let drive_origin = global.get_origin(&drive_id)?;
+                println!("drive_id: {drive_id:?}");
+                println!("origin: {drive_origin:?}");
+
+                let user_key_id = global.selected_user_key_id()?;
+                println!("ukid: {user_key_id:?}");
+                let id = DriveAndKeyId {
+                    drive_id,
+                    user_key_id,
+                };
+                let mut ddas = DiskDriveAndStore::decode(&id).await?;
+                Ok(String::new())
             } /*
                   DrivesCommand::Restore { drive_specifier } => {
                       restore::pipeline(OmniBucket::from_specifier(&drive_specifier).await).await
