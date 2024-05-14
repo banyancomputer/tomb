@@ -13,7 +13,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::codec::crypto::SigningKey;
+use banyanfs::{codec::crypto::SigningKey, filesystem::Drive};
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
@@ -135,18 +135,24 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             DrivesCommand::Delete(ds) => {
                 let drive_id = Into::<DriveId>::into(ds).get_id().await?;
-                let drive_origin = global.get_origin(&drive_id)?;
-                println!("drive_id: {drive_id:?}");
-                println!("origin: {drive_origin:?}");
-
+                global.remove_origin(&drive_id)?;
                 let user_key_id = global.selected_user_key_id()?;
-                println!("ukid: {user_key_id:?}");
                 let id = DriveAndKeyId {
                     drive_id,
                     user_key_id,
                 };
-                let mut ddas = DiskDriveAndStore::decode(&id).await?;
-                Ok(String::new())
+                let ddas = DiskDriveAndStore::decode(&id).await?;
+
+                Drive::erase(&id).await?;
+                DiskDriveAndStore::erase(&id).await?;
+
+                global.encode(&GlobalConfigId).await?;
+
+                Ok(format!(
+                    "{}\n{:?}",
+                    "<< DRIVE DATA DELETED SUCCESSFULLY >>".green(),
+                    ddas.drive.id()
+                ))
             } /*
                   DrivesCommand::Restore { drive_specifier } => {
                       restore::pipeline(OmniBucket::from_specifier(&drive_specifier).await).await

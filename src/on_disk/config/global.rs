@@ -75,10 +75,17 @@ impl GlobalConfig {
         self.drive_origins
             .insert(drive_id.to_string(), origin.to_path_buf());
     }
+
     pub fn get_origin(&self, drive_id: &String) -> Result<PathBuf, ConfigStateError> {
         self.drive_origins
             .get(drive_id)
             .cloned()
+            .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
+    }
+
+    pub fn remove_origin(&mut self, drive_id: &String) -> Result<PathBuf, ConfigStateError> {
+        self.drive_origins
+            .remove(drive_id)
             .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
     }
 }

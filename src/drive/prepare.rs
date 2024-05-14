@@ -24,7 +24,6 @@ use crate::{
 impl DiskDriveAndStore {
     pub async fn prepare(&mut self, origin: &PathBuf) -> Result<(), NativeError> {
         let mut root = self.drive.root().await?;
-        //self.drive.clean
         let mut rng = crypto_rng();
 
         // Iterate over every entry in the FileSystem
@@ -60,18 +59,18 @@ impl DiskDriveAndStore {
                     let canonical_path = entry.path();
                     // Banyanfs path relative to root
                     let bfs_path = canonical_path.strip_prefix(origin)?;
-                    info!("canonical: {:?}", canonical_path);
                     let bfs_path: Vec<&str> = bfs_path
                         .components()
                         .filter_map(|v| v.as_os_str().to_str())
                         .collect();
-                    info!("bfs: {:?}", bfs_path);
 
                     if !bfs_path.is_empty() {
+                        info!("canonical: {:?}", canonical_path);
+                        info!("bfs: {:?}", bfs_path);
+
                         // If directory
                         if canonical_path.is_dir() {
                             info!("making dir");
-
                             root.mkdir(&mut rng, &bfs_path, true).await?;
                         }
                         // If file
@@ -82,6 +81,7 @@ impl DiskDriveAndStore {
                             let mut data = Vec::new();
                             let mut file = tokio::fs::File::open(&canonical_path).await?;
                             file.read_to_end(&mut data).await?;
+                            root.rm(&mut self.store, &bfs_path).await.ok();
                             root.write(&mut rng, &mut self.store, &bfs_path, &data)
                                 .await?;
                         }

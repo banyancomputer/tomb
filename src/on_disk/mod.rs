@@ -5,8 +5,12 @@ mod ext;
 pub mod local_share;
 use async_trait::async_trait;
 pub use ext::*;
-use std::{fmt::Display, fs::create_dir, path::PathBuf};
-use tokio::fs::{File, OpenOptions};
+use std::{
+    fmt::Display,
+    fs::{create_dir, remove_file},
+    path::PathBuf,
+};
+use tokio::fs::{remove_dir_all, File, OpenOptions};
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 use walkdir::WalkDir;
 
@@ -83,6 +87,17 @@ pub trait OnDisk<I: Display>: Sized {
         // File path
         else {
             Ok(Self::container()?.join(format!("{}.{}", identifier, Self::EXTENSION)))
+        }
+    }
+
+    async fn erase(identifier: &I) -> Result<(), OnDiskError> {
+        // Folder path
+        if Self::EXTENSION.is_empty() {
+            Ok(remove_dir_all(Self::path(identifier)?).await?)
+        }
+        // File path
+        else {
+            Ok(remove_file(Self::path(identifier)?)?)
         }
     }
 
