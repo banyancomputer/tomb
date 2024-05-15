@@ -1,9 +1,8 @@
-use std::path::{Path};
+use std::path::Path;
 
-
-use banyanfs::{
-    filesystem::{OperationError},
-};
+use super::local::LocalBanyanFS;
+use crate::NativeError;
+use banyanfs::filesystem::OperationError;
 use tokio::{
     fs::{create_dir, OpenOptions},
     io::AsyncWriteExt,
@@ -13,11 +12,7 @@ use tokio_util::compat::{
 };
 use tracing::info;
 
-use crate::NativeError;
-
-use super::DiskDriveAndStore;
-
-impl DiskDriveAndStore {
+impl LocalBanyanFS {
     pub async fn restore(&self, output: &Path) -> Result<(), NativeError> {
         if !output.exists() {
             create_dir(output).await?;

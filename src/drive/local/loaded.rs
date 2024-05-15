@@ -6,15 +6,15 @@ use crate::{
     NativeError,
 };
 
-use super::DiskDriveAndStore;
+use super::LocalBanyanFS;
 
-pub struct LoadedDrive {
+pub struct LocalLoadedDrive {
     pub origin: PathBuf,
     pub id: DriveAndKeyId,
-    pub ddas: DiskDriveAndStore,
+    pub lbfs: LocalBanyanFS,
 }
 
-impl LoadedDrive {
+impl LocalLoadedDrive {
     pub async fn load(di: &DriveId, global: &GlobalConfig) -> Result<Self, NativeError> {
         let drive_id = di.get_id().await?;
         let origin = global.get_origin(&drive_id)?;
@@ -23,7 +23,7 @@ impl LoadedDrive {
             drive_id,
             user_key_id,
         };
-        let ddas = DiskDriveAndStore::decode(&id).await?;
-        Ok(Self { origin, id, ddas })
+        let lbfs = LocalBanyanFS::decode(&id).await?;
+        Ok(Self { origin, id, lbfs })
     }
 }

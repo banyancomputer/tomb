@@ -1,23 +1,13 @@
-use std::{
-    path::{PathBuf},
-};
+use std::path::PathBuf;
 
-
-use banyanfs::{
-    utils::crypto_rng,
-};
-use tokio::{io::AsyncReadExt};
+use super::local::LocalBanyanFS;
+use crate::{on_disk::OnDisk, utils::is_visible, NativeError};
+use banyanfs::utils::crypto_rng;
+use tokio::io::AsyncReadExt;
 use tracing::{info, warn};
-use walkdir::{WalkDir};
+use walkdir::WalkDir;
 
-use super::DiskDriveAndStore;
-use crate::{
-    on_disk::{OnDisk},
-    utils::{is_visible},
-    NativeError,
-};
-
-impl DiskDriveAndStore {
+impl LocalBanyanFS {
     pub async fn prepare(&mut self, origin: &PathBuf) -> Result<(), NativeError> {
         let mut root = self.drive.root().await?;
         let mut rng = crypto_rng();

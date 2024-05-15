@@ -1,5 +1,4 @@
 use self::local_share::DriveAndKeyId;
-use super::datastore::OnDiskDataStore;
 use crate::{on_disk::*, NativeError};
 use async_recursion::async_recursion;
 use async_trait::async_trait;
@@ -10,15 +9,17 @@ use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
+use super::LocalDataStore;
+
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
-pub struct DiskDriveAndStore {
+pub struct LocalBanyanFS {
     /// BanyanFS Drive
     pub drive: Drive,
     /// Stores CIDs on behalf of the Drive
-    pub store: OnDiskDataStore,
+    pub store: LocalDataStore,
 }
 
-impl DiskDriveAndStore {
+impl LocalBanyanFS {
     pub async fn init(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         let mut rng = crypto_rng();
         // Decode the specified UserKey
@@ -33,11 +34,11 @@ impl DiskDriveAndStore {
         if !store_path.exists() {
             create_dir_all(&store_path)?;
         }
-        let store = OnDiskDataStore::new(store_path)?;
+        let store = LocalDataStore::new(store_path)?;
 
-        let ddas = Self { store, drive };
-        ddas.encode(identifier).await?;
-        Ok(ddas)
+        let lbfs = Self { store, drive };
+        lbfs.encode(identifier).await?;
+        Ok(lbfs)
     }
 
     /// Enumerates paths in the banyanfs
@@ -77,7 +78,7 @@ impl DiskDriveAndStore {
 /// Contains one folder per Drive, which in turn
 /// contain {cid}.bin files managed by the Drive
 #[async_trait(?Send)]
-impl OnDisk<DriveAndKeyId> for DiskDriveAndStore {
+impl OnDisk<DriveAndKeyId> for LocalBanyanFS {
     const TYPE: DiskType = DiskType::LocalShare;
     const SUFFIX: &'static str = "drive_blocks";
     // this is a dir
@@ -92,7 +93,7 @@ impl OnDisk<DriveAndKeyId> for DiskDriveAndStore {
         // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;
         // Create a new
-        let store = OnDiskDataStore::new(Self::path(identifier)?)?;
+        let store = LocalDataStore::new(Self::path(identifier)?)?;
         Ok(Self { drive, store })
     }
 }

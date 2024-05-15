@@ -7,15 +7,15 @@ use banyanfs::{
 };
 use object_store::{local::LocalFileSystem, path::Path, ObjectStore};
 
-use crate::on_disk::{OnDiskError};
+use crate::on_disk::OnDiskError;
 
-pub struct OnDiskDataStore {
+pub struct LocalDataStore {
     lfs: LocalFileSystem,
 }
 
-impl OnDiskDataStore {
+impl LocalDataStore {
     pub fn new(path: PathBuf) -> Result<Self, OnDiskError> {
-        Ok(OnDiskDataStore {
+        Ok(LocalDataStore {
             lfs: LocalFileSystem::new_with_prefix(path)
                 .map_err(|err| OnDiskError::Implementation(err.to_string()))?,
         })
@@ -27,7 +27,7 @@ fn cid_as_path(cid: &Cid) -> Path {
 }
 
 #[async_trait(?Send)]
-impl DataStore for OnDiskDataStore {
+impl DataStore for LocalDataStore {
     async fn contains_cid(&self, cid: Cid) -> Result<bool, DataStoreError> {
         match self.lfs.head(&cid_as_path(&cid)).await {
             Ok(_) => Ok(true),

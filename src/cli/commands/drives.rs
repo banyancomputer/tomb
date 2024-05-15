@@ -1,6 +1,9 @@
 use crate::{
     cli::{
-        commands::RunnableCommand,
+        commands::{
+            drives::local::{LocalBanyanFS, LocalLoadedDrive},
+            RunnableCommand,
+        },
         specifiers::{DriveId, DriveSpecifier},
     },
     drive::*,
@@ -125,11 +128,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     user_key_id,
                 };
                 // Create and encode the Drive and Store
-                let ddas = DiskDriveAndStore::init(&id).await?;
+                let lbfs = LocalBanyanFS::init(&id).await?;
                 info!(
                     "{}\n{:?}",
                     "<< NEW DRIVE CREATED >>".green(),
-                    ddas.drive.id()
+                    lbfs.drive.id()
                 );
                 Ok(())
             }
@@ -137,27 +140,27 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 ds,
                 follow_links: _,
             } => {
-                let mut ld = LoadedDrive::load(&ds.into(), &global).await?;
-                ld.ddas.prepare(&ld.origin).await?;
-                ld.ddas.encode(&ld.id).await?;
+                let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
+                ld.lbfs.prepare(&ld.origin).await?;
+                ld.lbfs.encode(&ld.id).await?;
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
-                    ld.ddas.drive.id()
+                    ld.lbfs.drive.id()
                 );
                 Ok(())
             }
             DrivesCommand::Delete(ds) => {
-                let ld = LoadedDrive::load(&ds.into(), &global).await?;
+                let ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 global.remove_origin(&ld.id.drive_id)?;
                 Drive::erase(&ld.id).await?;
-                DiskDriveAndStore::erase(&ld.id).await?;
+                LocalBanyanFS::erase(&ld.id).await?;
                 global.encode(&GlobalConfigId).await?;
 
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA DELETED SUCCESSFULLY >>".green(),
-                    ld.ddas.drive.id()
+                    ld.lbfs.drive.id()
                 );
                 Ok(())
             }
@@ -165,13 +168,13 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //let client = global.api_client().await?;
                 //let drive = platform::drives::get(&client, drive_id).await?;
 
-                let ld = LoadedDrive::load(&ds.into(), &global).await?;
-                ld.ddas.restore(&ld.origin).await?;
+                let ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
+                ld.lbfs.restore(&ld.origin).await?;
 
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>".green(),
-                    ld.ddas.drive.id()
+                    ld.lbfs.drive.id()
                 );
                 Ok(())
             }
