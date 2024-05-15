@@ -134,7 +134,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             DrivesCommand::Prepare { ds, follow_links } => {
-                let mut ld = LoadedDrive::load(&ds, &global).await?;
+                let mut ld = LoadedDrive::load(&ds.into(), &global).await?;
                 ld.ddas.prepare(&ld.origin).await?;
                 ld.ddas.encode(&ld.id).await?;
                 info!(
@@ -145,7 +145,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             DrivesCommand::Delete(ds) => {
-                let ld = LoadedDrive::load(&ds, &global).await?;
+                let ld = LoadedDrive::load(&ds.into(), &global).await?;
                 global.remove_origin(&ld.id.drive_id)?;
                 Drive::erase(&ld.id).await?;
                 DiskDriveAndStore::erase(&ld.id).await?;
@@ -159,7 +159,10 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             DrivesCommand::Restore(ds) => {
-                let ld = LoadedDrive::load(&ds, &global).await?;
+                //let client = global.api_client().await?;
+                //let drive = platform::drives::get(&client, drive_id).await?;
+
+                let ld = LoadedDrive::load(&ds.into(), &global).await?;
                 ld.ddas.restore(&ld.origin).await?;
 
                 info!(
@@ -169,7 +172,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 );
                 Ok(())
             }
-            DrivesCommand::Sync(drive_specifier) => {
+            DrivesCommand::Sync(ds) => {
+                let di: DriveId = ds.into();
+                // There is already a local drive here
+                if let Ok(ld) = LoadedDrive::load(&di, &global).await {}
+
                 info!("fukc");
                 todo!()
             }

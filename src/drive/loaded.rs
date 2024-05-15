@@ -15,8 +15,8 @@ pub struct LoadedDrive {
 }
 
 impl LoadedDrive {
-    pub async fn load(ds: &DriveSpecifier, global: &GlobalConfig) -> Result<Self, NativeError> {
-        let drive_id = Into::<DriveId>::into(ds.clone()).get_id().await?;
+    pub async fn load(di: &DriveId, global: &GlobalConfig) -> Result<Self, NativeError> {
+        let drive_id = di.get_id(&global).await?;
         let origin = global.get_origin(&drive_id)?;
         let user_key_id = global.selected_user_key_id()?;
         let id = DriveAndKeyId {

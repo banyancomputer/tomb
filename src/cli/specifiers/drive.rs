@@ -1,3 +1,4 @@
+use banyanfs::api::platform;
 use clap::Args;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -44,15 +45,16 @@ impl From<DriveSpecifier> for DriveId {
 }
 
 impl DriveId {
-    pub async fn get_id(&self) -> Result<String, ConfigStateError> {
+    pub async fn get_id(&self, global: &GlobalConfig) -> Result<String, NativeError> {
         match self {
             // This will require either cached values in the Global config, OR it will require just
             // asking the API directly (preferable)
-            DriveId::DriveId(_) => todo!("unimplemented!"),
+            DriveId::DriveId(drive_id) => {
+                Err(ConfigStateError::MissingDrive(drive_id.to_string()).into())
+            }
             DriveId::Name(name) => Ok(name.to_string()),
-            DriveId::Origin(origin) => name_of(origin).ok_or(ConfigStateError::MissingDrive(
-                format!("{}", origin.display()),
-            )),
+            DriveId::Origin(origin) => name_of(origin)
+                .ok_or(ConfigStateError::MissingDrive(format!("{}", origin.display())).into()),
         }
     }
 }
