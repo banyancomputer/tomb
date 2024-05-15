@@ -53,16 +53,12 @@ impl RunnableCommand<NativeError> for AccountCommand {
             AccountCommand::Logout => {
                 global.remove_account_id();
                 global.encode(&GlobalConfigId).await?;
-                info!(
-                    "{}",
-                    "<< SUCCESSFULLY LOGGED OUT OF REMOTE ACCESS >>".green()
-                );
+                info!("<< SUCCESSFULLY LOGGED OUT OF REMOTE ACCESS >>");
                 Ok(())
             }
             AccountCommand::Usage => {
                 let mut client = global.api_client().await?;
-                let mut output = format!("{}", "| ACCOUNT USAGE INFO |".yellow());
-
+                info!("| ACCOUNT USAGE INFO |");
                 let current_usage_result = current_usage(&mut client).await;
                 let usage_limit_result = current_usage_limit(&mut client).await;
 
@@ -73,22 +69,23 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 }
 
                 if let Ok(usage_current) = current_usage_result {
-                    output = format!(
-                        "{}\nusage_current:\t{}",
-                        output,
-                        ByteSize(usage_current.total_usage() as u64)
+                    info!("hot usage:\t\t\t{}", ByteSize(usage_current.hot_usage()));
+                    info!(
+                        "archival usage:\t\t{}",
+                        ByteSize(usage_current.archival_usage())
                     );
                 }
                 if let Ok(usage_limit) = usage_limit_result {
-                    output = format!(
-                        "{}\nsoft hot usage limit:\t{}\nhard hot usage limit:\t{}",
-                        output,
+                    info!(
+                        "soft hot usage limit:\t{}",
                         ByteSize(usage_limit.soft_hot_storage_limit() as u64),
+                    );
+                    info!(
+                        "hard hot usage limit:\t{}",
                         ByteSize(usage_limit.hard_hot_storage_limit() as u64)
                     );
                 }
 
-                info!(output);
                 Ok(())
             }
         }

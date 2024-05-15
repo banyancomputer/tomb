@@ -45,19 +45,13 @@ pub enum DrivesCommand {
     Restore(DriveSpecifier),
     /// Delete a Drive
     Delete(DriveSpecifier),
-    /*
     /// Sync Drive data to or from remote
     Sync(DriveSpecifier),
+    /*
     /// Drive info
     Info(DriveSpecifier),
     /// Drive data usage
     Usage(DriveSpecifier),
-    /// Get information on Drive Metadata
-    Metadata {
-        /// Subcommand
-        #[clap(subcommand)]
-        subcommand: MetadataCommand,
-    },
     /// Drive Key management
     Keys {
         /// Subcommand
@@ -77,8 +71,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             DrivesCommand::Ls => {
                 let remote_drives = match global.api_client().await {
                     Ok(client) => platform::drives::get_all(&client).await?,
-                    Err(err) => {
-                        warn!("you arent logged in: {err}");
+                    Err(_) => {
+                        warn!("You aren't logged in. Login to see remote drives.");
                         vec![]
                     }
                 };
@@ -174,37 +168,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     ld.ddas.drive.id()
                 );
                 Ok(())
-            } /*
-                  DrivesCommand::Sync(drive_specifier) => {
-                      OmniBucket::from_specifier(&drive_specifier)
-                          .await
-                          .sync_bucket()
-                          .await
-                  }
-                  DrivesCommand::Info(drive_specifier) => {
-                      let omni = OmniBucket::from_specifier(&drive_specifier).await;
-                      Ok(format!("{omni}"))
-                  }
-                  DrivesCommand::Usage(drive_specifier) => {
-                      let mut client = GlobalConfig::from_disk().await?.get_client().await?;
-                      let remote = OmniBucket::from_specifier(&drive_specifier)
-                          .await
-                          .get_remote()?;
-                      remote
-                          .usage(&mut client)
-                          .await
-                          .map(|v| {
-                              format!(
-                                  "{}drive_id:\t\t{}\nusage:\t\t{}",
-                                  "| USAGE INFO |".blue(),
-                                  remote.id,
-                                  ByteSize(v)
-                              )
-                          })
-                          .map_err(NativeError::api)
-                  }
-                  DrivesCommand::Keys { subcommand } => subcommand.run_internal().await,
-              */
+            }
+            DrivesCommand::Sync(drive_specifier) => {
+                info!("fukc");
+                todo!()
+            }
         }
     }
 }
