@@ -59,10 +59,8 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 Ok(())
             }
             AccountCommand::Logout => {
-                /*
-                client.logout();
-                global.save_client(client).await?;
-                */
+                global.remove_account_id();
+                global.encode(&GlobalConfigId).await?;
                 info!(
                     "{}",
                     "<< SUCCESSFULLY LOGGED OUT OF REMOTE ACCESS >>".green()

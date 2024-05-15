@@ -45,10 +45,7 @@ impl Default for GlobalConfig {
 
 impl GlobalConfig {
     pub async fn api_client(&self) -> Result<ApiClient, NativeError> {
-        let account_id = self
-            .account_id
-            .ok_or(OnDiskError::Implementation("No account id".to_string()))?
-            .to_string();
+        let account_id = self.get_account_id()?.to_string();
         let key = Arc::new(SigningKey::decode(&self.selected_user_key_id()?).await?);
         Ok(ApiClient::new(env!("ENDPOINT"), &account_id, key)
             .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?)
@@ -90,6 +87,10 @@ impl GlobalConfig {
 
     pub fn get_account_id(&self) -> Result<Uuid, ConfigStateError> {
         self.account_id.ok_or(ConfigStateError::NoAccountId)
+    }
+
+    pub fn remove_account_id(&mut self) {
+        self.account_id = None;
     }
 }
 
