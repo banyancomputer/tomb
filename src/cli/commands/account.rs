@@ -8,7 +8,7 @@ use crate::{
 
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::api::platform::account::*;
+use banyanfs::{api::platform::account::*, codec::crypto::SigningKey};
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
@@ -28,13 +28,21 @@ pub enum AccountCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for AccountCommand {
     async fn run_internal(self) -> Result<(), NativeError> {
-        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
-        let mut client = global.api_client().await?;
+        let global = GlobalConfig::decode(&GlobalConfigId).await?;
 
         // Process the command
         match self {
             AccountCommand::Login => {
-                // there is not currently a way to do this!
+                let key_management_url = format!("{}/account/manage-keys", env!("ENDPOINT"));
+                info!("Navigate to {}", key_management_url);
+
+                let user_key_id = global.selected_user_key_id()?;
+                let user_key: SigningKey = OnDisk::decode(&user_key_id).await?;
+                let public_key = user_key.verifying_key().to_spki().unwrap();
+
+                info!("public_key:\n{}", public_key);
+
+                global.api_client().await?;
 
                 // Respond
                 info!(
@@ -59,6 +67,7 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 Ok(())
             }
             AccountCommand::Usage => {
+                let mut client = global.api_client().await?;
                 let mut output = format!("{}", "| ACCOUNT USAGE INFO |".yellow());
 
                 let current_usage_result = current_usage(&mut client).await;

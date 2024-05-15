@@ -27,6 +27,10 @@ where
                 .expect("new config");
         }
 
-        self.run_internal().await
+        let result = self.run_internal().await;
+        if let Err(err) = &result {
+            error!("{err}");
+        }
+        result
     }
 }
