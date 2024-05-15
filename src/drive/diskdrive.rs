@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use banyanfs::codec::filesystem::NodeKind;
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
-use object_store::local::LocalFileSystem;
+
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 

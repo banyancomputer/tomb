@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    cli::specifiers::{DriveId, DriveSpecifier},
+    cli::specifiers::{DriveId},
     on_disk::{config::GlobalConfig, local_share::DriveAndKeyId, OnDisk},
     NativeError,
 };

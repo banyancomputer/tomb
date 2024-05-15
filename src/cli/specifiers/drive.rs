@@ -1,11 +1,10 @@
-use banyanfs::api::platform;
+
 use clap::Args;
 use std::path::PathBuf;
 use uuid::Uuid;
 
 use crate::{
-    drive::DiskDriveAndStore,
-    on_disk::{config::GlobalConfig, local_share::DriveAndKeyId, OnDisk},
+    on_disk::{config::GlobalConfig},
     utils::name_of,
     ConfigStateError, NativeError,
 };
@@ -45,7 +44,7 @@ impl From<DriveSpecifier> for DriveId {
 }
 
 impl DriveId {
-    pub async fn get_id(&self, global: &GlobalConfig) -> Result<String, NativeError> {
+    pub async fn get_id(&self, _global: &GlobalConfig) -> Result<String, NativeError> {
         match self {
             // This will require either cached values in the Global config, OR it will require just
             // asking the API directly (preferable)

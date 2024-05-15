@@ -1,5 +1,4 @@
 use crate::{
-    cli::specifiers::DriveId,
     on_disk::{DiskType, OnDisk, OnDiskError},
     ConfigStateError, NativeError,
 };

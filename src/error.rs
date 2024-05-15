@@ -1,5 +1,5 @@
 use crate::on_disk::*;
-use banyanfs::{api::ApiError, codec::crypto::SigningKey, filesystem::OperationError};
+use banyanfs::{api::ApiError, filesystem::OperationError};
 use std::{
     fmt::Display,
     path::{PathBuf, StripPrefixError},

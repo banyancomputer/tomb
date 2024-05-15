@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 use async_trait::async_trait;
 use banyanfs::prelude::*;
-use banyanfs::stores::{MemorySyncTracker, SyncTracker};
-use serde::{Deserialize, Serialize};
+use banyanfs::stores::{SyncTracker};
+use serde::{Serialize};
 
 pub struct DiskSyncTracker {
     parent: PathBuf,

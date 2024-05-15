@@ -29,7 +29,7 @@ pub enum ApiCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for ApiCommand {
     async fn run_internal(self) -> Result<(), NativeError> {
-        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
+        let _global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             ApiCommand::Display => {
                 info!("{}\n{}\n", "| ADDRESS INFO |".yellow(), env!("ENDPOINT"));

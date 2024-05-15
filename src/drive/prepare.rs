@@ -1,23 +1,19 @@
 use std::{
-    collections::HashSet,
-    ops::Deref,
-    path::{Path, PathBuf},
+    path::{PathBuf},
 };
 
-use async_recursion::async_recursion;
+
 use banyanfs::{
-    codec::filesystem::NodeKind,
-    filesystem::{DirectoryEntry, DirectoryHandle},
     utils::crypto_rng,
 };
-use tokio::{fs::File, io::AsyncReadExt};
+use tokio::{io::AsyncReadExt};
 use tracing::{info, warn};
-use walkdir::{DirEntry, WalkDir};
+use walkdir::{WalkDir};
 
 use super::DiskDriveAndStore;
 use crate::{
-    on_disk::{OnDisk, OnDiskError},
-    utils::{is_visible, prompt_for_bool},
+    on_disk::{OnDisk},
+    utils::{is_visible},
     NativeError,
 };
 

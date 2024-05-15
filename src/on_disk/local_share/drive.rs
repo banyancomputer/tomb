@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
-use tokio::fs::{File, OpenOptions};
 
-use crate::on_disk::{DiskType, OnDisk, OnDiskError, OnDiskExt};
+
+use crate::on_disk::{DiskType, OnDisk, OnDiskError};
 use async_trait::async_trait;
 use banyanfs::{
     codec::{crypto::SigningKey, header::ContentOptions},

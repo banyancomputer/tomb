@@ -10,12 +10,12 @@ use crate::{
 use super::RunnableCommand;
 use async_trait::async_trait;
 use banyanfs::{
-    api::platform::{self, account::*, ApiUserKeyAccess},
+    api::platform::{account::*},
     codec::crypto::SigningKey,
 };
 use bytesize::ByteSize;
 use clap::Subcommand;
-use colored::Colorize;
+
 use tracing::info;
 
 /// Subcommand for Authentication

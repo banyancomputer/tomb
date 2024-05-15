@@ -7,14 +7,14 @@ use crate::{
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         local_share::DriveAndKeyId,
-        OnDisk, OnDiskError, OnDiskExt,
+        OnDisk,
     },
     utils::name_of,
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
-use bytesize::ByteSize;
+use banyanfs::{api::platform, filesystem::Drive};
+
 use clap::Subcommand;
 use colored::Colorize;
 use std::{env::current_dir, path::PathBuf};
@@ -90,7 +90,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                         .map(|p| p.display().to_string())
                         .unwrap_or("Unknown".to_string());
 
-                    if let Some(remote) = remote_drives.iter().find(|r| r.name == *name) {
+                    if let Some(_remote) = remote_drives.iter().find(|r| r.name == *name) {
                         info!(name, origin, ?unlocked, "Sync Drive");
                     } else {
                         info!(name, origin, ?unlocked, "Local Drive");
@@ -133,7 +133,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 );
                 Ok(())
             }
-            DrivesCommand::Prepare { ds, follow_links } => {
+            DrivesCommand::Prepare { ds, follow_links: _ } => {
                 let mut ld = LoadedDrive::load(&ds.into(), &global).await?;
                 ld.ddas.prepare(&ld.origin).await?;
                 ld.ddas.encode(&ld.id).await?;
@@ -175,7 +175,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             DrivesCommand::Sync(ds) => {
                 let di: DriveId = ds.into();
                 // There is already a local drive here
-                if let Ok(ld) = LoadedDrive::load(&di, &global).await {}
+                if let Ok(_ld) = LoadedDrive::load(&di, &global).await {}
 
                 info!("fukc");
                 todo!()
