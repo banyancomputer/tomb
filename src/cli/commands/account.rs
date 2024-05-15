@@ -3,12 +3,16 @@ use crate::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk,
     },
+    utils::prompt_for_uuid,
     NativeError,
 };
 
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::{api::platform::account::*, codec::crypto::SigningKey};
+use banyanfs::{
+    api::platform::{self, account::*, ApiUserKeyAccess},
+    codec::crypto::SigningKey,
+};
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
@@ -28,31 +32,30 @@ pub enum AccountCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for AccountCommand {
     async fn run_internal(self) -> Result<(), NativeError> {
-        let global = GlobalConfig::decode(&GlobalConfigId).await?;
+        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
 
         // Process the command
         match self {
             AccountCommand::Login => {
                 let key_management_url = format!("{}/account/manage-keys", env!("ENDPOINT"));
                 info!("Navigate to {}", key_management_url);
-
                 let user_key_id = global.selected_user_key_id()?;
                 let user_key: SigningKey = OnDisk::decode(&user_key_id).await?;
                 let public_key = user_key.verifying_key().to_spki().unwrap();
-
                 info!("public_key:\n{}", public_key);
+                let account_id = prompt_for_uuid("Enter your account id:");
+                global.set_account_id(&account_id)?;
+                let client = global.api_client().await?;
+                let uka: Vec<ApiUserKeyAccess> =
+                    platform::account::user_key_access(&client).await.unwrap();
 
-                global.api_client().await?;
+                for key_access in uka {
+                    info!(
+                        "key_access:\nkey:{:?}\nbuckets:{:?}",
+                        key_access.key, key_access.bucket_ids
+                    );
+                }
 
-                // Respond
-                info!(
-                    "{}\nuser_id:\t\t{}\ndevice_key_fingerprint:\t{}",
-                    "<< DEVICE KEY SUCCESSFULLY ADDED TO ACCOUNT >>".green(),
-                    "NO ID",
-                    "NO FINGERPRINT",
-                    //user_id,
-                    //fingerprint
-                );
                 Ok(())
             }
             AccountCommand::Logout => {

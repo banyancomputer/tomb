@@ -33,6 +33,7 @@ pub enum ConfigStateError {
     ExpectedPath(PathBuf),
     NoKey,
     NoKeySelected,
+    NoAccountId,
     MissingKey(String),
     MissingDrive(String),
     LostOrigin(String),
@@ -47,6 +48,7 @@ impl Display for ConfigStateError {
             )),
             ConfigStateError::NoKey => f.write_str("NO KEY ON DISK AT ALL"),
             ConfigStateError::NoKeySelected => f.write_str("NO KEY SELECTED"),
+            ConfigStateError::NoAccountId => f.write_str("NO ACCOUNT ID"),
             ConfigStateError::MissingKey(id) => f.write_str(&format!("MISSING KEY WITH ID {}", id)),
             ConfigStateError::MissingDrive(id) => {
                 f.write_str(&format!("MISSING DRIVE WITH ID {}", id))
@@ -97,5 +99,10 @@ impl From<FromUtf8Error> for NativeError {
 impl From<StripPrefixError> for NativeError {
     fn from(value: StripPrefixError) -> Self {
         Self::Custom(format!("Strip Prefix: {value}"))
+    }
+}
+impl From<uuid::Error> for NativeError {
+    fn from(value: uuid::Error) -> Self {
+        Self::Custom(format!("UUID parsing: {value}"))
     }
 }

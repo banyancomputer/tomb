@@ -1,7 +1,7 @@
 use crate::{
     cli::specifiers::DriveId,
     on_disk::{DiskType, OnDisk, OnDiskError},
-    ConfigStateError,
+    ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
 use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
@@ -44,18 +44,12 @@ impl Default for GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub async fn api_client(&self) -> Result<ApiClient, OnDiskError> {
-        let suki = self
-            .selected_user_key_id
-            .clone()
-            .ok_or(OnDiskError::Implementation(
-                "No user key selected".to_string(),
-            ))?;
+    pub async fn api_client(&self) -> Result<ApiClient, NativeError> {
         let account_id = self
             .account_id
             .ok_or(OnDiskError::Implementation("No account id".to_string()))?
             .to_string();
-        let key = Arc::new(SigningKey::decode(&suki).await?);
+        let key = Arc::new(SigningKey::decode(&self.selected_user_key_id()?).await?);
         Ok(ApiClient::new(env!("ENDPOINT"), &account_id, key)
             .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?)
     }
@@ -87,6 +81,15 @@ impl GlobalConfig {
         self.drive_origins
             .remove(drive_id)
             .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
+    }
+
+    pub fn set_account_id(&mut self, account_id: &String) -> Result<(), NativeError> {
+        self.account_id = Some(Uuid::parse_str(account_id)?);
+        Ok(())
+    }
+
+    pub fn get_account_id(&self) -> Result<Uuid, ConfigStateError> {
+        self.account_id.ok_or(ConfigStateError::NoAccountId)
     }
 }
 

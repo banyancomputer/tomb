@@ -1,7 +1,8 @@
 mod io;
 use colored::{ColoredString, Colorize};
 use std::{io::Read, path::Path};
-use tracing::info;
+use tracing::{info, warn};
+use uuid::Uuid;
 //pub(crate) mod testing;
 pub use io::{get_read, get_read_write, get_write};
 
@@ -44,6 +45,21 @@ pub fn prompt_for_bool(msg: &str) -> bool {
             'n' | 'N' => return false,
             _ => info!("y/n only please."),
         }
+    }
+}
+
+pub fn prompt_for_uuid(msg: &str) -> String {
+    info!("{msg}");
+    loop {
+        let mut input = String::new();
+        while Uuid::parse_str(&input).is_err() {
+            if !input.is_empty() {
+                warn!("that wasn't a valid UUID.");
+            }
+            let _ = std::io::stdin().read_line(&mut input);
+            input = input.trim().to_string();
+        }
+        return input;
     }
 }
 
