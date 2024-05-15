@@ -1,7 +1,10 @@
 use crate::{
     cli::{
         commands::{
-            drives::local::{LocalBanyanFS, LocalLoadedDrive},
+            drives::{
+                local::{LocalBanyanFS, LocalLoadedDrive},
+                sync::SyncLoadedDrive,
+            },
             RunnableCommand,
         },
         specifiers::{DriveId, DriveSpecifier},
@@ -16,7 +19,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{api::platform, filesystem::Drive};
+use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
 
 use clap::Subcommand;
 use colored::Colorize;
@@ -124,11 +127,20 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 global.encode(&GlobalConfigId).await?;
                 let user_key_id = global.selected_user_key_id()?;
                 let id = DriveAndKeyId {
-                    drive_id,
-                    user_key_id,
+                    drive_id: drive_id.clone(),
+                    user_key_id: user_key_id.clone(),
                 };
                 // Create and encode the Drive and Store
                 let lbfs = LocalBanyanFS::init(&id).await?;
+                info!("<< CREATED LOCAL DRIVE >>");
+
+                if let Ok(client) = global.api_client().await {
+                    let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
+                    let remote_id =
+                        platform::drives::create(&client, &drive_id, &public_key).await?;
+                    info!("<< CREATED REMOTE DRIVE >>");
+                }
+
                 info!(
                     "{}\n{:?}",
                     "<< NEW DRIVE CREATED >>".green(),
@@ -140,6 +152,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 ds,
                 follow_links: _,
             } => {
+                //let mut ld = SyncLoadedDrive::load(&ds.into(), &global).await?;
                 let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 operations::prepare(&mut ld.lbfs.drive, &mut ld.lbfs.store, &ld.origin).await?;
                 ld.lbfs.encode(&ld.id).await?;

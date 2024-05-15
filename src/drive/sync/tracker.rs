@@ -18,6 +18,16 @@ pub struct DiskSyncTracker {
     tracked: HashMap<Cid, u64>,
 }
 
+impl DiskSyncTracker {
+    pub fn new(drive_id: &String) -> Self {
+        Self {
+            drive_id: drive_id.to_string(),
+            pending_deletion: HashSet::new(),
+            tracked: HashMap::new(),
+        }
+    }
+}
+
 #[async_trait(?Send)]
 impl OnDisk<String> for DiskSyncTracker {
     const TYPE: DiskType = DiskType::LocalShare;

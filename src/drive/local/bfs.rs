@@ -1,4 +1,6 @@
+use self::config::GlobalConfig;
 use self::local_share::DriveAndKeyId;
+use crate::drive::sync::{DiskSyncTracker, SyncDataStore};
 use crate::{on_disk::*, NativeError};
 use async_recursion::async_recursion;
 use async_trait::async_trait;
