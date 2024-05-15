@@ -11,7 +11,7 @@ use super::LocalBanyanFS;
 pub struct LocalLoadedDrive {
     pub origin: PathBuf,
     pub id: DriveAndKeyId,
-    pub lbfs: LocalBanyanFS,
+    pub bfs: LocalBanyanFS,
 }
 
 impl LocalLoadedDrive {
@@ -23,7 +23,7 @@ impl LocalLoadedDrive {
             drive_id,
             user_key_id,
         };
-        let lbfs = LocalBanyanFS::decode(&id).await?;
-        Ok(Self { origin, id, lbfs })
+        let bfs = LocalBanyanFS::decode(&id).await?;
+        Ok(Self { origin, id, bfs })
     }
 }

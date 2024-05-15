@@ -9,10 +9,7 @@ use crate::{
 
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::{
-    api::platform::{account::*},
-    codec::crypto::SigningKey,
-};
+use banyanfs::{api::platform::account::*, codec::crypto::SigningKey};
 use bytesize::ByteSize;
 use clap::Subcommand;
 

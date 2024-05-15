@@ -11,7 +11,7 @@ use super::SyncBanyanFS;
 pub struct SyncLoadedDrive {
     pub origin: PathBuf,
     pub id: DriveAndKeyId,
-    pub sbfs: SyncBanyanFS,
+    pub bfs: SyncBanyanFS,
 }
 
 impl SyncLoadedDrive {
@@ -23,7 +23,7 @@ impl SyncLoadedDrive {
             drive_id,
             user_key_id,
         };
-        let sbfs = SyncBanyanFS::decode(&id).await?;
-        Ok(Self { origin, id, sbfs })
+        let bfs = SyncBanyanFS::decode(&id).await?;
+        Ok(Self { origin, id, bfs })
     }
 }

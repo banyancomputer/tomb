@@ -3,7 +3,7 @@ use crate::{
         commands::{
             drives::{
                 local::{LocalBanyanFS, LocalLoadedDrive},
-                sync::SyncLoadedDrive,
+                sync::{SyncBanyanFS, SyncLoadedDrive},
             },
             RunnableCommand,
         },
@@ -130,36 +130,33 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     drive_id: drive_id.clone(),
                     user_key_id: user_key_id.clone(),
                 };
-                // Create and encode the Drive and Store
-                let lbfs = LocalBanyanFS::init(&id).await?;
-                info!("<< CREATED LOCAL DRIVE >>");
 
                 if let Ok(client) = global.api_client().await {
                     let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
                     let remote_id =
                         platform::drives::create(&client, &drive_id, &public_key).await?;
+                    let bfs = SyncBanyanFS::init(client, &id).await?;
                     info!("<< CREATED REMOTE DRIVE >>");
+                } else {
+                    // Create and encode the Drive and Store
+                    LocalBanyanFS::init(&id).await?;
+                    info!("<< CREATED LOCAL DRIVE >>");
                 }
 
-                info!(
-                    "{}\n{:?}",
-                    "<< NEW DRIVE CREATED >>".green(),
-                    lbfs.drive.id()
-                );
                 Ok(())
             }
             DrivesCommand::Prepare {
                 ds,
                 follow_links: _,
             } => {
-                //let mut ld = SyncLoadedDrive::load(&ds.into(), &global).await?;
-                let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                operations::prepare(&mut ld.lbfs.drive, &mut ld.lbfs.store, &ld.origin).await?;
-                ld.lbfs.encode(&ld.id).await?;
+                let mut ld = SyncLoadedDrive::load(&ds.into(), &global).await?;
+                //let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
+                operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.origin).await?;
+                ld.bfs.encode(&ld.id).await?;
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
-                    ld.lbfs.drive.id()
+                    ld.bfs.drive.id()
                 );
                 Ok(())
             }
@@ -173,7 +170,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA DELETED SUCCESSFULLY >>".green(),
-                    ld.lbfs.drive.id()
+                    ld.bfs.drive.id()
                 );
                 Ok(())
             }
@@ -182,11 +179,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //let drive = platform::drives::get(&client, drive_id).await?;
 
                 let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                operations::restore(&mut ld.lbfs.drive, &mut ld.lbfs.store, &ld.origin).await?;
+                operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.origin).await?;
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>".green(),
-                    ld.lbfs.drive.id()
+                    ld.bfs.drive.id()
                 );
                 Ok(())
             }

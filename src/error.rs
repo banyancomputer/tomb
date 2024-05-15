@@ -1,5 +1,9 @@
 use crate::on_disk::*;
-use banyanfs::{api::ApiError, filesystem::OperationError};
+use banyanfs::{
+    api::ApiError,
+    filesystem::{DriveError, OperationError},
+    stores::DataStoreError,
+};
 use std::{
     fmt::Display,
     path::{PathBuf, StripPrefixError},
@@ -10,6 +14,8 @@ use std::{
 pub enum NativeError {
     Api(ApiError),
     Disk(OnDiskError),
+    Store(DataStoreError),
+    Drive(DriveError),
     ConfigState(ConfigStateError),
     Operation(OperationError),
     Custom(String),
@@ -21,6 +27,8 @@ impl Display for NativeError {
         match self {
             NativeError::Api(err) => f.write_str(&err.to_string()),
             NativeError::Disk(err) => f.write_str(&err.to_string()),
+            NativeError::Drive(err) => f.write_str(&err.to_string()),
+            NativeError::Store(err) => f.write_str(&err.to_string()),
             NativeError::ConfigState(err) => f.write_str(&err.to_string()),
             NativeError::Operation(err) => f.write_str(&err.to_string()),
             NativeError::Custom(err) => f.write_str(err),
@@ -101,8 +109,20 @@ impl From<StripPrefixError> for NativeError {
         Self::Custom(format!("Strip Prefix: {value}"))
     }
 }
+
 impl From<uuid::Error> for NativeError {
     fn from(value: uuid::Error) -> Self {
         Self::Custom(format!("UUID parsing: {value}"))
+    }
+}
+impl From<DataStoreError> for NativeError {
+    fn from(value: DataStoreError) -> Self {
+        Self::Store(value)
+    }
+}
+
+impl From<DriveError> for NativeError {
+    fn from(value: DriveError) -> Self {
+        Self::Drive(value)
     }
 }
