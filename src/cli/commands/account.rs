@@ -45,17 +45,9 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 info!("public_key:\n{}", public_key);
                 let account_id = prompt_for_uuid("Enter your account id:");
                 global.set_account_id(&account_id)?;
-                let client = global.api_client().await?;
-                let uka: Vec<ApiUserKeyAccess> =
-                    platform::account::user_key_access(&client).await.unwrap();
-
-                for key_access in uka {
-                    info!(
-                        "key_access:\nkey:{:?}\nbuckets:{:?}",
-                        key_access.key, key_access.bucket_ids
-                    );
-                }
-
+                let _ = global.api_client().await?;
+                global.encode(&GlobalConfigId).await?;
+                info!("<< SUCCESSFULLY LOGGED IN >>");
                 Ok(())
             }
             AccountCommand::Logout => {

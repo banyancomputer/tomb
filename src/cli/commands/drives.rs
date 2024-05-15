@@ -13,12 +13,12 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{codec::crypto::SigningKey, filesystem::Drive};
+use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
 use bytesize::ByteSize;
 use clap::Subcommand;
 use colored::Colorize;
 use std::{env::current_dir, path::PathBuf};
-use tracing::info;
+use tracing::{info, warn};
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
@@ -75,15 +75,46 @@ impl RunnableCommand<NativeError> for DrivesCommand {
         match self {
             // List all Buckets tracked remotely and locally
             DrivesCommand::Ls => {
+                let remote_drives = match global.api_client().await {
+                    Ok(client) => platform::drives::get_all(&client).await?,
+                    Err(err) => {
+                        warn!("you arent logged in: {err}");
+                        vec![]
+                    }
+                };
+
                 let user_key_id = global.selected_user_key_id()?;
-                for entry in Drive::entries()? {
+                let local_drive_names = Drive::entries()?;
+                for name in local_drive_names.iter() {
                     let id = &DriveAndKeyId {
-                        drive_id: entry.clone(),
+                        drive_id: name.clone(),
                         user_key_id: user_key_id.clone(),
                     };
                     let unlocked = Drive::decode(&id).await.is_ok();
-                    info!(id=?entry, ?unlocked, "Drive");
+                    let origin = global
+                        .get_origin(&name)
+                        .map(|p| p.display().to_string())
+                        .unwrap_or("Unknown".to_string());
+
+                    if let Some(remote) = remote_drives.iter().find(|r| r.name == *name) {
+                        info!(name, origin, ?unlocked, "Sync Drive");
+                    } else {
+                        info!(name, origin, ?unlocked, "Local Drive");
+                    }
                 }
+
+                for remote in remote_drives
+                    .into_iter()
+                    .filter(|r| !local_drive_names.contains(&r.name))
+                {
+                    info!(
+                        name = remote.name,
+                        origin = "None",
+                        unlocked = false,
+                        "Remote Drive"
+                    );
+                }
+
                 Ok(())
             }
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
