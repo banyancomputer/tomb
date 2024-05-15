@@ -1,17 +1,26 @@
 mod io;
+use async_recursion::async_recursion;
+use banyanfs::{
+    codec::filesystem::NodeKind,
+    filesystem::{DirectoryHandle, Drive},
+};
 use colored::{ColoredString, Colorize};
-use std::{io::Read, path::Path};
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+};
 use tracing::{info, warn};
 use uuid::Uuid;
 //pub(crate) mod testing;
 pub use io::{get_read, get_read_write, get_write};
+
+use crate::NativeError;
 
 #[cfg(test)]
 //pub use io::compute_directory_size;
 mod cast;
 
 mod error;
-
 
 pub fn name_of(path: impl AsRef<std::path::Path>) -> Option<String> {
     Some(path.as_ref().file_name()?.to_str()?.to_string())
@@ -72,4 +81,33 @@ pub fn path_to_segments(path: impl AsRef<Path>) -> Result<Vec<String>, std::io::
         .map(|s| s.to_string())
         .collect();
     Ok(path_segments)
+}
+
+/// Enumerates paths in the banyanfs
+#[async_recursion]
+async fn bfs_paths(prefix: &Path, handle: &DirectoryHandle) -> Result<Vec<PathBuf>, NativeError> {
+    let mut paths = Vec::new();
+
+    for entry in handle.ls(&[]).await? {
+        let name = entry.name().to_string();
+        let new_prefix = prefix.join(&name);
+
+        match entry.kind() {
+            NodeKind::File => {
+                paths.push(new_prefix);
+            }
+            NodeKind::Directory => {
+                let new_handle = handle.cd(&[&name]).await?;
+                paths.push(new_prefix.clone());
+                paths.extend(bfs_paths(&new_prefix, &new_handle).await?);
+            }
+            _ => {}
+        }
+    }
+
+    Ok(paths)
+}
+
+pub async fn all_bfs_paths(drive: &Drive) -> Result<Vec<PathBuf>, NativeError> {
+    bfs_paths(Path::new(""), &drive.root().await?).await
 }

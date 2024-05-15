@@ -141,7 +141,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 follow_links: _,
             } => {
                 let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                ld.lbfs.prepare(&ld.origin).await?;
+                operations::prepare(&mut ld.lbfs.drive, &mut ld.lbfs.store, &ld.origin).await?;
                 ld.lbfs.encode(&ld.id).await?;
                 info!(
                     "{}\n{:?}",
@@ -168,9 +168,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //let client = global.api_client().await?;
                 //let drive = platform::drives::get(&client, drive_id).await?;
 
-                let ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                ld.lbfs.restore(&ld.origin).await?;
-
+                let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
+                operations::restore(&mut ld.lbfs.drive, &mut ld.lbfs.store, &ld.origin).await?;
                 info!(
                     "{}\n{:?}",
                     "<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>".green(),

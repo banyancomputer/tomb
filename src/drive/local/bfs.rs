@@ -40,38 +40,6 @@ impl LocalBanyanFS {
         lbfs.encode(identifier).await?;
         Ok(lbfs)
     }
-
-    /// Enumerates paths in the banyanfs
-    #[async_recursion]
-    async fn bfs_paths(
-        prefix: &Path,
-        handle: &DirectoryHandle,
-    ) -> Result<Vec<PathBuf>, NativeError> {
-        let mut paths = Vec::new();
-
-        for entry in handle.ls(&[]).await? {
-            let name = entry.name().to_string();
-            let new_prefix = prefix.join(&name);
-
-            match entry.kind() {
-                NodeKind::File => {
-                    paths.push(new_prefix);
-                }
-                NodeKind::Directory => {
-                    let new_handle = handle.cd(&[&name]).await?;
-                    paths.push(new_prefix.clone());
-                    paths.extend(Self::bfs_paths(&new_prefix, &new_handle).await?);
-                }
-                _ => {}
-            }
-        }
-
-        Ok(paths)
-    }
-
-    pub async fn all_bfs_paths(&self) -> Result<Vec<PathBuf>, NativeError> {
-        Self::bfs_paths(Path::new(""), &self.drive.root().await?).await
-    }
 }
 
 /// ~/.local/share/banyan/drive_blocks
