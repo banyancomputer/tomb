@@ -1,63 +1,58 @@
 use std::collections::{HashMap, HashSet};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use async_trait::async_trait;
 use banyanfs::prelude::*;
-use banyanfs::stores::{SyncTracker};
-use serde::{Serialize};
+use banyanfs::stores::SyncTracker;
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
+use crate::on_disk::{DiskType, OnDisk, OnDiskError};
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DiskSyncTracker {
-    parent: PathBuf,
+    drive_id: String,
     pending_deletion: HashSet<Cid>,
     tracked: HashMap<Cid, u64>,
 }
 
-impl DiskSyncTracker {
-    fn save(&self) -> Result<(), DataStoreError> {
-        let path = self.parent.join("tracker.json");
-        let mut writer = std::fs::File::open(&path).map_err(|_| {
-            DataStoreError::Implementation(String::from("unable to open local file"))
-        })?;
-        serde_json::to_writer(&mut writer, self).map_err(|_| {
-            DataStoreError::Implementation(String::from("unable to open write to local file"))
-        })
+#[async_trait(?Send)]
+impl OnDisk<String> for DiskSyncTracker {
+    const TYPE: DiskType = DiskType::LocalShare;
+    const SUFFIX: &'static str = "drive_sync";
+    const EXTENSION: &'static str = "sync";
+
+    async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
+        let writer = Self::get_writer(identifier).await?;
+        let json_data = serde_json::to_string_pretty(&self)?;
+        writer
+            .compat_write()
+            .write_all(json_data.as_bytes())
+            .await?;
+        Ok(())
+    }
+
+    async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
+        let reader = Self::get_reader(identifier).await?;
+        let mut json_string = String::new();
+        reader.compat().read_to_string(&mut json_string).await?;
+        Ok(serde_json::from_str(&json_string)?)
     }
 }
-
-impl Serialize for DiskSyncTracker {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let pending_deletion = self
-            .pending_deletion
-            .iter()
-            .map(|cid| cid.as_base64url_multicodec())
-            .collect::<Vec<String>>();
-
-        let tracked = self
-            .tracked
-            .iter()
-            .map(|(cid, v)| (cid.as_base64url_multicodec(), v.clone()))
-            .collect::<Vec<(String, u64)>>();
-
-        (pending_deletion, tracked).serialize(serializer)
-    }
-}
-
-//impl Deserialize for DiskSyncTracker {}
 
 #[async_trait(?Send)]
 impl SyncTracker for DiskSyncTracker {
     async fn clear_deleted(&mut self) -> Result<(), DataStoreError> {
         self.pending_deletion.clear();
-        self.save()?;
+        self.encode(&self.drive_id).await?;
         Ok(())
     }
 
     async fn delete(&mut self, cid: Cid) -> Result<(), DataStoreError> {
         self.pending_deletion.insert(cid);
-        self.save()?;
+        self.encode(&self.drive_id).await?;
         Ok(())
     }
 
@@ -80,7 +75,13 @@ impl SyncTracker for DiskSyncTracker {
 
     async fn untrack(&mut self, cid: Cid) -> Result<(), DataStoreError> {
         self.tracked.remove(&cid);
-        self.save()?;
+        self.encode(&self.drive_id).await?;
         Ok(())
+    }
+}
+
+impl From<OnDiskError> for DataStoreError {
+    fn from(value: OnDiskError) -> Self {
+        DataStoreError::Implementation(value.to_string())
     }
 }

@@ -15,8 +15,6 @@ pub mod cli;
 /// Drive structs
 pub mod drive;
 
-//pub mod _operations;
-
 /// Local share data
 pub mod on_disk;
 

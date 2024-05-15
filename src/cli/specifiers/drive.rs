@@ -1,13 +1,8 @@
-
 use clap::Args;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-use crate::{
-    on_disk::{config::GlobalConfig},
-    utils::name_of,
-    ConfigStateError, NativeError,
-};
+use crate::{on_disk::config::GlobalConfig, utils::name_of, ConfigStateError, NativeError};
 
 /// Unified way of specifying a Bucket
 #[derive(Debug, Clone, Args)]
@@ -44,7 +39,7 @@ impl From<DriveSpecifier> for DriveId {
 }
 
 impl DriveId {
-    pub async fn get_id(&self, _global: &GlobalConfig) -> Result<String, NativeError> {
+    pub async fn get_id(&self) -> Result<String, NativeError> {
         match self {
             // This will require either cached values in the Global config, OR it will require just
             // asking the API directly (preferable)

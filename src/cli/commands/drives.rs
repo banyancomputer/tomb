@@ -133,7 +133,10 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 );
                 Ok(())
             }
-            DrivesCommand::Prepare { ds, follow_links: _ } => {
+            DrivesCommand::Prepare {
+                ds,
+                follow_links: _,
+            } => {
                 let mut ld = LoadedDrive::load(&ds.into(), &global).await?;
                 ld.ddas.prepare(&ld.origin).await?;
                 ld.ddas.encode(&ld.id).await?;
@@ -173,11 +176,14 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             DrivesCommand::Sync(ds) => {
+                let client = global.api_client().await?;
+                let remote_drives = platform::drives::get_all(&client).await?;
                 let di: DriveId = ds.into();
-                // There is already a local drive here
-                if let Ok(_ld) = LoadedDrive::load(&di, &global).await {}
+                //if let Ok(drive_id) = di.get_id().await { }
 
-                info!("fukc");
+                //let remote = if let DriveId::DriveId(id) = di { }
+                // There is already a local drive here
+                //if let Ok(_ld) = LoadedDrive::load(&di, &global).await {}
                 todo!()
             }
         }
