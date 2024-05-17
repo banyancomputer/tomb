@@ -40,7 +40,7 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 let user_key: SigningKey = OnDisk::decode(&user_key_id).await?;
                 let public_key = user_key.verifying_key().to_spki().unwrap();
                 info!("public_key:");
-                info!(public_key);
+                println!("{}", public_key);
                 let account_id = prompt_for_uuid("Enter your account id:");
                 global.set_account_id(&account_id)?;
                 let _ = global.get_client().await?;

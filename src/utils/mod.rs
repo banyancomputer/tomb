@@ -55,6 +55,7 @@ pub fn prompt_for_uuid(msg: &str) -> String {
     while Uuid::parse_str(&input).is_err() {
         if !input.is_empty() {
             warn!("that wasn't a valid UUID.");
+            input = String::new();
         }
         let _ = std::io::stdin().read_line(&mut input);
         input = input.trim().to_string();

@@ -1,4 +1,5 @@
 use crate::{
+    cli::display::TableAble,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
@@ -9,7 +10,11 @@ use crate::{
 
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::{api::platform, codec::crypto::SigningKey, utils::crypto_rng};
+use banyanfs::{
+    api::platform::{self, ApiUserKey},
+    codec::crypto::SigningKey,
+    utils::crypto_rng,
+};
 use clap::Subcommand;
 
 use tracing::{info, warn};
@@ -36,10 +41,12 @@ impl RunnableCommand<NativeError> for KeysCommand {
         match self {
             KeysCommand::Ls => {
                 if let Ok(client) = global.get_client().await {
-                    let all = platform::account::user_key_access(&client).await?;
-                    for key in all {
-                        info!("{:?}", key.key);
-                    }
+                    let all = platform::account::user_key_access(&client)
+                        .await?
+                        .into_iter()
+                        .map(|uka| uka.key)
+                        .collect();
+                    print!("{}", ApiUserKey::table(all)?);
                 }
 
                 // Collect the public key fingerprints of every private user key

@@ -1,5 +1,7 @@
 /// Commands to run
 pub mod commands;
+/// CLI Output Impls
+pub mod display;
 /// Command Trait
 mod runnable_command;
 /// Ways of specifying resources
