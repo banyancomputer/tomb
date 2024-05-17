@@ -2,7 +2,7 @@ use clap::Args;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-use crate::{on_disk::config::GlobalConfig, utils::name_of, ConfigStateError, NativeError};
+use crate::{utils::name_of, ConfigStateError, NativeError};
 
 /// Unified way of specifying a Bucket
 #[derive(Debug, Clone, Args)]

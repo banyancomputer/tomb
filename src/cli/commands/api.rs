@@ -9,7 +9,7 @@ use crate::{
 use super::RunnableCommand;
 use async_trait::async_trait;
 use clap::Subcommand;
-use colored::Colorize;
+
 use tracing::info;
 use url::Url;
 

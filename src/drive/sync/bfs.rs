@@ -3,16 +3,16 @@ use self::local_share::DriveAndKeyId;
 use crate::drive::local::LocalDataStore;
 use crate::drive::sync::{DiskSyncTracker, SyncDataStore};
 use crate::{on_disk::*, NativeError};
-use async_recursion::async_recursion;
+
 use async_trait::async_trait;
 use banyanfs::api::{platform, VecStream};
-use banyanfs::codec::filesystem::NodeKind;
+
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use tracing::{info, warn};
 
 use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
+
 
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct SyncBanyanFS {
@@ -105,7 +105,7 @@ impl SyncBanyanFS {
             }
         }
 
-        let new_metadata = platform::metadata::get(&client, &bucket_id, &new_metadata_id).await?;
+        let _new_metadata = platform::metadata::get(&client, &bucket_id, &new_metadata_id).await?;
         if let Err(err) = self.store.sync(&new_metadata_id).await {
             warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
             // note(sstelfox): this could be recoverable with future syncs, but we

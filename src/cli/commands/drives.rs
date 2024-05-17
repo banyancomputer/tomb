@@ -22,7 +22,7 @@ use async_trait::async_trait;
 use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
 
 use clap::Subcommand;
-use colored::Colorize;
+
 use std::{env::current_dir, path::PathBuf};
 use tracing::{info, warn};
 
@@ -133,9 +133,9 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 if let Ok(client) = global.get_client().await {
                     let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
-                    let remote_id =
+                    let _remote_id =
                         platform::drives::create(&client, &drive_id, &public_key).await?;
-                    let bfs = SyncBanyanFS::init(client, &id).await?;
+                    let _bfs = SyncBanyanFS::init(client, &id).await?;
                     info!("<< CREATED REMOTE DRIVE >>");
                 } else {
                     // Create and encode the Drive and Store
@@ -181,8 +181,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             DrivesCommand::Sync(ds) => {
                 let client = global.get_client().await?;
-                let remote_drives = platform::drives::get_all(&client).await?;
-                let di: DriveId = ds.into();
+                let _remote_drives = platform::drives::get_all(&client).await?;
+                let _di: DriveId = ds.into();
                 //if let Ok(drive_id) = di.get_id().await { }
 
                 //let remote = if let DriveId::DriveId(id) = di { }

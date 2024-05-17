@@ -11,7 +11,7 @@ use super::RunnableCommand;
 use async_trait::async_trait;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use clap::Subcommand;
-use colored::Colorize;
+
 use tracing::{info, warn};
 
 /// Subcommand for endpoint configuration

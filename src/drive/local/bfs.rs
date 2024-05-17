@@ -1,15 +1,15 @@
-use self::config::GlobalConfig;
+
 use self::local_share::DriveAndKeyId;
-use crate::drive::sync::{DiskSyncTracker, SyncDataStore};
-use crate::{on_disk::*, NativeError};
-use async_recursion::async_recursion;
+
+use crate::{on_disk::*};
+
 use async_trait::async_trait;
-use banyanfs::codec::filesystem::NodeKind;
+
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 
 use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
+
 
 use super::LocalDataStore;
 
