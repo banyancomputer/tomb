@@ -63,6 +63,13 @@ pub fn prompt_for_uuid(msg: &str) -> String {
     input
 }
 
+pub fn prompt_for_string(msg: &str) -> String {
+    info!("{msg}");
+    let mut input = String::new();
+    let _ = std::io::stdin().read_line(&mut input);
+    input.trim().to_string()
+}
+
 /// Converts a PathBuf into a vector of path segments for use in WNFS.
 pub fn path_to_segments(path: impl AsRef<Path>) -> Result<Vec<String>, std::io::Error> {
     let path = path.as_ref().to_path_buf().display().to_string();

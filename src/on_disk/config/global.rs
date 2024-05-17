@@ -20,7 +20,6 @@ pub struct GlobalConfig {
     /// Banyan-Cli version
     version: String,
     /// User Key Identifier of Key in Use
-    /// This is the fingerprint as produced by the public key's Fingerprint's Debug impl
     selected_user_key_id: Option<String>,
     /// User Key Identifiers
     user_key_ids: Vec<String>,

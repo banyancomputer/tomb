@@ -4,7 +4,7 @@ use crate::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
     },
-    utils::prompt_for_bool,
+    utils::{prompt_for_bool, prompt_for_string},
     ConfigStateError, NativeError,
 };
 
@@ -70,12 +70,12 @@ impl RunnableCommand<NativeError> for KeysCommand {
             KeysCommand::Create => {
                 let mut rng = crypto_rng();
                 let new_key = SigningKey::generate(&mut rng);
-                let fingerprint = format!("{:?}", new_key.fingerprint());
+                let new_key_id = prompt_for_string("Name this Key:");
                 // Save on disk
-                new_key.encode(&fingerprint).await?;
+                new_key.encode(&new_key_id).await?;
                 // Update the config if the user so wishes
                 if prompt_for_bool("Select this key for use?") {
-                    global.select_user_key_id(fingerprint);
+                    global.select_user_key_id(new_key_id);
                     global.encode(&GlobalConfigId).await?;
                     info!("<< PREFERENCE SAVED >>");
                 }

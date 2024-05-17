@@ -1,0 +1,25 @@
+use super::TableEntry;
+use banyanfs::api::platform::ApiUserKey;
+use cli_table::{Cell, CellStruct};
+
+impl TableEntry for ApiUserKey {
+    fn row(&self) -> Vec<CellStruct> {
+        vec![
+            self.name().cell(),
+            self.id().cell(),
+            self.fingerprint().cell(),
+            self.api_access().cell(),
+            self.public_key().cell(),
+        ]
+    }
+
+    fn title() -> Vec<CellStruct> {
+        vec![
+            "Name".cell(),
+            "User ID".cell(),
+            "Fingerprint".cell(),
+            "API".cell(),
+            "Public Key".cell(),
+        ]
+    }
+}
