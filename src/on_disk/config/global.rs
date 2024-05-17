@@ -43,7 +43,7 @@ impl Default for GlobalConfig {
 }
 
 impl GlobalConfig {
-    pub async fn api_client(&self) -> Result<ApiClient, NativeError> {
+    pub async fn get_client(&self) -> Result<ApiClient, NativeError> {
         let account_id = self.get_account_id()?.to_string();
         let key = Arc::new(SigningKey::decode(&self.selected_user_key_id()?).await?);
         Ok(ApiClient::new(env!("ENDPOINT"), &account_id, key)

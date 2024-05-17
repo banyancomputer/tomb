@@ -51,7 +51,7 @@ impl SyncBanyanFS {
 
     pub async fn sync(&mut self, bucket_id: &String) -> Result<(), NativeError> {
         let global = GlobalConfig::decode(&GlobalConfigId).await?;
-        let client = global.api_client().await?;
+        let client = global.get_client().await?;
 
         let mut rng = crypto_rng();
         // For Metadata push
@@ -139,7 +139,7 @@ impl OnDisk<DriveAndKeyId> for SyncBanyanFS {
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         let global = GlobalConfig::decode(&GlobalConfigId).await?;
         let client = global
-            .api_client()
+            .get_client()
             .await
             .map_err(|err| OnDiskError::Implementation(format!("client: {err:?}")))?;
         // Load the drive using the key

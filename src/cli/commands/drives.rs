@@ -75,7 +75,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
         match self {
             // List all Buckets tracked remotely and locally
             DrivesCommand::Ls => {
-                let remote_drives = match global.api_client().await {
+                let remote_drives = match global.get_client().await {
                     Ok(client) => platform::drives::get_all(&client).await?,
                     Err(_) => {
                         warn!("You aren't logged in. Login to see remote drives.");
@@ -131,7 +131,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     user_key_id: user_key_id.clone(),
                 };
 
-                if let Ok(client) = global.api_client().await {
+                if let Ok(client) = global.get_client().await {
                     let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
                     let remote_id =
                         platform::drives::create(&client, &drive_id, &public_key).await?;
@@ -153,11 +153,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.origin).await?;
                 ld.bfs.encode(&ld.id).await?;
-                info!(
-                    "{}\n{:?}",
-                    "<< DRIVE DATA STORED SUCCESSFULLY >>".green(),
-                    ld.bfs.drive.id()
-                );
+                info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
+                info!("{:?}", ld.bfs.drive.id());
                 Ok(())
             }
             DrivesCommand::Delete(ds) => {
@@ -167,11 +164,9 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 LocalBanyanFS::erase(&ld.id).await?;
                 global.encode(&GlobalConfigId).await?;
 
-                info!(
-                    "{}\n{:?}",
-                    "<< DRIVE DATA DELETED SUCCESSFULLY >>".green(),
-                    ld.bfs.drive.id()
-                );
+                info!("<< DRIVE DATA DELETED SUCCESSFULLY >>");
+                info!("{:?}", ld.bfs.drive.id());
+
                 Ok(())
             }
             DrivesCommand::Restore(ds) => {
@@ -180,15 +175,12 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.origin).await?;
-                info!(
-                    "{}\n{:?}",
-                    "<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>".green(),
-                    ld.bfs.drive.id()
-                );
+                info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
+                info!("{:?}", ld.bfs.drive.id());
                 Ok(())
             }
             DrivesCommand::Sync(ds) => {
-                let client = global.api_client().await?;
+                let client = global.get_client().await?;
                 let remote_drives = platform::drives::get_all(&client).await?;
                 let di: DriveId = ds.into();
                 //if let Ok(drive_id) = di.get_id().await { }

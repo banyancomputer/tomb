@@ -32,13 +32,14 @@ impl RunnableCommand<NativeError> for ApiCommand {
         let _global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             ApiCommand::Display => {
-                info!("{}\n{}\n", "| ADDRESS INFO |".yellow(), env!("ENDPOINT"));
+                info!("| ADDRESS INFO |");
+                info!(env!("ENDPOINT"));
                 Ok(())
             }
             ApiCommand::Set { address } => {
                 let _ = Url::parse(&address).map_err(|err| NativeError::Custom(err.to_string()));
                 std::env::set_var("ENDPOINT", address);
-                info!("{}", "<< ENDPOINT UPDATED SUCCESSFULLY >>".green());
+                info!("<< ENDPOINT UPDATED SUCCESSFULLY >>");
                 Ok(())
             }
         }

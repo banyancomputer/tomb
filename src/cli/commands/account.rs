@@ -39,10 +39,11 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 let user_key_id = global.selected_user_key_id()?;
                 let user_key: SigningKey = OnDisk::decode(&user_key_id).await?;
                 let public_key = user_key.verifying_key().to_spki().unwrap();
-                info!("public_key:\n{}", public_key);
+                info!("public_key:");
+                info!(public_key);
                 let account_id = prompt_for_uuid("Enter your account id:");
                 global.set_account_id(&account_id)?;
-                let _ = global.api_client().await?;
+                let _ = global.get_client().await?;
                 global.encode(&GlobalConfigId).await?;
                 info!("<< SUCCESSFULLY LOGGED IN >>");
                 Ok(())
@@ -54,7 +55,7 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 Ok(())
             }
             AccountCommand::Usage => {
-                let mut client = global.api_client().await?;
+                let mut client = global.get_client().await?;
                 info!("| ACCOUNT USAGE INFO |");
                 let current_usage_result = current_usage(&mut client).await;
                 let usage_limit_result = current_usage_limit(&mut client).await;

@@ -18,7 +18,7 @@ pub mod drive;
 /// Local share data
 pub mod on_disk;
 
-///
+/// Utils
 pub mod utils;
 
 /// Error

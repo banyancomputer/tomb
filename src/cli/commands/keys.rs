@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 use clap::Subcommand;
 use colored::Colorize;
-use tracing::info;
+use tracing::{info, warn};
 
 /// Subcommand for endpoint configuration
 #[derive(Subcommand, Clone, Debug)]
@@ -44,15 +44,12 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     .collect();
 
                 if fingerprints.is_empty() {
-                    info!("{}", "<< NO KEYS ON DISK; CREATE ONE >>".blue());
+                    warn!("<< NO KEYS ON DISK; CREATE ONE >>");
                 } else {
-                    info!(
-                        "{}\n{}",
-                        "<< KEY FINGERPRINTS >>".green(),
-                        fingerprints
-                            .into_iter()
-                            .fold(String::new(), |acc, f| format!("{acc}\n{f}"))
-                    )
+                    info!("<< KEY FINGERPRINTS >>");
+                    for fingerprint in fingerprints.into_iter() {
+                        info!("{fingerprint}");
+                    }
                 }
                 Ok(())
             }
@@ -66,9 +63,9 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 if prompt_for_bool("Select this key for use?") {
                     global.select_user_key_id(fingerprint);
                     global.encode(&GlobalConfigId).await?;
-                    info!("{}", "<< PREFERENCE SAVED >>".green());
+                    info!("<< PREFERENCE SAVED >>");
                 }
-                info!("{}", "<< KEY CREATED >>".green());
+                info!("<< KEY CREATED >>");
                 Ok(())
             }
             KeysCommand::Select { fingerprint } => {
@@ -77,7 +74,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     // Update the config
                     global.select_user_key_id(fingerprint);
                     global.encode(&GlobalConfigId).await?;
-                    info!("{}", "<< PREFERENCE SAVED >>".green());
+                    info!("<< PREFERENCE SAVED >>");
                     Ok(())
                 } else {
                     Err(ConfigStateError::MissingKey(fingerprint).into())
