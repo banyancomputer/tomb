@@ -46,7 +46,7 @@ pub async fn restore(
             Ok(data) => {
                 // Write file data!
                 info!("about to write!");
-                file_opts
+                let _ = file_opts
                     .open(&canon)
                     .await?
                     .compat()

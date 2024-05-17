@@ -59,17 +59,15 @@ pub fn prompt_for_bool(msg: &str) -> bool {
 
 pub fn prompt_for_uuid(msg: &str) -> String {
     info!("{msg}");
-    loop {
-        let mut input = String::new();
-        while Uuid::parse_str(&input).is_err() {
-            if !input.is_empty() {
-                warn!("that wasn't a valid UUID.");
-            }
-            let _ = std::io::stdin().read_line(&mut input);
-            input = input.trim().to_string();
+    let mut input = String::new();
+    while Uuid::parse_str(&input).is_err() {
+        if !input.is_empty() {
+            warn!("that wasn't a valid UUID.");
         }
-        return input;
+        let _ = std::io::stdin().read_line(&mut input);
+        input = input.trim().to_string();
     }
+    input
 }
 
 /// Converts a PathBuf into a vector of path segments for use in WNFS.
