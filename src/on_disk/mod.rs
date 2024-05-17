@@ -1,5 +1,7 @@
 //! this represents data that is stored locally on disk
 
+mod error;
+pub use error::*;
 pub mod config;
 mod ext;
 pub mod local_share;
@@ -15,43 +17,17 @@ use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 use walkdir::WalkDir;
 
 use crate::utils::{is_visible, name_of};
-#[derive(Debug)]
-pub enum OnDiskError {
-    // Common error types we might find
-    Disk(std::io::Error),
-    SerdeJson(serde_json::Error),
-    //
-    Implementation(String),
-}
-
-impl From<std::io::Error> for OnDiskError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Disk(value)
-    }
-}
-impl From<serde_json::Error> for OnDiskError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::SerdeJson(value)
-    }
-}
-
-impl Display for OnDiskError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{:?}", self))
-    }
-}
-impl std::error::Error for OnDiskError {}
-
 pub enum DiskType {
     Config,
     LocalShare,
 }
+
 impl DiskType {
     pub fn root(&self) -> Result<PathBuf, OnDiskError> {
         let home = env!("HOME");
         let path = match self {
-            DiskType::Config => PathBuf::from(format!("{home}/.local/share/banyan")),
-            DiskType::LocalShare => PathBuf::from(format!("{home}/.config/banyan")),
+            DiskType::Config => PathBuf::from(format!("{home}/.config/banyan")),
+            DiskType::LocalShare => PathBuf::from(format!("{home}/.local/share/banyan")),
         };
 
         if !path.exists() {
