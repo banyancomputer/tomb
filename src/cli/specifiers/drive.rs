@@ -34,7 +34,7 @@ impl From<DriveSpecifier> for DriveId {
         if let Some(name) = value.name {
             return Self::Name(name.to_string());
         }
-        return Self::Origin(value.origin.expect("failure"));
+        Self::Origin(value.origin.expect("failure"))
     }
 }
 

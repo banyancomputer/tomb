@@ -1,4 +1,4 @@
-mod io;
+use crate::NativeError;
 use async_recursion::async_recursion;
 use banyanfs::{
     codec::filesystem::NodeKind,
@@ -11,16 +11,7 @@ use std::{
 };
 use tracing::{info, warn};
 use uuid::Uuid;
-//pub(crate) mod testing;
-pub use io::{get_read, get_read_write, get_write};
-
-use crate::NativeError;
-
-#[cfg(test)]
-//pub use io::compute_directory_size;
 mod cast;
-
-mod error;
 
 pub fn name_of(path: impl AsRef<std::path::Path>) -> Option<String> {
     Some(path.as_ref().file_name()?.to_str()?.to_string())
@@ -30,10 +21,11 @@ pub fn is_visible(entry: &walkdir::DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
-        .map(|s| !s.starts_with("."))
+        .map(|s| !s.starts_with('.'))
         .unwrap_or(true)
 }
 
+#[allow(dead_code)]
 #[inline]
 fn bool_colorized(value: bool) -> ColoredString {
     if value {

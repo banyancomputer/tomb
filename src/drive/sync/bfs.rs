@@ -82,7 +82,7 @@ impl SyncBanyanFS {
 
         let push_response = platform::metadata::push_stream(
             &client,
-            &bucket_id,
+            bucket_id,
             expected_data_size,
             root_cid,
             //self.last_saved_metadata.as_ref().map(|m| m.id()).clone(),
@@ -105,7 +105,7 @@ impl SyncBanyanFS {
             }
         }
 
-        let _new_metadata = platform::metadata::get(&client, &bucket_id, &new_metadata_id).await?;
+        let _new_metadata = platform::metadata::get(&client, bucket_id, &new_metadata_id).await?;
         if let Err(err) = self.store.sync(&new_metadata_id).await {
             warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
             // note(sstelfox): this could be recoverable with future syncs, but we

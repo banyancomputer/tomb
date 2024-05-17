@@ -55,10 +55,10 @@ impl GlobalConfig {
     }
 
     pub fn selected_user_key_id(&self) -> Result<String, ConfigStateError> {
-        Ok(self
+        self
             .selected_user_key_id
             .clone()
-            .ok_or(ConfigStateError::NoKey)?)
+            .ok_or(ConfigStateError::NoKey)
     }
 
     pub fn set_origin(&mut self, drive_id: &String, origin: &Path) {

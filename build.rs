@@ -5,7 +5,7 @@ fn set_endpoint() {
         "https://beta.data.banyan.computer"
     );
     #[cfg(not(release))]
-    println!("cargo:rustc-env=ENDPOINT={}", "http://127.0.0.1:3001");
+    println!("cargo:rustc-env=ENDPOINT=http://127.0.0.1:3001");
 }
 
 fn report_build_profile() {

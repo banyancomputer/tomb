@@ -9,9 +9,7 @@ use tokio::{
     fs::{create_dir, OpenOptions},
     io::AsyncWriteExt,
 };
-use tokio_util::compat::{
-    FuturesAsyncWriteCompatExt, TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt,
-};
+use tokio_util::compat::{FuturesAsyncWriteCompatExt, TokioAsyncReadCompatExt};
 use tracing::info;
 
 pub async fn restore(

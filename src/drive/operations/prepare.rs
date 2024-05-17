@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use crate::{
-    on_disk::OnDisk,
     utils::{all_bfs_paths, is_visible},
     NativeError,
 };

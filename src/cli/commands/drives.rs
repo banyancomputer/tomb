@@ -90,9 +90,9 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                         drive_id: name.clone(),
                         user_key_id: user_key_id.clone(),
                     };
-                    let unlocked = Drive::decode(&id).await.is_ok();
+                    let unlocked = Drive::decode(id).await.is_ok();
                     let origin = global
-                        .get_origin(&name)
+                        .get_origin(name)
                         .map(|p| p.display().to_string())
                         .unwrap_or("Unknown".to_string());
 
