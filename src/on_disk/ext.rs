@@ -1,8 +1,5 @@
 use async_trait::async_trait;
 
-
-
-
 use super::{OnDisk, OnDiskError};
 
 // Extension of OnDisk for when I is String

@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-
-
 use crate::on_disk::{DiskType, OnDisk, OnDiskError};
 use async_trait::async_trait;
 use banyanfs::{
