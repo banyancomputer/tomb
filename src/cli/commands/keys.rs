@@ -1,5 +1,5 @@
 use crate::{
-    cli::display::TableAble,
+    cli::display::{TableAble, TableEntry},
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
@@ -41,12 +41,12 @@ impl RunnableCommand<NativeError> for KeysCommand {
         match self {
             KeysCommand::Ls => {
                 if let Ok(client) = global.get_client().await {
-                    let all = platform::account::user_key_access(&client)
+                    let all: Vec<ApiUserKey> = platform::account::user_key_access(&client)
                         .await?
                         .into_iter()
                         .map(|uka| uka.key)
                         .collect();
-                    print!("{}", ApiUserKey::table(all)?);
+                    print!("{}", all.display_table()?);
                 }
 
                 // Collect the public key fingerprints of every private user key

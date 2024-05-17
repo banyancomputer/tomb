@@ -1,21 +1,42 @@
-use std::fmt::Display;
+use banyanfs::api::platform::{ApiUserKey, ApiUserKeyAccess};
+use cli_table::{format::Justify, Cell, CellStruct, Style, Table, TableDisplay};
 
-pub trait TableAble: Sized {
+pub trait TableEntry: Sized {
     fn row(&self) -> Vec<CellStruct>;
     fn title() -> Vec<CellStruct>;
-    fn table(items: Vec<Self>) -> Result<TableDisplay, std::io::Error> {
-        let table = items
-            .into_iter()
+}
+
+pub trait TableAble {
+    fn entries(&self) -> Vec<Vec<CellStruct>>;
+    fn display_table(&self) -> Result<TableDisplay, std::io::Error>;
+}
+
+impl<T> TableAble for Vec<T>
+where
+    T: TableEntry,
+{
+    fn display_table(&self) -> Result<TableDisplay, std::io::Error> {
+        display_table(self.entries(), T::title())
+    }
+
+    fn entries(&self) -> Vec<Vec<CellStruct>> {
+        self.iter()
             .map(|item| item.row())
             .collect::<Vec<Vec<CellStruct>>>()
-            .table()
-            .title(Self::title())
-            .bold(true);
-        table.display()
     }
 }
 
-impl TableAble for ApiUserKey {
+pub fn display_table(
+    entries: Vec<Vec<CellStruct>>,
+    title: Vec<CellStruct>,
+) -> Result<TableDisplay, std::io::Error> {
+    Vec::<Vec<CellStruct>>::table(entries)
+        .title(title)
+        .bold(true)
+        .display()
+}
+
+impl TableEntry for ApiUserKey {
     fn row(&self) -> Vec<CellStruct> {
         vec![
             self.name().cell(),
@@ -50,9 +71,6 @@ fn printmeee() {
     ])
     .bold(true);
 }
-
-use banyanfs::api::platform::{ApiUserKey, ApiUserKeyAccess};
-use cli_table::{format::Justify, Cell, CellStruct, Style, Table, TableDisplay};
 
 /*
 impl Display for ApiUserKey {
