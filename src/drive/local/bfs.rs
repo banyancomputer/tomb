@@ -1,7 +1,6 @@
-
 use self::local_share::DriveAndKeyId;
 
-use crate::{on_disk::*};
+use crate::on_disk::*;
 
 use async_trait::async_trait;
 
@@ -9,7 +8,6 @@ use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 
 use std::fs::create_dir_all;
-
 
 use super::LocalDataStore;
 

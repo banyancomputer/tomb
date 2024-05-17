@@ -13,7 +13,6 @@ use tracing::{info, warn};
 
 use std::fs::create_dir_all;
 
-
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct SyncBanyanFS {
     /// BanyanFS Drive
@@ -49,7 +48,7 @@ impl SyncBanyanFS {
         Ok(lbfs)
     }
 
-    pub async fn sync(&mut self, bucket_id: &String) -> Result<(), NativeError> {
+    pub async fn sync(&mut self, bucket_id: &str) -> Result<(), NativeError> {
         let global = GlobalConfig::decode(&GlobalConfigId).await?;
         let client = global.get_client().await?;
 

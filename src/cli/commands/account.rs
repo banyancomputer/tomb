@@ -55,10 +55,10 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 Ok(())
             }
             AccountCommand::Usage => {
-                let mut client = global.get_client().await?;
+                let client = global.get_client().await?;
                 info!("| ACCOUNT USAGE INFO |");
-                let current_usage_result = current_usage(&mut client).await;
-                let usage_limit_result = current_usage_limit(&mut client).await;
+                let current_usage_result = current_usage(&client).await;
+                let usage_limit_result = current_usage_limit(&client).await;
 
                 if current_usage_result.is_err() && usage_limit_result.is_err() {
                     return Err(NativeError::Custom(String::from(
