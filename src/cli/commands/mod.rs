@@ -38,6 +38,7 @@ pub enum BanyanCommand {
         #[clap(subcommand)]
         command: drives::DrivesCommand,
     },
+    /// Key management
     Keys {
         /// Subcommand
         #[clap(subcommand)]

@@ -9,7 +9,7 @@ use crate::{
 
 use super::RunnableCommand;
 use async_trait::async_trait;
-use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
+use banyanfs::{api::platform, codec::crypto::SigningKey, utils::crypto_rng};
 use clap::Subcommand;
 
 use tracing::{info, warn};
@@ -35,6 +35,13 @@ impl RunnableCommand<NativeError> for KeysCommand {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             KeysCommand::Ls => {
+                if let Ok(client) = global.get_client().await {
+                    let all = platform::account::user_key_access(&client).await?;
+                    for key in all {
+                        info!("{:?}", key.key);
+                    }
+                }
+
                 // Collect the public key fingerprints of every private user key
                 let fingerprints: Vec<String> = SigningKey::decode_all()
                     .await?

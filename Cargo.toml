@@ -54,6 +54,7 @@ serde_json = { version = "^1", features = ["std"] }
 uuid = { version = "^1", features = ["serde", "v4"] }
 # Local Object Storage
 object_store = { version = "^0.9" }
+cli-table = "0.4.7"
 
 #futures = { version = "^0.3" }
 #futures-core = { version = "^0.3" }

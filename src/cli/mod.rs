@@ -4,8 +4,6 @@ pub mod commands;
 mod runnable_command;
 /// Ways of specifying resources
 pub mod specifiers;
-/// CLI util fns
-pub(crate) mod utils;
 /// Debug level
 pub mod verbosity;
 /// Export
