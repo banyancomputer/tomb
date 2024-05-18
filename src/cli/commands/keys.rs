@@ -1,5 +1,7 @@
+use std::collections::HashSet;
+
 use crate::{
-    cli::display::{TableAble, TableEntry},
+    cli::display::{Persistence, TableAble, TableEntry},
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
@@ -44,8 +46,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             KeysCommand::Ls => {
-                let mut remote_keys: Vec<ApiUserKey> = if let Ok(client) = global.get_client().await
-                {
+                let remote_keys: Vec<ApiUserKey> = if let Ok(client) = global.get_client().await {
                     info!("Fetching remote keys, too.");
                     platform::account::user_key_access(&client)
                         .await
@@ -60,8 +61,6 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     vec![]
                 };
 
-                let mut table_rows = Vec::new();
-
                 // Collect the public key fingerprints of every private user key
                 let local_named_keys: Vec<(String, SigningKey)> = SigningKey::decode_all().await?;
                 if local_named_keys.is_empty() {
@@ -69,56 +68,73 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     return Ok(());
                 }
 
-                for (local_name, private_key) in local_named_keys.iter() {
-                    let public_key = private_key.verifying_key();
-                    let fingerprint = api_fingerprint_key(&public_key);
-                    if let Some(remote) = remote_keys
-                        .iter()
-                        .find(|api_key| api_key.fingerprint() == fingerprint)
-                    {
-                        // If the names are different for some reason
-                        let remote_name = remote.name();
-                        if remote_name != local_name {
-                            warn!(
-                                "Remote key with name `{}` is named `{}` locally.",
-                                remote_name, local_name
-                            );
-                            if prompt_for_bool("Rename local or remote?", 'l', 'r') {
-                                info!("Renaming key locally.");
-                                // Write by new name, erase by old
-                                private_key.encode(remote_name).await?;
-                                SigningKey::erase(local_name).await?;
+                let mut sync_names = HashSet::new();
+                let mut table_rows = Vec::new();
 
-                                // Handle config
-                                if let Ok(selected_user_key_id) = global.selected_user_key_id() {
-                                    if selected_user_key_id == *local_name {
-                                        global.select_user_key_id(remote_name.to_string());
-                                        global.encode(&GlobalConfigId).await?;
+                for (local_name, local_private_key) in local_named_keys.iter() {
+                    let local_public_key = local_private_key.verifying_key();
+                    let local_fingerprint = api_fingerprint_key(&local_public_key);
+
+                    for remote_key in remote_keys.iter() {
+                        // Sync key found
+                        if remote_key.fingerprint() == local_fingerprint {
+                            // Ensure name congruence
+                            // If the names are different for some reason
+                            let remote_name = remote_key.name();
+                            let key_name = if remote_name != local_name {
+                                warn!(
+                                    "Remote key with name `{}` is named `{}` locally.",
+                                    remote_name, local_name
+                                );
+                                if prompt_for_bool("Keep local or remote name?", 'l', 'r') {
+                                    info!("Renaming remote key.");
+                                    let client = global.get_client().await?;
+                                    platform::account::rename_user_key(
+                                        &client,
+                                        local_name,
+                                        remote_key.id(),
+                                    )
+                                    .await?;
+                                    local_name
+                                } else {
+                                    info!("Renaming local key.");
+                                    // Write by new name, erase by old
+                                    local_private_key.encode(remote_name).await?;
+                                    SigningKey::erase(local_name).await?;
+
+                                    // Handle config
+                                    if let Ok(selected_user_key_id) = global.selected_user_key_id()
+                                    {
+                                        if selected_user_key_id == *local_name {
+                                            global.select_user_key_id(remote_name.to_string());
+                                            global.encode(&GlobalConfigId).await?;
+                                        }
                                     }
+                                    remote_name
                                 }
                             } else {
-                                info!("Renaming key remotely.");
-                                let client = global.get_client().await?;
-                                platform::account::rename_user_key(
-                                    &client,
-                                    local_name,
-                                    remote.id(),
-                                )
-                                .await?;
-                                remote_keys = platform::account::user_key_access(&client)
-                                    .await
-                                    .map_err(|err| {
-                                        warn!("Error requesting user keys from remote: {err:?}");
-                                    })
-                                    .unwrap_or(vec![])
-                                    .into_iter()
-                                    .map(|uka| uka.key)
-                                    .collect();
-                            }
+                                local_name
+                            };
+
+                            //
+                            sync_names.insert(local_name);
+                            sync_names.insert(remote_name);
+                            table_rows.push(vec![
+                                key_name.cell(),
+                                remote_key.user_id().cell(),
+                                remote_key.fingerprint().cell(),
+                                remote_key.api_access().cell(),
+                                remote_key.public_key().cell(),
+                                Persistence::Sync.cell(),
+                            ])
                         }
                     }
-                    // If the local key isn't known by the server
-                    else {
+                }
+
+                for (local_name, private_key) in local_named_keys.iter() {
+                    if !sync_names.contains(local_name) {
+                        let public_key = private_key.verifying_key();
+                        let fingerprint = api_fingerprint_key(&public_key);
                         // List it manually
                         table_rows.push(vec![
                             local_name.cell(),
@@ -129,17 +145,38 @@ impl RunnableCommand<NativeError> for KeysCommand {
                                 .to_spki()
                                 .map_err(|_| NativeError::Custom("Spki".to_string()))?
                                 .cell(),
-                            false.cell(),
+                            Persistence::LocalOnly.cell(),
+                        ]);
+                    }
+                }
+
+                for remote_key in remote_keys.iter() {
+                    if !sync_names.contains(remote_key.name()) {
+                        table_rows.push(vec![
+                            remote_key.name().cell(),
+                            remote_key.user_id().cell(),
+                            remote_key.fingerprint().cell(),
+                            remote_key.api_access().cell(),
+                            remote_key.public_key().cell(),
+                            Persistence::RemoteOnly.cell(),
                         ])
                     }
                 }
 
-                table_rows.extend(remote_keys.rows());
-                let table = table_rows.table().title(ApiUserKey::title());
+                let table = table_rows.table().title(vec![
+                    "Name".cell(),
+                    "User ID".cell(),
+                    "Fingerprint".cell(),
+                    "API".cell(),
+                    "Public Key".cell(),
+                    "Persistence".cell(),
+                ]);
+
                 print_stdout(table)?;
 
                 Ok(())
             }
+
             KeysCommand::Create => {
                 let mut rng = crypto_rng();
                 let new_key = SigningKey::generate(&mut rng);
