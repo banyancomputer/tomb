@@ -46,7 +46,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                         .into_iter()
                         .map(|uka| uka.key)
                         .collect();
-                    print!("{}", all.display_table()?);
+                    all.display_table()?;
                 }
 
                 // Collect the public key fingerprints of every private user key

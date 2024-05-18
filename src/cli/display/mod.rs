@@ -1,4 +1,4 @@
-use cli_table::{CellStruct, Style, Table, TableDisplay};
+use cli_table::{print_stdout, CellStruct, Style, Table, TableDisplay};
 mod keys;
 
 pub trait TableEntry: Sized {
@@ -8,18 +8,16 @@ pub trait TableEntry: Sized {
 
 pub trait TableAble {
     fn entries(&self) -> Vec<Vec<CellStruct>>;
-    fn display_table(&self) -> Result<TableDisplay, std::io::Error>;
+    fn display_table(&self) -> Result<(), std::io::Error>;
 }
 
 impl<T> TableAble for Vec<T>
 where
     T: TableEntry,
 {
-    fn display_table(&self) -> Result<TableDisplay, std::io::Error> {
-        Vec::<Vec<CellStruct>>::table(self.entries())
-            .title(T::title())
-            .bold(true)
-            .display()
+    fn display_table(&self) -> Result<(), std::io::Error> {
+        let table = self.entries().table().title(T::title()).bold(true);
+        print_stdout(table)
     }
 
     fn entries(&self) -> Vec<Vec<CellStruct>> {
@@ -29,6 +27,7 @@ where
     }
 }
 
+/*
 impl<A, B> TableAble for (Vec<A>, Vec<B>)
 where
     A: TableEntry,
@@ -62,3 +61,4 @@ pub fn display_table(
         .bold(true)
         .display()
 }
+*/

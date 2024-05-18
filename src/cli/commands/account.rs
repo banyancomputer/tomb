@@ -13,6 +13,7 @@ use banyanfs::{api::platform::account::*, codec::crypto::SigningKey};
 use bytesize::ByteSize;
 use clap::Subcommand;
 
+use cli_table::{print_stdout, Cell, Color, Style, Table};
 use tracing::info;
 
 /// Subcommand for Authentication
@@ -56,32 +57,39 @@ impl RunnableCommand<NativeError> for AccountCommand {
             }
             AccountCommand::Usage => {
                 let client = global.get_client().await?;
-                info!("| ACCOUNT USAGE INFO |");
                 let current_usage_result = current_usage(&client).await;
                 let usage_limit_result = current_usage_limit(&client).await;
-
                 if current_usage_result.is_err() && usage_limit_result.is_err() {
                     return Err(NativeError::Custom(String::from(
                         "Unable to obtain usage stats. Check your authentication!",
                     )));
                 }
-
                 if let Ok(usage_current) = current_usage_result {
-                    info!("hot usage:\t\t\t{}", ByteSize(usage_current.hot_usage()));
-                    info!(
-                        "archival usage:\t\t{}",
-                        ByteSize(usage_current.archival_usage())
-                    );
+                    let table = vec![
+                        vec!["Hot".cell(), ByteSize(usage_current.hot_usage()).cell()],
+                        vec![
+                            "Archival".cell(),
+                            ByteSize(usage_current.archival_usage()).cell(),
+                        ],
+                    ]
+                    .table()
+                    .title(vec!["".cell(), "Current Usage".cell()]);
+                    print_stdout(table)?;
                 }
                 if let Ok(usage_limit) = usage_limit_result {
-                    info!(
-                        "soft hot usage limit:\t{}",
-                        ByteSize(usage_limit.soft_hot_storage_limit() as u64),
-                    );
-                    info!(
-                        "hard hot usage limit:\t{}",
-                        ByteSize(usage_limit.hard_hot_storage_limit() as u64)
-                    );
+                    let table = vec![
+                        vec![
+                            "Soft Hot".cell(),
+                            ByteSize(usage_limit.soft_hot_storage_limit() as u64).cell(),
+                        ],
+                        vec![
+                            "Hard Hot".cell(),
+                            ByteSize(usage_limit.hard_hot_storage_limit() as u64).cell(),
+                        ],
+                    ]
+                    .table()
+                    .title(vec!["".cell(), "Usage Limits".cell()]);
+                    print_stdout(table)?;
                 }
 
                 Ok(())
