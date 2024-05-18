@@ -84,7 +84,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 };
 
                 let user_key_id = global.selected_user_key_id()?;
-                let local_drive_names = Drive::entries()?;
+                let local_drive_names = Drive::entries();
                 for name in local_drive_names.iter() {
                     let id = &DriveAndKeyId {
                         drive_id: name.clone(),

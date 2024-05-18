@@ -23,18 +23,19 @@ pub enum DiskType {
 }
 
 impl DiskType {
-    pub fn root(&self) -> Result<PathBuf, OnDiskError> {
+    pub fn root(&self) -> PathBuf {
         let home = env!("HOME");
-        let path = match self {
+        match self {
             DiskType::Config => PathBuf::from(format!("{home}/.config/banyan")),
             DiskType::LocalShare => PathBuf::from(format!("{home}/.local/share/banyan")),
-        };
-
-        if !path.exists() {
-            create_dir(&path)?;
         }
+    }
 
-        Ok(path)
+    pub fn init(&self) -> Result<(), OnDiskError> {
+        if !self.root().exists() {
+            create_dir(&self.root())?;
+        }
+        Ok(())
     }
 }
 
@@ -46,23 +47,26 @@ pub trait OnDisk<I: Display>: Sized {
     const SUFFIX: &'static str;
     const EXTENSION: &'static str;
 
-    fn container() -> Result<PathBuf, OnDiskError> {
-        let root = Self::TYPE.root()?;
-        let path = root.join(Self::SUFFIX);
-        if !path.exists() {
-            create_dir(&path)?;
-        }
-        Ok(path)
+    fn container() -> PathBuf {
+        Self::TYPE.root().join(Self::SUFFIX)
+    }
+
+    fn exists(identifier: &I) -> Result<bool, OnDiskError> {
+        Ok(Self::path(identifier)?.exists())
     }
 
     fn path(identifier: &I) -> Result<PathBuf, OnDiskError> {
+        let container = Self::container();
+        if !container.exists() {
+            create_dir(&container)?;
+        }
         // Folder path
         if Self::EXTENSION.is_empty() {
-            Ok(Self::container()?.join(identifier.to_string()))
+            Ok(container.join(identifier.to_string()))
         }
         // File path
         else {
-            Ok(Self::container()?.join(format!("{}.{}", identifier, Self::EXTENSION)))
+            Ok(container.join(format!("{}.{}", identifier, Self::EXTENSION)))
         }
     }
 
@@ -77,24 +81,29 @@ pub trait OnDisk<I: Display>: Sized {
         }
     }
 
-    fn entries() -> Result<Vec<String>, OnDiskError> {
-        Ok(WalkDir::new(Self::container()?)
-            // Should never go deep
-            .min_depth(1)
-            .max_depth(1)
-            .into_iter()
-            // File is visible
-            .filter_entry(is_visible)
-            // User has permission
-            .filter_map(|e| e.ok())
-            // Turn into ids
-            .filter_map(|e| name_of(e.path()))
-            // Strip file extensions
-            .map(|id| {
-                id.trim_end_matches(&format!(".{}", Self::EXTENSION))
-                    .to_string()
-            })
-            .collect())
+    fn entries() -> Vec<String> {
+        let container = Self::container();
+        if !container.exists() {
+            vec![]
+        } else {
+            WalkDir::new(container)
+                // Should never go deep
+                .min_depth(1)
+                .max_depth(1)
+                .into_iter()
+                // File is visible
+                .filter_entry(is_visible)
+                // User has permission
+                .filter_map(|e| e.ok())
+                // Turn into ids
+                .filter_map(|e| name_of(e.path()))
+                // Strip file extensions
+                .map(|id| {
+                    id.trim_end_matches(&format!(".{}", Self::EXTENSION))
+                        .to_string()
+                })
+                .collect()
+        }
     }
 
     // Async compat reader/writer defaults

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::on_disk::{
     config::{GlobalConfig, GlobalConfigId},
-    OnDisk,
+    DiskType, OnDisk,
 };
 use async_trait::async_trait;
 use clap::Subcommand;
@@ -21,6 +21,9 @@ where
     /// Run the internal command, passing a reference to a global configuration which is saved after completion
     async fn run(self) -> Result<(), ErrorType> {
         if GlobalConfig::decode(&GlobalConfigId).await.is_err() {
+            DiskType::Config.init().expect("creating configs");
+            DiskType::LocalShare.init().expect("creating configs");
+
             GlobalConfig::default()
                 .encode(&GlobalConfigId)
                 .await

@@ -1,7 +1,10 @@
-use crate::NativeError;
+use crate::{
+    on_disk::{OnDisk, OnDiskError},
+    NativeError,
+};
 use async_recursion::async_recursion;
 use banyanfs::{
-    codec::filesystem::NodeKind,
+    codec::{crypto::SigningKey, filesystem::NodeKind},
     filesystem::{DirectoryHandle, Drive},
 };
 use colored::{ColoredString, Colorize};
@@ -61,6 +64,20 @@ pub fn prompt_for_uuid(msg: &str) -> String {
         input = input.trim().to_string();
     }
     input
+}
+
+pub fn prompt_for_key_name(msg: &str) -> Result<String, OnDiskError> {
+    info!("{msg}");
+    let mut input = String::new();
+    while input.is_empty() || SigningKey::exists(&input)? {
+        if !input.is_empty() {
+            warn!("A key with that name already exists.");
+            input = String::new();
+        }
+        let _ = std::io::stdin().read_line(&mut input);
+        input = input.trim().to_string();
+    }
+    Ok(input)
 }
 
 pub fn prompt_for_string(msg: &str) -> String {

@@ -11,7 +11,7 @@ where
     async fn id_from_string(value: String) -> Result<I, OnDiskError>;
     async fn decode_all() -> Result<Vec<Self>, OnDiskError> {
         let mut entries = Vec::new();
-        for id in Self::entries()? {
+        for id in Self::entries() {
             entries.push(Self::decode(&Self::id_from_string(id).await?).await?);
         }
 
