@@ -9,7 +9,6 @@ use banyanfs::{
 };
 use colored::{ColoredString, Colorize};
 use std::{
-    io::Read,
     path::{Path, PathBuf},
 };
 use tracing::{info, warn};
@@ -45,7 +44,7 @@ pub fn prompt_for_bool(msg: &str, t: char, f: char) -> bool {
         let mut input = String::new();
         let _ = std::io::stdin().read_line(&mut input);
         input = input.trim().to_lowercase();
-        if let Some(c) = input.chars().nth(0) {
+        if let Some(c) = input.chars().next() {
             if c == t {
                 return true;
             }

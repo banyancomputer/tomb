@@ -33,7 +33,7 @@ impl DiskType {
 
     pub fn init(&self) -> Result<(), OnDiskError> {
         if !self.root().exists() {
-            create_dir(&self.root())?;
+            create_dir(self.root())?;
         }
         Ok(())
     }

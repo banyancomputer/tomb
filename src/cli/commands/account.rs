@@ -13,7 +13,7 @@ use banyanfs::{api::platform::account::*, codec::crypto::SigningKey};
 use bytesize::ByteSize;
 use clap::Subcommand;
 
-use cli_table::{print_stdout, Cell, Color, Style, Table};
+use cli_table::{print_stdout, Cell, Table};
 use tracing::info;
 
 /// Subcommand for Authentication

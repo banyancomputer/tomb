@@ -1,4 +1,4 @@
-use cli_table::{print_stdout, CellStruct, Style, Table, TableDisplay};
+use cli_table::{print_stdout, CellStruct, Style, Table};
 mod keys;
 
 pub trait TableEntry: Sized {

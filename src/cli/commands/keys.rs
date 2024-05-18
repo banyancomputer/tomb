@@ -98,14 +98,14 @@ impl RunnableCommand<NativeError> for KeysCommand {
                                 }
                             } else {
                                 info!("Renaming key remotely.");
-                                let mut client = global.get_client().await?;
+                                let client = global.get_client().await?;
                                 platform::account::rename_user_key(
-                                    &mut client,
+                                    &client,
                                     local_name,
                                     remote.id(),
                                 )
                                 .await?;
-                                remote_keys = platform::account::user_key_access(&mut client)
+                                remote_keys = platform::account::user_key_access(&client)
                                     .await
                                     .map_err(|err| {
                                         warn!("Error requesting user keys from remote: {err:?}");
