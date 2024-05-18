@@ -6,7 +6,7 @@ impl TableEntry for ApiUserKey {
     fn row(&self) -> Vec<CellStruct> {
         vec![
             self.name().cell(),
-            self.id().cell(),
+            self.user_id().cell(),
             self.fingerprint().cell(),
             self.api_access().cell(),
             self.public_key().cell(),
