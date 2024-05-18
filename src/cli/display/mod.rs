@@ -1,6 +1,8 @@
 use cli_table::{print_stdout, CellStruct, Style, Table};
 mod drives;
 mod keys;
+mod persistence;
+pub use persistence::Persistence;
 
 pub trait TableEntry: Sized {
     fn row(&self) -> Vec<CellStruct>;
@@ -8,7 +10,7 @@ pub trait TableEntry: Sized {
 }
 
 pub trait TableAble {
-    fn entries(&self) -> Vec<Vec<CellStruct>>;
+    fn rows(&self) -> Vec<Vec<CellStruct>>;
     fn display_table(&self) -> Result<(), std::io::Error>;
 }
 
@@ -17,11 +19,11 @@ where
     T: TableEntry,
 {
     fn display_table(&self) -> Result<(), std::io::Error> {
-        let table = self.entries().table().title(T::title()).bold(true);
+        let table = self.rows().table().title(T::title()).bold(true);
         print_stdout(table)
     }
 
-    fn entries(&self) -> Vec<Vec<CellStruct>> {
+    fn rows(&self) -> Vec<Vec<CellStruct>> {
         self.iter()
             .map(|item| item.row())
             .collect::<Vec<Vec<CellStruct>>>()

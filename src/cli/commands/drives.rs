@@ -7,6 +7,7 @@ use crate::{
             },
             RunnableCommand,
         },
+        display::Persistence,
         specifiers::{DriveId, DriveSpecifier},
     },
     drive::*,
@@ -22,6 +23,7 @@ use async_trait::async_trait;
 use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
 
 use clap::Subcommand;
+use cli_table::{print_stdout, Cell, Table};
 
 use std::{env::current_dir, path::PathBuf};
 use tracing::{info, warn};
@@ -90,8 +92,59 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     }
                 };
 
-                let user_key_id = global.selected_user_key_id()?;
+                let mut table_rows = Vec::new();
                 let local_drive_names = Drive::entries();
+
+                // Find the drives that exist both locally and remotely
+                let mut sync_names = Vec::new();
+                for local_name in local_drive_names.iter() {
+                    for remote in remote_drives.iter() {
+                        if *local_name == remote.name {
+                            sync_names.push(local_name.clone());
+                            table_rows.push(vec![
+                                remote.name.clone().cell(),
+                                remote.id.clone().cell(),
+                                global.get_path(local_name)?.display().cell(),
+                                Persistence::Sync.cell(),
+                            ])
+                        }
+                    }
+                }
+
+                for local_name in local_drive_names.into_iter() {
+                    if !sync_names.contains(&local_name) {
+                        table_rows.push(vec![
+                            local_name.clone().cell(),
+                            "N/A".cell(),
+                            global.get_path(&local_name)?.display().cell(),
+                            Persistence::LocalOnly.cell(),
+                        ]);
+                    }
+                }
+
+                for remote in remote_drives.into_iter() {
+                    if !sync_names.contains(&remote.name) {
+                        table_rows.push(vec![
+                            remote.name.clone().cell(),
+                            remote.id.clone().cell(),
+                            "N/A".cell(),
+                            Persistence::RemoteOnly.cell(),
+                        ])
+                    }
+                }
+
+                let table = table_rows.table().title(vec![
+                    "Name".cell(),
+                    "ID".cell(),
+                    "Path".cell(),
+                    "Persistence".cell(),
+                ]);
+
+                print_stdout(table)?;
+
+                // table_rows.push(vec![ad.name.cell(), ad.id.cell()]);
+
+                /*
                 for name in local_drive_names.iter() {
                     let id = &DriveAndKeyId {
                         drive_id: name.clone(),
@@ -121,6 +174,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                         "Remote Drive"
                     );
                 }
+                */
 
                 Ok(())
             }

@@ -134,7 +134,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     }
                 }
 
-                table_rows.extend(remote_keys.entries());
+                table_rows.extend(remote_keys.rows());
                 let table = table_rows.table().title(ApiUserKey::title());
                 print_stdout(table)?;
 
