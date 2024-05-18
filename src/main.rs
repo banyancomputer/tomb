@@ -6,7 +6,9 @@ use {
     clap::Parser,
     cli::{Args, RunnableCommand},
     tracing::Level,
-    tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer},
+    tracing_subscriber::{
+        fmt::format, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
+    },
 };
 
 /// CLI Parsing
@@ -34,6 +36,8 @@ async fn main() {
         .from_env_lossy();
     let stderr_layer = tracing_subscriber::fmt::layer()
         .pretty()
+        .event_format(format().compact())
+        .without_time()
         .with_target(false)
         .with_file(false)
         .with_line_number(false)

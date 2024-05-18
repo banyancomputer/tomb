@@ -6,6 +6,8 @@ use clap::Subcommand;
 mod account;
 /// View / Change API endpoint
 mod api;
+/// Drive access management
+mod drive_access;
 /// Drive interaction
 mod drives;
 /// User Keys

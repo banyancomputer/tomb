@@ -10,6 +10,7 @@ use super::RunnableCommand;
 use async_trait::async_trait;
 use clap::Subcommand;
 
+use cli_table::{print_stdout, Cell, Table};
 use tracing::info;
 use url::Url;
 
@@ -32,8 +33,10 @@ impl RunnableCommand<NativeError> for ApiCommand {
         let _global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             ApiCommand::Display => {
-                info!("| ADDRESS INFO |");
-                info!(env!("ENDPOINT"));
+                let table = vec![vec![env!("ENDPOINT").cell()]]
+                    .table()
+                    .title(vec!["Remote Address".cell()]);
+                print_stdout(table)?;
                 Ok(())
             }
             ApiCommand::Set { address } => {
