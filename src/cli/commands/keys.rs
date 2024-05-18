@@ -30,11 +30,11 @@ pub enum KeysCommand {
     Ls,
     /// Create a new Key
     Create,
-    /// Select a key
+    /// Select a key for use
     Select {
-        /// Server address
+        /// Key name
         #[arg(short, long)]
-        fingerprint: String,
+        name: String,
     },
 }
 
@@ -129,6 +129,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                                 .to_spki()
                                 .map_err(|_| NativeError::Custom("Spki".to_string()))?
                                 .cell(),
+                            false.cell(),
                         ])
                     }
                 }
@@ -149,21 +150,19 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 if prompt_for_bool("Select this key for use?", 'y', 'n') {
                     global.select_user_key_id(new_key_id);
                     global.encode(&GlobalConfigId).await?;
-                    info!("<< PREFERENCE SAVED >>");
                 }
                 info!("<< KEY CREATED >>");
                 Ok(())
             }
-            KeysCommand::Select { fingerprint } => {
+            KeysCommand::Select { name } => {
                 // If we can successfully load the key
-                if SigningKey::decode(&fingerprint).await.is_ok() {
+                if SigningKey::decode(&name).await.is_ok() {
                     // Update the config
-                    global.select_user_key_id(fingerprint);
+                    global.select_user_key_id(name);
                     global.encode(&GlobalConfigId).await?;
-                    info!("<< PREFERENCE SAVED >>");
                     Ok(())
                 } else {
-                    Err(ConfigStateError::MissingKey(fingerprint).into())
+                    Err(ConfigStateError::MissingKey(name).into())
                 }
             }
         }

@@ -10,6 +10,7 @@ impl TableEntry for ApiUserKey {
             self.fingerprint().cell(),
             self.api_access().cell(),
             self.public_key().cell(),
+            true.cell(),
         ]
     }
 
@@ -20,6 +21,7 @@ impl TableEntry for ApiUserKey {
             "Fingerprint".cell(),
             "API".cell(),
             "Public Key".cell(),
+            "Persisted Remotely".cell(),
         ]
     }
 }

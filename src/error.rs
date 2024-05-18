@@ -57,7 +57,10 @@ impl Display for ConfigStateError {
             ConfigStateError::NoKey => f.write_str("NO KEY ON DISK AT ALL"),
             ConfigStateError::NoKeySelected => f.write_str("NO KEY SELECTED"),
             ConfigStateError::NoAccountId => f.write_str("NO ACCOUNT ID"),
-            ConfigStateError::MissingKey(id) => f.write_str(&format!("MISSING KEY WITH ID {}", id)),
+            ConfigStateError::MissingKey(name) => f.write_str(&format!(
+                "Key with name `{}` is not persisted locally.",
+                name
+            )),
             ConfigStateError::MissingDrive(id) => {
                 f.write_str(&format!("MISSING DRIVE WITH ID {}", id))
             }

@@ -8,9 +8,7 @@ use banyanfs::{
     filesystem::{DirectoryHandle, Drive},
 };
 use colored::{ColoredString, Colorize};
-use std::{
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 use uuid::Uuid;
 mod cast;

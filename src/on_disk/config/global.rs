@@ -109,6 +109,7 @@ impl OnDisk<GlobalConfigId> for GlobalConfig {
     async fn encode(&self, identifier: &GlobalConfigId) -> Result<(), OnDiskError> {
         let mut writer = File::create(Self::path(identifier)?)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
+        tracing::info!("<< PREFERENCE SAVED >>");
         Ok(())
     }
     async fn decode(identifier: &GlobalConfigId) -> Result<Self, OnDiskError> {
