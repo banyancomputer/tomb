@@ -44,7 +44,7 @@ pub enum ConfigStateError {
     NoAccountId,
     MissingKey(String),
     MissingDrive(String),
-    LostOrigin(String),
+    LostPath(String),
 }
 
 impl Display for ConfigStateError {
@@ -64,8 +64,8 @@ impl Display for ConfigStateError {
             ConfigStateError::MissingDrive(id) => {
                 f.write_str(&format!("MISSING DRIVE WITH ID {}", id))
             }
-            ConfigStateError::LostOrigin(id) => {
-                f.write_str(&format!("UNKNOWN ORIGIN OF DRIVE W ID {}", id))
+            ConfigStateError::LostPath(id) => {
+                f.write_str(&format!("UNKNOWN PATH OF DRIVE W ID {}", id))
             }
         }
     }

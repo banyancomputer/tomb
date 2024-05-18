@@ -12,24 +12,24 @@ use walkdir::WalkDir;
 pub async fn prepare(
     drive: &mut Drive,
     store: &mut impl DataStore,
-    origin: &PathBuf,
+    path: &PathBuf,
 ) -> Result<(), NativeError> {
     let mut root = drive.root().await?;
     let mut rng = crypto_rng();
 
     // Iterate over every entry in the FileSystem
-    for path in all_bfs_paths(drive).await? {
+    for bfs_path in all_bfs_paths(drive).await? {
         //info!("enumerated: {:?}", path);
         // Deterministically canonicalize the path
-        let canon = origin.join(&path);
+        let canon = path.join(&bfs_path);
         //
         if !canon.exists() {
             warn!(
                 "{} was present in the FS but not on disk. Deleting.",
-                path.display()
+                bfs_path.display()
             );
             //if prompt_for_bool("Delete?") {
-            let bfs_path: Vec<&str> = path
+            let bfs_path: Vec<&str> = bfs_path
                 .components()
                 .filter_map(|v| v.as_os_str().to_str())
                 .collect();
@@ -40,7 +40,7 @@ pub async fn prepare(
     }
 
     // Iterate over every entry on disk
-    for entry in WalkDir::new(origin)
+    for entry in WalkDir::new(path)
         .follow_links(true)
         .into_iter()
         .filter_entry(is_visible)
@@ -50,7 +50,7 @@ pub async fn prepare(
                 // Path on OS
                 let canonical_path = entry.path();
                 // Banyanfs path relative to root
-                let bfs_path = canonical_path.strip_prefix(origin)?;
+                let bfs_path = canonical_path.strip_prefix(path)?;
                 let bfs_path: Vec<&str> = bfs_path
                     .components()
                     .filter_map(|v| v.as_os_str().to_str())

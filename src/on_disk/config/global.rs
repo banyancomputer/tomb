@@ -24,7 +24,7 @@ pub struct GlobalConfig {
     /// User Key Identifiers
     user_key_ids: Vec<String>,
     /// Drive Identifiers/Names -> Disk Locations
-    drive_origins: HashMap<String, PathBuf>,
+    drive_paths: HashMap<String, PathBuf>,
     /// Remote account id
     account_id: Option<Uuid>,
 }
@@ -35,7 +35,7 @@ impl Default for GlobalConfig {
             version: env!("CARGO_PKG_VERSION").to_string(),
             selected_user_key_id: None,
             user_key_ids: vec![],
-            drive_origins: HashMap::new(),
+            drive_paths: HashMap::new(),
             account_id: None,
         }
     }
@@ -56,23 +56,23 @@ impl GlobalConfig {
     pub fn selected_user_key_id(&self) -> Result<String, ConfigStateError> {
         self.selected_user_key_id
             .clone()
-            .ok_or(ConfigStateError::NoKey)
+            .ok_or(ConfigStateError::NoKeySelected)
     }
 
-    pub fn set_origin(&mut self, drive_id: &str, origin: &Path) {
-        self.drive_origins
-            .insert(drive_id.to_string(), origin.to_path_buf());
+    pub fn set_path(&mut self, drive_id: &str, path: &Path) {
+        self.drive_paths
+            .insert(drive_id.to_string(), path.to_path_buf());
     }
 
-    pub fn get_origin(&self, drive_id: &str) -> Result<PathBuf, ConfigStateError> {
-        self.drive_origins
+    pub fn get_path(&self, drive_id: &str) -> Result<PathBuf, ConfigStateError> {
+        self.drive_paths
             .get(drive_id)
             .cloned()
             .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
     }
 
-    pub fn remove_origin(&mut self, drive_id: &str) -> Result<PathBuf, ConfigStateError> {
-        self.drive_origins
+    pub fn remove_path(&mut self, drive_id: &str) -> Result<PathBuf, ConfigStateError> {
+        self.drive_paths
             .remove(drive_id)
             .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
     }

@@ -35,7 +35,7 @@ pub enum DrivesCommand {
     Create {
         /// Drive Root
         #[arg(short, long)]
-        origin: Option<PathBuf>,
+        path: Option<PathBuf>,
     },
     /// Prepare a Drive for Pushing by encrypting new data
     Prepare {
@@ -53,6 +53,13 @@ pub enum DrivesCommand {
     Delete(DriveSpecifier),
     /// Sync Drive data to or from remote
     Sync(DriveSpecifier),
+    /*
+    /// Manage drive access permissions
+    Access {
+        #[clap(flatten)]
+        subcommand: DriveAccessCommand
+    }
+    */
     /*
     /// Drive info
     Info(DriveSpecifier),
@@ -91,15 +98,15 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                         user_key_id: user_key_id.clone(),
                     };
                     let unlocked = Drive::decode(id).await.is_ok();
-                    let origin = global
-                        .get_origin(name)
+                    let path = global
+                        .get_path(name)
                         .map(|p| p.display().to_string())
                         .unwrap_or("Unknown".to_string());
 
                     if let Some(_remote) = remote_drives.iter().find(|r| r.name == *name) {
-                        info!(name, origin, ?unlocked, "Sync Drive");
+                        info!(name, path, ?unlocked, "Sync Drive");
                     } else {
-                        info!(name, origin, ?unlocked, "Local Drive");
+                        info!(name, path, ?unlocked, "Local Drive");
                     }
                 }
 
@@ -109,7 +116,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 {
                     info!(
                         name = remote.name,
-                        origin = "None",
+                        path = "None",
                         unlocked = false,
                         "Remote Drive"
                     );
@@ -118,12 +125,12 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
-            DrivesCommand::Create { origin } => {
-                let origin = origin.unwrap_or(current_dir()?);
+            DrivesCommand::Create { path } => {
+                let path = path.unwrap_or(current_dir()?);
                 let drive_id =
-                    name_of(&origin).ok_or(ConfigStateError::ExpectedPath(origin.clone()))?;
+                    name_of(&path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
                 // Save location association
-                global.set_origin(&drive_id, &origin);
+                global.set_path(&drive_id, &path);
                 global.encode(&GlobalConfigId).await?;
                 let user_key_id = global.selected_user_key_id()?;
                 let id = DriveAndKeyId {
@@ -151,7 +158,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             } => {
                 let mut ld = SyncLoadedDrive::load(&ds.into(), &global).await?;
                 //let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.origin).await?;
+                operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
                 ld.bfs.encode(&ld.id).await?;
                 info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
                 info!("{:?}", ld.bfs.drive.id());
@@ -159,7 +166,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             DrivesCommand::Delete(ds) => {
                 let ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                global.remove_origin(&ld.id.drive_id)?;
+                global.remove_path(&ld.id.drive_id)?;
                 Drive::erase(&ld.id).await?;
                 LocalBanyanFS::erase(&ld.id).await?;
                 global.encode(&GlobalConfigId).await?;
@@ -174,7 +181,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //let drive = platform::drives::get(&client, drive_id).await?;
 
                 let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.origin).await?;
+                operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
                 info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
                 info!("{:?}", ld.bfs.drive.id());
                 Ok(())

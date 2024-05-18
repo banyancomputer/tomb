@@ -9,7 +9,7 @@ use crate::{
 use super::LocalBanyanFS;
 
 pub struct LocalLoadedDrive {
-    pub origin: PathBuf,
+    pub path: PathBuf,
     pub id: DriveAndKeyId,
     pub bfs: LocalBanyanFS,
 }
@@ -17,13 +17,13 @@ pub struct LocalLoadedDrive {
 impl LocalLoadedDrive {
     pub async fn load(di: &DriveId, global: &GlobalConfig) -> Result<Self, NativeError> {
         let drive_id = di.get_id().await?;
-        let origin = global.get_origin(&drive_id)?;
+        let path = global.get_path(&drive_id)?;
         let user_key_id = global.selected_user_key_id()?;
         let id = DriveAndKeyId {
             drive_id,
             user_key_id,
         };
         let bfs = LocalBanyanFS::decode(&id).await?;
-        Ok(Self { origin, id, bfs })
+        Ok(Self { path, id, bfs })
     }
 }

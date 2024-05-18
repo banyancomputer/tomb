@@ -1,4 +1,5 @@
 use cli_table::{print_stdout, CellStruct, Style, Table};
+mod drives;
 mod keys;
 
 pub trait TableEntry: Sized {

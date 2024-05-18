@@ -14,16 +14,16 @@ pub struct DriveSpecifier {
     /// Bucket name
     #[arg(short, long)]
     pub name: Option<String>,
-    /// Bucket Root on disk
+    /// Drive root on disk
     #[arg(short, long)]
-    pub origin: Option<PathBuf>,
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
 pub enum DriveId {
     DriveId(String),
     Name(String),
-    Origin(PathBuf),
+    Path(PathBuf),
 }
 
 impl From<DriveSpecifier> for DriveId {
@@ -34,7 +34,7 @@ impl From<DriveSpecifier> for DriveId {
         if let Some(name) = value.name {
             return Self::Name(name.to_string());
         }
-        Self::Origin(value.origin.expect("failure"))
+        Self::Path(value.path.expect("failure"))
     }
 }
 
@@ -47,8 +47,8 @@ impl DriveId {
                 Err(ConfigStateError::MissingDrive(drive_id.to_string()).into())
             }
             DriveId::Name(name) => Ok(name.to_string()),
-            DriveId::Origin(origin) => name_of(origin)
-                .ok_or(ConfigStateError::MissingDrive(format!("{}", origin.display())).into()),
+            DriveId::Path(path) => name_of(path)
+                .ok_or(ConfigStateError::MissingDrive(format!("{}", path.display())).into()),
         }
     }
 }
