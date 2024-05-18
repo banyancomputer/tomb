@@ -4,7 +4,7 @@ use crate::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
     },
-    utils::{prompt_for_bool, prompt_for_key_name, prompt_for_string},
+    utils::{prompt_for_bool, prompt_for_key_name},
     ConfigStateError, NativeError,
 };
 
