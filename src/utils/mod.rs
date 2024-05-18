@@ -39,15 +39,20 @@ fn bool_colorized(value: bool) -> ColoredString {
 }
 
 /// Prompt the user for a y/n answer
-pub fn prompt_for_bool(msg: &str) -> bool {
-    info!("{msg} y/n");
+pub fn prompt_for_bool(msg: &str, t: char, f: char) -> bool {
+    info!("{msg} {t}/{f}");
     loop {
-        let mut input = [0];
-        let _ = std::io::stdin().read(&mut input);
-        match input[0] as char {
-            'y' | 'Y' => return true,
-            'n' | 'N' => return false,
-            _ => info!("y/n only please."),
+        let mut input = String::new();
+        let _ = std::io::stdin().read_line(&mut input);
+        input = input.trim().to_lowercase();
+        if let Some(c) = input.chars().nth(0) {
+            if c == t {
+                return true;
+            }
+            if c == f {
+                return false;
+            }
+            warn!("{t}/{f} only please.");
         }
     }
 }

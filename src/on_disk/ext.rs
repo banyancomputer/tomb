@@ -9,12 +9,13 @@ where
     I: std::fmt::Display,
 {
     async fn id_from_string(value: String) -> Result<I, OnDiskError>;
-    async fn decode_all() -> Result<Vec<Self>, OnDiskError> {
+    async fn decode_all() -> Result<Vec<(I, Self)>, OnDiskError> {
         let mut entries = Vec::new();
         for id in Self::entries() {
-            entries.push(Self::decode(&Self::id_from_string(id).await?).await?);
+            let id = Self::id_from_string(id).await?;
+            let object = Self::decode(&id).await?;
+            entries.push((id, object));
         }
-
         Ok(entries)
     }
 }
