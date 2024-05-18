@@ -4,7 +4,7 @@ use clap::Subcommand;
 #[derive(Subcommand, Clone, Debug)]
 pub enum DriveAccessCommand {
     /// List drive actors
-    Actors,
+    Ls,
     /// Grant access to a known key
     Grant,
     /// Revoke access from a known key

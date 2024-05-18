@@ -38,6 +38,8 @@ pub enum KeysCommand {
         #[arg(short, long)]
         name: String,
     },
+    /// Display the currently selected key
+    Selected,
 }
 
 #[async_trait(?Send)]
@@ -201,6 +203,30 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 } else {
                     Err(ConfigStateError::MissingKey(name).into())
                 }
+            }
+            KeysCommand::Selected => {
+                let selected_user_key_id = global.selected_user_key_id()?;
+                let private_key = SigningKey::decode(&selected_user_key_id).await?;
+                let private_key_path = SigningKey::path(&selected_user_key_id)?;
+                let public_key = private_key.verifying_key();
+                let fingerprint = api_fingerprint_key(&public_key);
+                let public_key = public_key.to_spki().unwrap();
+
+                let table = vec![vec![
+                    selected_user_key_id.cell(),
+                    fingerprint.cell(),
+                    public_key.cell(),
+                    private_key_path.display().cell(),
+                ]]
+                .table()
+                .title(vec![
+                    "Name".cell(),
+                    "Fingerprint".cell(),
+                    "Public Key".cell(),
+                    "Private Key Path".cell(),
+                ]);
+                print_stdout(table)?;
+                Ok(())
             }
         }
     }
