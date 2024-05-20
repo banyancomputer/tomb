@@ -28,6 +28,8 @@ use cli_table::{print_stdout, Cell, Table};
 use std::{env::current_dir, path::PathBuf};
 use tracing::{info, warn};
 
+use super::drive_access::DriveAccessCommand;
+
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
 pub enum DrivesCommand {
@@ -55,25 +57,12 @@ pub enum DrivesCommand {
     Delete(DriveSpecifier),
     /// Sync Drive data to or from remote
     Sync(DriveSpecifier),
-    /*
-    /// Manage drive access permissions
-    Access {
-        #[clap(flatten)]
-        subcommand: DriveAccessCommand
-    }
-    */
-    /*
-    /// Drive info
-    Info(DriveSpecifier),
-    /// Drive data usage
-    Usage(DriveSpecifier),
     /// Drive Key management
-    Keys {
+    Access {
         /// Subcommand
         #[clap(subcommand)]
-        subcommand: KeyCommand,
+        subcommand: DriveAccessCommand,
     },
-    */
 }
 
 #[async_trait(?Send)]
@@ -141,40 +130,6 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 ]);
 
                 print_stdout(table)?;
-
-                // table_rows.push(vec![ad.name.cell(), ad.id.cell()]);
-
-                /*
-                for name in local_drive_names.iter() {
-                    let id = &DriveAndKeyId {
-                        drive_id: name.clone(),
-                        user_key_id: user_key_id.clone(),
-                    };
-                    let unlocked = Drive::decode(id).await.is_ok();
-                    let path = global
-                        .get_path(name)
-                        .map(|p| p.display().to_string())
-                        .unwrap_or("Unknown".to_string());
-
-                    if let Some(_remote) = remote_drives.iter().find(|r| r.name == *name) {
-                        info!(name, path, ?unlocked, "Sync Drive");
-                    } else {
-                        info!(name, path, ?unlocked, "Local Drive");
-                    }
-                }
-
-                for remote in remote_drives
-                    .into_iter()
-                    .filter(|r| !local_drive_names.contains(&r.name))
-                {
-                    info!(
-                        name = remote.name,
-                        path = "None",
-                        unlocked = false,
-                        "Remote Drive"
-                    );
-                }
-                */
 
                 Ok(())
             }
@@ -251,6 +206,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //if let Ok(_ld) = LoadedDrive::load(&di, &global).await {}
                 todo!()
             }
+            DrivesCommand::Access { subcommand } => subcommand.run_internal().await,
         }
     }
 }
