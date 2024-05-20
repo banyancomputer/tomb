@@ -17,6 +17,7 @@ mod keys;
 //pub use access::*;
 pub use account::*;
 pub use api::*;
+pub use drives::*;
 //pub use drives::*;
 
 /// Defines the types of commands that can be executed from the CLI.

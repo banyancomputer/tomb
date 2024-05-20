@@ -20,6 +20,7 @@ use crate::{
 use async_trait::async_trait;
 use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
 use operations::DriveOperationCommand;
+pub use operations::DriveOperationPayload;
 
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
@@ -156,7 +157,14 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 subcommand,
             } => {
                 let di = DriveId::from(drive_specifier);
-                subcommand.run_internal(&di).await
+                let payload = DriveOperationPayload {
+                    id: DriveAndKeyId {
+                        drive_id: todo!(),
+                        user_key_id: todo!(),
+                    },
+                    global: GlobalConfig::decode(&GlobalConfigId).await?,
+                };
+                subcommand.run_internal(&payload).await
             }
         }
     }

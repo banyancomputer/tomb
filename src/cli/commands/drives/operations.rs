@@ -20,6 +20,7 @@ use tracing::*;
 
 #[derive(Subcommand, Clone, Debug)]
 pub enum DriveOperationCommand {
+    Info,
     /// Prepare a Drive for Pushing by encrypting new data
     Prepare {
         /// Follow symbolic links
@@ -33,26 +34,48 @@ pub enum DriveOperationCommand {
     /// Sync Drive data to or from remote
     Sync,
     /// Change the name of a Drive
-    Rename { new_name: String }, //(String),
-                                 /*
-                                 /// Drive Key management
-                                 Access {
-                                     /// Subcommand
-                                     #[clap(subcommand)]
-                                     subcommand: DriveAccessCommand,
-                                 },
-                                 */
+    Rename {
+        new_name: String,
+    }, //(String),
+       /*
+       /// Drive Key management
+       Access {
+           /// Subcommand
+           #[clap(subcommand)]
+           subcommand: DriveAccessCommand,
+       },
+       */
+}
+
+#[derive(Debug, Clone)]
+pub struct DriveOperationPayload {
+    pub id: DriveAndKeyId,
+    pub global: GlobalConfig,
 }
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DriveOperationCommand {
-    type Payload = DriveId;
-    async fn run_internal(self, drive_id: &Self::Payload) -> Result<(), NativeError> {
+    type Payload = DriveOperationPayload;
+    async fn run_internal(self, payload: &Self::Payload) -> Result<(), NativeError> {
         use DriveOperationCommand::*;
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
+            // Info
+            Info => {
+                info!("trying local");
+                let local = LocalLoadedDrive::load(&payload).await?;
+                /*
+                info!("local: {:?}", local.path.display());
+                let client = global.get_client().await?;
+                let platform_id = global.drive_platform_id(&drive_id).await?;
+                info!("pid: {:?}", platform_id);
+                let platform_drive = platform::drives::get(&client, &drive_id).await?;
+                info!("pd: {:?}", platform_drive.id);
+                */
+                Ok(())
+            }
             Prepare { follow_links: _ } => {
-                let mut ld = LocalLoadedDrive::load(&drive_id, &global).await?;
+                let mut ld = LocalLoadedDrive::load(&payload).await?;
                 //let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
                 ld.bfs.encode(&ld.id).await?;
@@ -61,7 +84,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Delete => {
-                let ld = LocalLoadedDrive::load(&drive_id, &global).await?;
+                let ld = LocalLoadedDrive::load(&payload).await?;
                 global.remove_path(&ld.id.drive_id)?;
                 Drive::erase(&ld.id).await?;
                 LocalBanyanFS::erase(&ld.id).await?;
@@ -76,7 +99,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 //let client = global.api_client().await?;
                 //let drive = platform::drives::get(&client, drive_id).await?;
 
-                let mut ld = LocalLoadedDrive::load(&drive_id, &global).await?;
+                let mut ld = LocalLoadedDrive::load(&payload).await?;
                 operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
                 info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
                 info!("{:?}", ld.bfs.drive.id());
@@ -93,8 +116,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 todo!()
             }
             Rename { new_name } => {
-                let loaded = LocalLoadedDrive::load(&drive_id, &global).await?;
-
+                let loaded = LocalLoadedDrive::load(&payload).await?;
                 let old_id = loaded.id.clone();
                 let new_id = DriveAndKeyId::new(&new_name, &old_id.user_key_id);
 
