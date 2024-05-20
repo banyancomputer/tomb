@@ -24,7 +24,7 @@ use cli_table::{print_stdout, Cell, Table};
 use tokio::fs::rename;
 
 use std::{env::current_dir, path::PathBuf};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use super::drive_access::DriveAccessCommand;
 
@@ -88,6 +88,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     }
                 };
 
+                debug!("fetched remote drives");
+
                 let mut table_rows = Vec::new();
                 let local_drive_names = Drive::entries();
 
@@ -107,6 +109,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     }
                 }
 
+                debug!("found sync drives");
+
                 for local_name in local_drive_names.into_iter() {
                     if !sync_names.contains(&local_name) {
                         table_rows.push(vec![
@@ -118,6 +122,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     }
                 }
 
+                debug!("found local drives");
+
                 for remote in remote_drives.into_iter() {
                     if !sync_names.contains(&remote.name) {
                         table_rows.push(vec![
@@ -128,6 +134,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                         ])
                     }
                 }
+
+                debug!("found remote drives");
 
                 let table = table_rows.table().title(vec![
                     "Name".cell(),

@@ -32,7 +32,7 @@ async fn main() {
     let cli = Args::parse();
     let (non_blocking_writer, _guard) = tracing_appender::non_blocking(std::io::stderr());
     let env_filter = EnvFilter::builder()
-        .with_default_directive(Level::INFO.into())
+        .with_default_directive(Level::DEBUG.into())
         .from_env_lossy();
     let stderr_layer = tracing_subscriber::fmt::layer()
         .pretty()

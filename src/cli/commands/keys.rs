@@ -46,8 +46,9 @@ pub enum KeysCommand {
 impl RunnableCommand<NativeError> for KeysCommand {
     async fn run_internal(self) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
+        use KeysCommand::*;
         match self {
-            KeysCommand::Ls => {
+            Ls => {
                 let remote_keys: Vec<ApiUserKey> = if let Ok(client) = global.get_client().await {
                     info!("Fetching remote keys, too.");
                     platform::account::user_key_access(&client)
