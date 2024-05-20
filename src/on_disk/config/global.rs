@@ -3,7 +3,10 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
+use banyanfs::{
+    api::{platform, ApiClient},
+    codec::crypto::SigningKey,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -25,6 +28,8 @@ pub struct GlobalConfig {
     user_key_ids: Vec<String>,
     /// Drive Identifiers/Names -> Disk Locations
     drive_paths: HashMap<String, PathBuf>,
+    /// Drive Identifiers -> Platform Drive Identifiers
+    drive_platform_ids: HashMap<String, String>,
     /// Remote account id
     account_id: Option<Uuid>,
 }
@@ -36,6 +41,7 @@ impl Default for GlobalConfig {
             selected_user_key_id: None,
             user_key_ids: vec![],
             drive_paths: HashMap::new(),
+            drive_platform_ids: HashMap::new(),
             account_id: None,
         }
     }
@@ -89,6 +95,23 @@ impl GlobalConfig {
     pub fn remove_account_id(&mut self) {
         self.account_id = None;
     }
+
+    pub async fn drive_platform_id(&mut self, drive_id: &str) -> Result<String, NativeError> {
+        if let Some(platform_id) = self.drive_platform_ids.get(drive_id) {
+            return Ok(platform_id.to_string());
+        }
+        let client = self.get_client().await?;
+        let drive_platform_id = platform::drives::get_all(&client)
+            .await?
+            .into_iter()
+            .find(|drive| drive.name == drive_id)
+            .ok_or(ConfigStateError::MissingDrive(drive_id.into()))?
+            .id;
+        self.drive_platform_ids
+            .insert(drive_id.to_string(), drive_platform_id.clone());
+        self.encode(&GlobalConfigId).await?;
+        Ok(drive_platform_id)
+    }
 }
 
 pub struct GlobalConfigId;
@@ -99,6 +122,7 @@ impl Display for GlobalConfigId {
 }
 
 /// ~/.config/banyan
+/// Contains a single global.json
 #[async_trait(?Send)]
 impl OnDisk<GlobalConfigId> for GlobalConfig {
     const TYPE: DiskType = DiskType::Config;

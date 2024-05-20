@@ -236,6 +236,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 info!("<< RENAMED DRIVE LOCALLY >>");
 
+                if let Ok(client) = global.get_client().await {
+                    warn!("Not yet implemented for remote updates");
+                    //platform::drives::update(&client, drive_id, attrs)
+                }
+
                 Ok(())
             }
             Access { subcommand } => subcommand.run_internal().await,

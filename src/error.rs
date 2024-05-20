@@ -54,9 +54,9 @@ impl Display for ConfigStateError {
                 "EXPECTED PATH TO EXIST BUT DIDN'T {}",
                 path.display()
             )),
-            ConfigStateError::NoKey => f.write_str("NO KEY ON DISK AT ALL"),
-            ConfigStateError::NoKeySelected => f.write_str("NO KEY SELECTED"),
-            ConfigStateError::NoAccountId => f.write_str("NO ACCOUNT ID"),
+            ConfigStateError::NoKey => f.write_str("Please create a user key first."),
+            ConfigStateError::NoKeySelected => f.write_str("Please select a user key first."),
+            ConfigStateError::NoAccountId => f.write_str("Please log in first."),
             ConfigStateError::MissingKey(name) => f.write_str(&format!(
                 "Key with name `{}` is not persisted locally.",
                 name
