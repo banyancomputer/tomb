@@ -47,5 +47,5 @@ async fn main() {
     tracing_subscriber::registry().with(stderr_layer).init();
 
     // Determine the command being executed run appropriate subcommand
-    let _ = cli.command.run().await;
+    let _ = cli.command.run(&()).await;
 }

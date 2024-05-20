@@ -29,7 +29,9 @@ pub enum ApiCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for ApiCommand {
-    async fn run_internal(self) -> Result<(), NativeError> {
+    type Payload = ();
+
+    async fn run_internal(self, payload: &()) -> Result<(), NativeError> {
         let _global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             ApiCommand::Display => {

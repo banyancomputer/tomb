@@ -44,7 +44,8 @@ pub enum KeysCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for KeysCommand {
-    async fn run_internal(self) -> Result<(), NativeError> {
+    type Payload = ();
+    async fn run_internal(self, payload: &()) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         use KeysCommand::*;
         match self {
