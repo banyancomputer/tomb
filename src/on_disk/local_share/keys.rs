@@ -4,6 +4,8 @@ use banyanfs::prelude::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
+/// ~/.local/share/banyan/user_keys
+/// Contains .pem files with private keys
 #[async_trait(?Send)]
 impl OnDisk<String> for SigningKey {
     const TYPE: DiskType = DiskType::LocalShare;

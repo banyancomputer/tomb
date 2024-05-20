@@ -24,6 +24,7 @@ use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
 
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
+use tokio::fs::rename;
 
 use std::{env::current_dir, path::PathBuf};
 use tracing::{info, warn};
@@ -57,6 +58,15 @@ pub enum DrivesCommand {
     Delete(DriveSpecifier),
     /// Sync Drive data to or from remote
     Sync(DriveSpecifier),
+    /// Change the name of a Drive
+    Rename {
+        /// Drive in question
+        #[clap(flatten)]
+        ds: DriveSpecifier,
+
+        /// New name
+        new_name: String,
+    },
     /// Drive Key management
     Access {
         /// Subcommand
@@ -69,10 +79,10 @@ pub enum DrivesCommand {
 impl RunnableCommand<NativeError> for DrivesCommand {
     async fn run_internal(self) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
-
+        use DrivesCommand::*;
         match self {
             // List all Buckets tracked remotely and locally
-            DrivesCommand::Ls => {
+            Ls => {
                 let remote_drives = match global.get_client().await {
                     Ok(client) => platform::drives::get_all(&client).await?,
                     Err(_) => {
@@ -134,7 +144,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
-            DrivesCommand::Create { path } => {
+            Create { path } => {
                 let path = path.unwrap_or(current_dir()?);
                 let drive_id =
                     name_of(&path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
@@ -142,10 +152,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 global.set_path(&drive_id, &path);
                 global.encode(&GlobalConfigId).await?;
                 let user_key_id = global.selected_user_key_id()?;
-                let id = DriveAndKeyId {
-                    drive_id: drive_id.clone(),
-                    user_key_id: user_key_id.clone(),
-                };
+                let id = DriveAndKeyId::new(&drive_id, &user_key_id);
 
                 if let Ok(client) = global.get_client().await {
                     let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
@@ -161,7 +168,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 Ok(())
             }
-            DrivesCommand::Prepare {
+            Prepare {
                 ds,
                 follow_links: _,
             } => {
@@ -173,7 +180,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 info!("{:?}", ld.bfs.drive.id());
                 Ok(())
             }
-            DrivesCommand::Delete(ds) => {
+            Delete(ds) => {
                 let ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 global.remove_path(&ld.id.drive_id)?;
                 Drive::erase(&ld.id).await?;
@@ -185,7 +192,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 Ok(())
             }
-            DrivesCommand::Restore(ds) => {
+            Restore(ds) => {
                 //let client = global.api_client().await?;
                 //let drive = platform::drives::get(&client, drive_id).await?;
 
@@ -195,7 +202,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 info!("{:?}", ld.bfs.drive.id());
                 Ok(())
             }
-            DrivesCommand::Sync(ds) => {
+            Sync(ds) => {
                 let client = global.get_client().await?;
                 let _remote_drives = platform::drives::get_all(&client).await?;
                 let _di: DriveId = ds.into();
@@ -206,7 +213,32 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 //if let Ok(_ld) = LoadedDrive::load(&di, &global).await {}
                 todo!()
             }
-            DrivesCommand::Access { subcommand } => subcommand.run_internal().await,
+            Rename { ds, new_name } => {
+                let di = DriveId::from(ds);
+                let loaded = LocalLoadedDrive::load(&di, &global).await?;
+
+                let old_id = loaded.id.clone();
+                let new_id = DriveAndKeyId::new(&new_name, &old_id.user_key_id);
+
+                // Rename drive.bfs
+                Drive::rename(&old_id, &new_id).await?;
+                // Rename drive_blocks folder
+                LocalBanyanFS::rename(&old_id, &new_id).await?;
+
+                // Rename the folder in user land
+                let old_path = loaded.path.clone();
+                let new_path = old_path.parent().unwrap().join(new_name);
+                rename(old_path, &new_path).await?;
+
+                global.remove_path(&old_id.drive_id)?;
+                global.set_path(&new_id.drive_id, &new_path);
+                global.encode(&GlobalConfigId).await?;
+
+                info!("<< RENAMED DRIVE LOCALLY >>");
+
+                Ok(())
+            }
+            Access { subcommand } => subcommand.run_internal().await,
         }
     }
 }

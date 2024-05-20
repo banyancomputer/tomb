@@ -98,6 +98,7 @@ impl Display for GlobalConfigId {
     }
 }
 
+/// ~/.config/banyan
 #[async_trait(?Send)]
 impl OnDisk<GlobalConfigId> for GlobalConfig {
     const TYPE: DiskType = DiskType::Config;

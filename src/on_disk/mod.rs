@@ -12,7 +12,7 @@ use std::{
     fs::{create_dir, remove_file},
     path::PathBuf,
 };
-use tokio::fs::{remove_dir_all, File, OpenOptions};
+use tokio::fs::{remove_dir_all, rename, File, OpenOptions};
 use tokio_util::compat::{Compat, TokioAsyncReadCompatExt};
 use walkdir::WalkDir;
 
@@ -79,6 +79,13 @@ pub trait OnDisk<I: Display>: Sized {
         else {
             Ok(remove_file(Self::path(identifier)?)?)
         }
+    }
+
+    async fn rename(old: &I, new: &I) -> Result<(), OnDiskError> {
+        let old_path = Self::path(old)?;
+        let new_path = Self::path(new)?;
+        rename(old_path, new_path).await?;
+        Ok(())
     }
 
     fn entries() -> Vec<String> {

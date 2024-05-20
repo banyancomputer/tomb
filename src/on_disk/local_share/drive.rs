@@ -9,7 +9,7 @@ use banyanfs::{
 };
 
 //
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DriveAndKeyId {
     pub drive_id: String,
     pub user_key_id: String,
@@ -17,6 +17,14 @@ pub struct DriveAndKeyId {
 impl Display for DriveAndKeyId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.drive_id))
+    }
+}
+impl DriveAndKeyId {
+    pub fn new(drive_id: &str, user_key_id: &str) -> Self {
+        Self {
+            drive_id: drive_id.to_string(),
+            user_key_id: user_key_id.to_string(),
+        }
     }
 }
 

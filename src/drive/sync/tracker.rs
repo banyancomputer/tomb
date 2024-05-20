@@ -27,6 +27,8 @@ impl DiskSyncTracker {
     }
 }
 
+/// ~/.local/share/banyan/drive_sync
+/// Contains .sync files representing sync tracking
 #[async_trait(?Send)]
 impl OnDisk<String> for DiskSyncTracker {
     const TYPE: DiskType = DiskType::LocalShare;
