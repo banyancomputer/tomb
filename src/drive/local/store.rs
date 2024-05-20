@@ -10,12 +10,20 @@ use object_store::{local::LocalFileSystem, path::Path, ObjectStore};
 use crate::on_disk::OnDiskError;
 
 pub struct LocalDataStore {
+    prefix: PathBuf,
     lfs: LocalFileSystem,
+}
+
+impl Clone for LocalDataStore {
+    fn clone(&self) -> Self {
+        Self::new(self.prefix.clone()).expect("copy lds")
+    }
 }
 
 impl LocalDataStore {
     pub fn new(path: PathBuf) -> Result<Self, OnDiskError> {
         Ok(LocalDataStore {
+            prefix: path.clone(),
             lfs: LocalFileSystem::new_with_prefix(path)
                 .map_err(|err| OnDiskError::Implementation(err.to_string()))?,
         })

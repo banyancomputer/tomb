@@ -1,6 +1,7 @@
+use self::config::{GlobalConfig, GlobalConfigId};
 use self::local_share::DriveAndKeyId;
 
-use crate::on_disk::*;
+use crate::{on_disk::*, ConfigStateError, NativeError};
 
 use async_trait::async_trait;
 
@@ -9,7 +10,7 @@ use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 
 use std::fs::create_dir_all;
 
-use super::LocalDataStore;
+use crate::drive::local::{DiskSyncTracker, LocalDataStore, SyncDataStore};
 
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct LocalBanyanFS {
@@ -17,6 +18,8 @@ pub struct LocalBanyanFS {
     pub drive: Drive,
     /// Stores CIDs on behalf of the Drive
     pub store: LocalDataStore,
+    /// Sync Tracker
+    pub tracker: DiskSyncTracker,
 }
 
 impl LocalBanyanFS {
@@ -35,10 +38,25 @@ impl LocalBanyanFS {
             create_dir_all(&store_path)?;
         }
         let store = LocalDataStore::new(store_path)?;
+        let tracker = DiskSyncTracker::new(&identifier.drive_id);
 
-        let lbfs = Self { store, drive };
-        lbfs.encode(identifier).await?;
-        Ok(lbfs)
+        let bfs = Self {
+            store,
+            drive,
+            tracker,
+        };
+        bfs.encode(identifier).await?;
+        Ok(bfs)
+    }
+
+    pub async fn go_online(&self) -> Result<SyncDataStore, NativeError> {
+        let global = GlobalConfig::decode(&GlobalConfigId).await?;
+        let client = global.get_client().await?;
+        Ok(SyncDataStore::new(
+            client,
+            self.store.clone(),
+            self.tracker.clone(),
+        ))
     }
 }
 
@@ -58,10 +76,16 @@ impl OnDisk<DriveAndKeyId> for LocalBanyanFS {
     }
 
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
+        // Load the tracker
+        let tracker = DiskSyncTracker::decode(&identifier.drive_id).await?;
         // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;
         // Create a new
         let store = LocalDataStore::new(Self::path(identifier)?)?;
-        Ok(Self { drive, store })
+        Ok(Self {
+            drive,
+            store,
+            tracker,
+        })
     }
 }

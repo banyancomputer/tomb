@@ -1,7 +1,7 @@
 use self::config::{GlobalConfig, GlobalConfigId};
 use self::local_share::DriveAndKeyId;
-use crate::drive::local::LocalDataStore;
-use crate::drive::sync::{DiskSyncTracker, SyncDataStore};
+use crate::drive::local::{DiskSyncTracker, LocalDataStore};
+use crate::drive::sync::SyncDataStore;
 use crate::{on_disk::*, NativeError};
 
 use async_trait::async_trait;

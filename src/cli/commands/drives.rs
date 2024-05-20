@@ -1,10 +1,7 @@
 use crate::{
     cli::{
         commands::{
-            drives::{
-                local::{LocalBanyanFS, LocalLoadedDrive},
-                sync::{SyncBanyanFS, SyncLoadedDrive},
-            },
+            drives::local::{LocalBanyanFS, LocalLoadedDrive},
             RunnableCommand,
         },
         display::Persistence,
@@ -158,7 +155,6 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
                     let _remote_id =
                         platform::drives::create(&client, &drive_id, &public_key).await?;
-                    let _bfs = SyncBanyanFS::init(client, &id).await?;
                     info!("<< CREATED REMOTE DRIVE >>");
                 } else {
                     // Create and encode the Drive and Store
@@ -172,7 +168,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 ds,
                 follow_links: _,
             } => {
-                let mut ld = SyncLoadedDrive::load(&ds.into(), &global).await?;
+                let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 //let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
                 operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
                 ld.bfs.encode(&ld.id).await?;
