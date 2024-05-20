@@ -9,8 +9,11 @@ use crate::{
 use super::LocalBanyanFS;
 
 pub struct LocalLoadedDrive {
+    /// Location of the Drive in user space
     pub path: PathBuf,
+    /// Unique identifier for the loaded Drive
     pub id: DriveAndKeyId,
+    /// Local BFS
     pub bfs: LocalBanyanFS,
 }
 
