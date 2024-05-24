@@ -17,24 +17,25 @@ where
 {
     type Payload;
     /// The internal running operation
-    async fn run_internal(self, payload: &Self::Payload) -> Result<(), ErrorType>;
-
-    /// Run the internal command, passing a reference to a global configuration which is saved after completion
-    async fn run(self, payload: &Self::Payload) -> Result<(), ErrorType> {
-        if GlobalConfig::decode(&GlobalConfigId).await.is_err() {
-            DiskType::Config.init().expect("creating configs");
-            DiskType::LocalShare.init().expect("creating configs");
-
-            GlobalConfig::default()
-                .encode(&GlobalConfigId)
-                .await
-                .expect("new config");
-        }
-
-        let result = self.run_internal(payload).await;
-        if let Err(err) = &result {
-            error!("{err}");
-        }
-        result
-    }
+    async fn run_internal(self, payload: Self::Payload) -> Result<(), ErrorType>;
 }
+/*
+/// Run the internal command, passing a reference to a global configuration which is saved after completion
+async fn run(self, payload: Self::Payload) -> Result<(), ErrorType> {
+    if GlobalConfig::decode(&GlobalConfigId).await.is_err() {
+        DiskType::Config.init().expect("creating configs");
+        DiskType::LocalShare.init().expect("creating configs");
+
+        GlobalConfig::default()
+            .encode(&GlobalConfigId)
+            .await
+            .expect("new config");
+    }
+
+    let result = self.run_internal(payload).await;
+    if let Err(err) = &result {
+        error!("{err}");
+    }
+    result
+}
+*/

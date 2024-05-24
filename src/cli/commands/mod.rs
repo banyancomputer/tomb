@@ -49,18 +49,18 @@ pub enum BanyanCommand {
     },
 }
 
-use super::RunnableCommand;
-use crate::NativeError;
+use super::{specifiers::DriveSpecifier, RunnableCommand};
+use crate::{on_disk::config::GlobalConfig, NativeError};
 use async_trait::async_trait;
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for BanyanCommand {
-    type Payload = ();
-    async fn run_internal(self, payload: &Self::Payload) -> Result<(), NativeError> {
+    type Payload = GlobalConfig;
+    async fn run_internal(self, payload: Self::Payload) -> Result<(), NativeError> {
         match self {
-            BanyanCommand::Api { command } => Ok(command.run_internal(payload).await?),
-            BanyanCommand::Account { command } => Ok(command.run_internal(payload).await?),
+            BanyanCommand::Api { command } => Ok(command.run_internal(()).await?),
+            BanyanCommand::Account { command } => Ok(command.run_internal(()).await?),
             BanyanCommand::Drives { command } => command.run_internal(payload).await,
-            BanyanCommand::Keys { command } => command.run_internal(payload).await,
+            BanyanCommand::Keys { command } => command.run_internal(()).await,
         }
     }
 }

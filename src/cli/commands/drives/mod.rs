@@ -52,10 +52,9 @@ pub enum DrivesCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DrivesCommand {
-    type Payload = ();
+    type Payload = GlobalConfig;
 
-    async fn run_internal(self, payload: &()) -> Result<(), NativeError> {
-        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
+    async fn run_internal(self, mut global: GlobalConfig) -> Result<(), NativeError> {
         use DrivesCommand::*;
         match self {
             // List all Buckets tracked remotely and locally
@@ -156,15 +155,15 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 drive_specifier,
                 subcommand,
             } => {
-                let di = DriveId::from(drive_specifier);
+                let drive_id = DriveId::from(drive_specifier).get_id().await?;
                 let payload = DriveOperationPayload {
                     id: DriveAndKeyId {
-                        drive_id: todo!(),
-                        user_key_id: todo!(),
+                        drive_id,
+                        user_key_id: global.selected_user_key_id()?,
                     },
-                    global: GlobalConfig::decode(&GlobalConfigId).await?,
+                    global: global.clone(),
                 };
-                subcommand.run_internal(&payload).await
+                subcommand.run_internal(payload).await
             }
         }
     }

@@ -36,7 +36,7 @@ pub enum AccountCommand {
 impl RunnableCommand<NativeError> for AccountCommand {
     type Payload = ();
 
-    async fn run_internal(self, payload: &Self::Payload) -> Result<(), NativeError> {
+    async fn run_internal(self, payload: Self::Payload) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
 
         // Process the command

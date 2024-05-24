@@ -5,6 +5,10 @@
 use {
     clap::Parser,
     cli::{Args, RunnableCommand},
+    on_disk::{
+        config::{GlobalConfig, GlobalConfigId},
+        DiskType, OnDisk,
+    },
     tracing::Level,
     tracing_subscriber::{
         fmt::format, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
@@ -46,6 +50,20 @@ async fn main() {
 
     tracing_subscriber::registry().with(stderr_layer).init();
 
-    // Determine the command being executed run appropriate subcommand
-    let _ = cli.command.run(&()).await;
+    let global = match GlobalConfig::decode(&GlobalConfigId).await {
+        Ok(global) => global,
+        Err(err) => {
+            DiskType::Config.init().expect("creating configs");
+            DiskType::LocalShare.init().expect("creating configs");
+
+            let global = GlobalConfig::default();
+            global.encode(&GlobalConfigId).await.unwrap();
+            global
+        }
+    };
+
+    let result = cli.command.run_internal(global).await;
+    if let Err(err) = &result {
+        tracing::error!("{err}");
+    }
 }
