@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    cli::display::{Persistence, TableAble, TableEntry},
+    cli::display::{Persistence, TableEntry},
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
@@ -45,7 +45,7 @@ pub enum KeysCommand {
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for KeysCommand {
     type Payload = ();
-    async fn run_internal(self, payload: ()) -> Result<(), NativeError> {
+    async fn run_internal(self, _payload: ()) -> Result<(), NativeError> {
         let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         use KeysCommand::*;
         match self {

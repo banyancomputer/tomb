@@ -8,7 +8,6 @@ use crate::{
         specifiers::{DriveId, DriveSpecifier},
     },
     drive::local::*,
-    drive::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         local_share::DriveAndKeyId,
@@ -24,7 +23,7 @@ pub use operations::DriveOperationPayload;
 
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
-use tokio::fs::rename;
+
 
 use std::{env::current_dir, path::PathBuf};
 use tracing::{debug, info, warn};

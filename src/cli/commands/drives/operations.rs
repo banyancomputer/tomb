@@ -1,7 +1,6 @@
 use crate::{
     cli::{
         commands::drives::{LocalBanyanFS, LocalLoadedDrive},
-        specifiers::DriveId,
         RunnableCommand,
     },
     drive::operations,
@@ -63,7 +62,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             // Info
             Info => {
                 info!("trying local");
-                let local = LocalLoadedDrive::load(&payload).await?;
+                let _local = LocalLoadedDrive::load(&payload).await?;
                 /*
                 info!("local: {:?}", local.path.display());
                 let client = global.get_client().await?;

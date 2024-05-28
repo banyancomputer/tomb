@@ -1,7 +1,7 @@
 use self::config::{GlobalConfig, GlobalConfigId};
 use self::local_share::DriveAndKeyId;
 
-use crate::{on_disk::*, ConfigStateError, NativeError};
+use crate::{on_disk::*, NativeError};
 
 use async_trait::async_trait;
 

@@ -1,13 +1,10 @@
 use std::fmt::Display;
 
-use crate::on_disk::{
-    config::{GlobalConfig, GlobalConfigId},
-    DiskType, OnDisk,
-};
+
 use async_trait::async_trait;
 use clap::Subcommand;
 
-use tracing::*;
+
 
 /// Async function for running a command
 #[async_trait(?Send)]

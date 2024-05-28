@@ -52,7 +52,7 @@ async fn main() {
 
     let global = match GlobalConfig::decode(&GlobalConfigId).await {
         Ok(global) => global,
-        Err(err) => {
+        Err(_err) => {
             DiskType::Config.init().expect("creating configs");
             DiskType::LocalShare.init().expect("creating configs");
 
