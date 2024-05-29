@@ -6,7 +6,7 @@ use crate::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
     },
-    utils::{prompt_for_bool, prompt_for_key_name},
+    utils::{prompt_for_bool, prompt_for_key_name, prompt_for_string},
     ConfigStateError, NativeError,
 };
 
@@ -32,6 +32,12 @@ pub enum KeysCommand {
     Ls,
     /// Create a new Key
     Create,
+    /// Delete a key
+    Rm {
+        /// Key name
+        #[arg(short, long)]
+        name: String,
+    },
     /// Select a key for use
     Select {
         /// Key name
@@ -180,8 +186,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
 
                 Ok(())
             }
-
-            KeysCommand::Create => {
+            Create => {
                 let mut rng = crypto_rng();
                 let new_key = SigningKey::generate(&mut rng);
                 let new_key_id = prompt_for_key_name("Name this Key:")?;
@@ -195,7 +200,29 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 info!("<< KEY CREATED >>");
                 Ok(())
             }
-            KeysCommand::Select { name } => {
+            Rm { name } => {
+                // If we can successfully load the key
+                if SigningKey::decode(&name).await.is_ok() {
+                    warn!("This is private key material. This operation will erase it from your local machine. Use with caution.");
+                    if name == prompt_for_string("Re-enter the name of your key to confirm") {
+                        SigningKey::erase(&name).await?;
+                        // Make sure we also delesect the key if it was in use
+                        if let Ok(selected_user_key_id) = global.selected_user_key_id() {
+                            if selected_user_key_id == name {
+                                global.deselect_user_key_id();
+                                global.encode(&GlobalConfigId).await?;
+                            }
+                        }
+                        info!("Erased key.");
+                    } else {
+                        warn!("Key names don't match.");
+                    }
+                    Ok(())
+                } else {
+                    Err(ConfigStateError::MissingKey(name).into())
+                }
+            }
+            Select { name } => {
                 // If we can successfully load the key
                 if SigningKey::decode(&name).await.is_ok() {
                     // Update the config
@@ -206,7 +233,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     Err(ConfigStateError::MissingKey(name).into())
                 }
             }
-            KeysCommand::Selected => {
+            Selected => {
                 let selected_user_key_id = global.selected_user_key_id()?;
                 let private_key = SigningKey::decode(&selected_user_key_id).await?;
                 let private_key_path = SigningKey::path(&selected_user_key_id)?;

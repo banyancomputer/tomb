@@ -59,6 +59,10 @@ impl GlobalConfig {
         self.selected_user_key_id = Some(user_key_id);
     }
 
+    pub fn deselect_user_key_id(&mut self) {
+        self.selected_user_key_id = None;
+    }
+
     pub fn selected_user_key_id(&self) -> Result<String, ConfigStateError> {
         self.selected_user_key_id
             .clone()
