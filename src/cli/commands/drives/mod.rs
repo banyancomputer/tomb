@@ -24,9 +24,8 @@ pub use operations::DriveOperationPayload;
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
-
 use std::{env::current_dir, path::PathBuf};
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
@@ -59,7 +58,10 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // List all Buckets tracked remotely and locally
             Ls => {
                 let remote_drives = match global.get_client().await {
-                    Ok(client) => platform::drives::get_all(&client).await?,
+                    Ok(client) => platform::drives::get_all(&client).await.unwrap_or({
+                        error!("Logged in, but failed to fetch remote drives.");
+                        vec![]
+                    }),
                     Err(_) => {
                         warn!("You aren't logged in. Login to see remote drives.");
                         vec![]
@@ -138,15 +140,13 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 let id = DriveAndKeyId::new(&drive_id, &user_key_id);
 
                 if let Ok(client) = global.get_client().await {
-                    let public_key = SigningKey::decode(&user_key_id).await?.verifying_key();
-                    let _remote_id =
-                        platform::drives::create(&client, &drive_id, &public_key).await?;
-                    info!("<< CREATED REMOTE DRIVE >>");
-                } else {
-                    // Create and encode the Drive and Store
-                    LocalBanyanFS::init(&id).await?;
-                    info!("<< CREATED LOCAL DRIVE >>");
+                    //let _remote_id = platform::drives::create(&client, &drive_id).await?;
+                    //info!("<< CREATED REMOTE DRIVE >>");
                 }
+
+                // Create and encode the Drive and Store
+                LocalBanyanFS::init(&id).await?;
+                info!("<< CREATED LOCAL DRIVE >>");
 
                 Ok(())
             }

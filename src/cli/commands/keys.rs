@@ -35,13 +35,11 @@ pub enum KeysCommand {
     /// Delete a key
     Rm {
         /// Key name
-        #[arg(short, long)]
         name: String,
     },
     /// Select a key for use
     Select {
         /// Key name
-        #[arg(short, long)]
         name: String,
     },
     /// Display the currently selected key

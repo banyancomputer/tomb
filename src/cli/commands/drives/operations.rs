@@ -75,7 +75,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             }
             Prepare { follow_links: _ } => {
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
-                //let mut ld = LocalLoadedDrive::load(&ds.into(), &global).await?;
+                info!("loaded!");
                 operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
                 ld.bfs.encode(&ld.id).await?;
                 info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
@@ -106,7 +106,35 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             }
             Sync => {
                 let client = global.get_client().await?;
-                let _remote_drives = platform::drives::get_all(&client).await?;
+                let remote_drives = platform::drives::get_all(&client).await?;
+
+                // Local drive and key identifier
+                let drive_and_key_id = payload.id;
+
+                // If there is already a drive stored on disk
+                if let Ok(local_drive) = LocalBanyanFS::decode(&drive_and_key_id).await {
+                    // Get the remote drive
+                    let remote_drive = match remote_drives
+                        .into_iter()
+                        .find(|remote_drive| remote_drive.name == drive_and_key_id.drive_id)
+                    {
+                        Some(remote_drive) => remote_drive,
+                        None => {
+                            warn!("Remote drive was missing, creating it!");
+                            let remote_drive_id =
+                                platform::drives::create(&client, &drive_and_key_id.drive_id)
+                                    .await?;
+                            platform::drives::get(&client, &remote_drive_id).await?
+                        }
+                    };
+                    info!("found the remote");
+
+                    // Sync the drive
+                    local_drive.sync(&remote_drive.id).await?;
+                } else {
+                    error!("IDK WHAT TO DO HERE YET");
+                }
+
                 //if let Ok(drive_id) = di.get_id().await { }
 
                 //let remote = if let DriveId::DriveId(id) = di { }
