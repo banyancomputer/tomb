@@ -113,14 +113,14 @@ pub trait OnDisk<I: Display>: Sized {
         }
     }
 
-    async fn get_std_writer(identifier: &I) -> Result<std::fs::File, OnDiskError> {
+    fn get_std_writer(identifier: &I) -> Result<std::fs::File, OnDiskError> {
         let mut file_opts = std::fs::OpenOptions::new();
         file_opts.write(true);
         file_opts.create(true);
         file_opts.truncate(true);
         Ok(file_opts.open(Self::path(identifier)?)?)
     }
-    async fn get_std_reader(identifier: &I) -> Result<std::fs::File, OnDiskError> {
+    fn get_std_reader(identifier: &I) -> Result<std::fs::File, OnDiskError> {
         Ok(std::fs::File::open(Self::path(identifier)?)?)
     }
     // Async compat reader/writer defaults

@@ -136,13 +136,13 @@ impl OnDisk<GlobalConfigId> for GlobalConfig {
     // TODO async serde_json?
 
     async fn encode(&self, identifier: &GlobalConfigId) -> Result<(), OnDiskError> {
-        let mut writer = File::create(Self::path(identifier)?)?;
+        let mut writer = Self::get_std_writer(identifier)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
         tracing::info!("<< PREFERENCE SAVED >>");
         Ok(())
     }
     async fn decode(identifier: &GlobalConfigId) -> Result<Self, OnDiskError> {
-        let mut reader = File::open(Self::path(identifier)?)?;
+        let mut reader = Self::get_std_reader(identifier)?;
         Ok(serde_json::from_reader(&mut reader)?)
     }
 }

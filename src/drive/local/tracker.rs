@@ -65,17 +65,14 @@ impl OnDisk<String> for CborSyncTracker {
     const EXTENSION: &'static str = "sync";
 
     async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
-        let writer = Self::get_std_writer(identifier).await?;
+        let writer = Self::get_std_writer(identifier)?;
         tracing::warn!("about to make vec!");
-        ciborium::into_writer(&self, &writer)
-            .map_err(|err| OnDiskError::Implementation("cbor".into()))?;
+        ciborium::into_writer(&self, &writer)?;
         Ok(())
     }
 
     async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
-        let reader = Self::get_std_reader(identifier).await?;
-        let tracker: CborSyncTracker = ciborium::from_reader(&reader)
-            .map_err(|err| OnDiskError::Implementation("cbor".into()))?;
-        Ok(tracker)
+        let reader = Self::get_std_reader(identifier)?;
+        Ok(ciborium::from_reader(&reader)?)
     }
 }
