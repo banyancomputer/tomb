@@ -19,7 +19,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use banyanfs::{api::platform, filesystem::Drive};
-use operations::DriveOperationCommand;
+use operations::DriveOperation;
 pub use operations::DriveOperationPayload;
 
 use clap::Subcommand;
@@ -73,7 +73,7 @@ pub enum DrivesCommand {
 impl RunnableCommand<NativeError> for DrivesCommand {
     type Payload = GlobalConfig;
 
-    async fn run_internal(self, mut global: GlobalConfig) -> Result<(), NativeError> {
+    async fn run(self, mut global: GlobalConfig) -> Result<(), NativeError> {
         use DrivesCommand::*;
         match &self {
             Info { name }
@@ -90,14 +90,12 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 };
 
                 match self {
-                    Info { .. } => DriveOperationCommand::Info.run_internal(payload).await,
-                    Prepare { .. } => DriveOperationCommand::Prepare.run_internal(payload).await,
-                    Restore { .. } => DriveOperationCommand::Restore.run_internal(payload).await,
-                    Delete { .. } => DriveOperationCommand::Delete.run_internal(payload).await,
+                    Info { .. } => DriveOperation::Info.run(payload).await,
+                    Prepare { .. } => DriveOperation::Prepare.run(payload).await,
+                    Restore { .. } => DriveOperation::Restore.run(payload).await,
+                    Delete { .. } => DriveOperation::Delete.run(payload).await,
                     Rename { new_name, .. } => {
-                        DriveOperationCommand::Rename { new_name }
-                            .run_internal(payload)
-                            .await
+                        DriveOperation::Rename { new_name }.run(payload).await
                     }
                     _ => panic!(),
                 }

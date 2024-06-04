@@ -5,11 +5,11 @@ use clap::Subcommand;
 
 /// Async function for running a command
 #[async_trait(?Send)]
-pub trait RunnableCommand<ErrorType>: Subcommand
+pub trait RunnableCommand<ErrorType>
 where
     ErrorType: std::error::Error + std::fmt::Debug + Display,
 {
     type Payload;
     /// The internal running operation
-    async fn run_internal(self, payload: Self::Payload) -> Result<(), ErrorType>;
+    async fn run(self, payload: Self::Payload) -> Result<(), ErrorType>;
 }

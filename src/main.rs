@@ -62,7 +62,7 @@ async fn main() {
         }
     };
 
-    let result = cli.command.run_internal(global).await;
+    let result = cli.command.run(global).await;
     if let Err(err) = &result {
         tracing::error!("{err}");
     }

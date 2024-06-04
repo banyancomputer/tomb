@@ -28,7 +28,6 @@ use banyanfs::{
     stores::{MemorySyncTracker, SyncTracker, SyncableDataStore},
     utils::crypto_rng,
 };
-use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 use futures::{io::Cursor, StreamExt};
 use tokio::fs::{create_dir_all, rename};
@@ -36,8 +35,7 @@ use tracing::*;
 
 use super::helpers::api_drive_with_name;
 
-#[derive(Subcommand, Clone, Debug)]
-pub enum DriveOperationCommand {
+pub enum DriveOperation {
     Info,
     /// Prepare a Drive for Pushing by encrypting new data
     Prepare,
@@ -59,7 +57,6 @@ pub enum DriveOperationCommand {
        */
 }
 
-#[derive(Debug, Clone)]
 pub struct DriveOperationPayload {
     pub id: DriveAndKeyId,
     pub global: GlobalConfig,
@@ -206,10 +203,10 @@ impl DriveOperationPayload {
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for DriveOperationCommand {
+impl RunnableCommand<NativeError> for DriveOperation {
     type Payload = DriveOperationPayload;
-    async fn run_internal(self, mut payload: Self::Payload) -> Result<(), NativeError> {
-        use DriveOperationCommand::*;
+    async fn run(self, mut payload: Self::Payload) -> Result<(), NativeError> {
+        use DriveOperation::*;
         match self {
             // Info
             Info => {

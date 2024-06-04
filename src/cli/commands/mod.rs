@@ -55,12 +55,12 @@ use async_trait::async_trait;
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for BanyanCommand {
     type Payload = GlobalConfig;
-    async fn run_internal(self, payload: Self::Payload) -> Result<(), NativeError> {
+    async fn run(self, payload: Self::Payload) -> Result<(), NativeError> {
         match self {
-            BanyanCommand::Api { command } => Ok(command.run_internal(()).await?),
-            BanyanCommand::Account { command } => Ok(command.run_internal(()).await?),
-            BanyanCommand::Drives { command } => command.run_internal(payload).await,
-            BanyanCommand::Keys { command } => command.run_internal(()).await,
+            BanyanCommand::Api { command } => Ok(command.run(()).await?),
+            BanyanCommand::Account { command } => Ok(command.run(()).await?),
+            BanyanCommand::Drives { command } => command.run(payload).await,
+            BanyanCommand::Keys { command } => command.run(()).await,
         }
     }
 }
