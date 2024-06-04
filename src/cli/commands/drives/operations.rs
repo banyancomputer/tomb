@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use crate::{
     cli::{
-        commands::drives::{LocalBanyanFS, LocalLoadedDrive},
+        commands::{
+            drives::{LocalBanyanFS, LocalLoadedDrive},
+            helpers,
+        },
+        display::Persistence,
         RunnableCommand,
     },
     drive::operations,
@@ -11,7 +15,7 @@ use crate::{
         local_share::DriveAndKeyId,
         OnDisk,
     },
-    NativeError,
+    ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
 use banyanfs::{
@@ -21,6 +25,7 @@ use banyanfs::{
     utils::crypto_rng,
 };
 use clap::Subcommand;
+use cli_table::{print_stdout, Cell, Table};
 use futures::{io::Cursor, StreamExt};
 use tokio::fs::{create_dir_all, rename};
 use tracing::*;
@@ -70,15 +75,40 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             // Info
             Info => {
                 info!("trying local");
-                let local = LocalLoadedDrive::load(&payload).await?;
-                /*
-                info!("local: {:?}", local.path.display());
-                let client = global.get_client().await?;
-                let platform_id = global.drive_platform_id(&drive_id).await?;
-                info!("pid: {:?}", platform_id);
-                let platform_drive = platform::drives::get(&client, &drive_id).await?;
-                info!("pd: {:?}", platform_drive.id);
-                */
+                let mut table_rows = Vec::new();
+                let api = helpers::api_drive_with_name(&global, &payload.id.drive_id).await;
+                let local = LocalLoadedDrive::load(&payload).await.ok();
+                match (api, local) {
+                    (Some(api), Some(local)) => table_rows.push(vec![
+                        api.name.clone().cell(),
+                        api.id.clone().cell(),
+                        local.path.display().cell(),
+                        Persistence::Sync.cell(),
+                    ]),
+                    (Some(api), None) => table_rows.push(vec![
+                        api.name.clone().cell(),
+                        api.id.clone().cell(),
+                        "N/A".cell(),
+                        Persistence::RemoteOnly.cell(),
+                    ]),
+                    (None, Some(local)) => table_rows.push(vec![
+                        local.id.drive_id.cell(),
+                        "N/A".cell(),
+                        local.path.display().cell(),
+                        Persistence::RemoteOnly.cell(),
+                    ]),
+                    (None, None) => {
+                        return Err(ConfigStateError::MissingDrive(payload.id.drive_id).into());
+                    }
+                }
+
+                let table = table_rows.table().title(vec![
+                    "Name".cell(),
+                    "ID".cell(),
+                    "Path".cell(),
+                    "Persistence".cell(),
+                ]);
+                print_stdout(table)?;
                 Ok(())
             }
             Prepare { follow_links: _ } => {

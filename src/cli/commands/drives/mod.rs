@@ -1,4 +1,5 @@
 //mod access;
+pub mod helpers;
 mod operations;
 
 use crate::{
@@ -57,20 +58,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
         match self {
             // List all Buckets tracked remotely and locally
             Ls => {
-                let remote_drives = match global.get_client().await {
-                    Ok(client) => match platform::drives::get_all(&client).await {
-                        Ok(d) => d,
-                        Err(err) => {
-                            error!("Logged in, but failed to fetch remote drives. {err}");
-                            vec![]
-                        }
-                    },
-                    Err(_) => {
-                        warn!("You aren't logged in. Login to see remote drives.");
-                        vec![]
-                    }
-                };
-
+                let api_drives = helpers::api_drives(&global).await;
                 debug!("fetched remote drives");
 
                 let mut table_rows = Vec::new();
@@ -79,12 +67,12 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 // Find the drives that exist both locally and remotely
                 let mut sync_names = Vec::new();
                 for local_name in local_drive_names.iter() {
-                    for remote in remote_drives.iter() {
-                        if *local_name == remote.name {
+                    for api in api_drives.iter() {
+                        if *local_name == api.name {
                             sync_names.push(local_name.clone());
                             table_rows.push(vec![
-                                remote.name.clone().cell(),
-                                remote.id.clone().cell(),
+                                api.name.clone().cell(),
+                                api.id.clone().cell(),
                                 global.get_path(local_name)?.display().cell(),
                                 Persistence::Sync.cell(),
                             ])
@@ -107,7 +95,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 debug!("found local drives");
 
-                for remote in remote_drives.into_iter() {
+                for remote in api_drives.into_iter() {
                     if !sync_names.contains(&remote.name) {
                         table_rows.push(vec![
                             remote.name.clone().cell(),
@@ -118,7 +106,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     }
                 }
 
-                debug!("found remote drives");
+                debug!("found api drives");
 
                 if table_rows.is_empty() {
                     warn!("No known drives. Make or sync!");
