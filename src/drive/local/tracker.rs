@@ -10,25 +10,33 @@ use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
 use crate::on_disk::{DiskType, OnDisk, OnDiskError};
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct DiskSyncTracker {
-    drive_id: String,
-    pending_deletion: HashSet<Cid>,
-    tracked: HashMap<Cid, u64>,
-}
+/// ~/.local/share/banyan/drive_sync
+/// Contains .sync files representing sync tracking
+#[async_trait(?Send)]
+impl OnDisk<String> for MemorySyncTracker {
+    const TYPE: DiskType = DiskType::LocalShare;
+    const SUFFIX: &'static str = "drive_sync";
+    const EXTENSION: &'static str = "sync";
 
-impl DiskSyncTracker {
-    pub fn new(drive_id: &String) -> Self {
-        Self {
-            drive_id: drive_id.to_string(),
-            pending_deletion: HashSet::new(),
-            tracked: HashMap::new(),
-        }
+    async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
+        let writer = Self::get_writer(identifier).await?;
+        let json_data = serde_json::to_string(&self)?;
+        writer
+            .compat_write()
+            .write_all(json_data.as_bytes())
+            .await?;
+        Ok(())
+    }
+
+    async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
+        let reader = Self::get_reader(identifier).await?;
+        let mut json_string = String::new();
+        reader.compat().read_to_string(&mut json_string).await?;
+        Ok(serde_json::from_str(&json_string)?)
     }
 }
 
-/// ~/.local/share/banyan/drive_sync
-/// Contains .sync files representing sync tracking
+/*
 #[async_trait(?Send)]
 impl OnDisk<String> for DiskSyncTracker {
     const TYPE: DiskType = DiskType::LocalShare;
@@ -57,13 +65,11 @@ impl OnDisk<String> for DiskSyncTracker {
 impl SyncTracker for DiskSyncTracker {
     async fn clear_deleted(&mut self) -> Result<(), DataStoreError> {
         self.pending_deletion.clear();
-        self.encode(&self.drive_id).await?;
         Ok(())
     }
 
     async fn delete(&mut self, cid: Cid) -> Result<(), DataStoreError> {
         self.pending_deletion.insert(cid);
-        self.encode(&self.drive_id).await?;
         Ok(())
     }
 
@@ -86,7 +92,6 @@ impl SyncTracker for DiskSyncTracker {
 
     async fn untrack(&mut self, cid: Cid) -> Result<(), DataStoreError> {
         self.tracked.remove(&cid);
-        self.encode(&self.drive_id).await?;
         Ok(())
     }
 }
@@ -96,3 +101,4 @@ impl From<OnDiskError> for DataStoreError {
         DataStoreError::Implementation(value.to_string())
     }
 }
+*/

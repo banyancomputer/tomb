@@ -22,6 +22,7 @@ use banyanfs::{
     api::platform,
     codec::{crypto::SigningKey, header::AccessMaskBuilder},
     filesystem::{Drive, DriveLoader},
+    stores::MemorySyncTracker,
     utils::crypto_rng,
 };
 use clap::Subcommand;
@@ -43,8 +44,6 @@ pub enum DriveOperationCommand {
     Restore,
     /// Delete a Drive
     Delete,
-    /// Sync Drive data to or from remote
-    Sync,
     /// Change the name of a Drive
     Rename {
         new_name: String,
@@ -111,18 +110,20 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Prepare { follow_links: _ } => {
+                helpers::sync(global.clone(), &payload.id).await?;
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
-                match ld.bfs.go_online().await {
-                    Ok(mut store) => {
-                        info!("Utilizing API sync for this preparation.");
-                        operations::prepare(&mut ld.bfs.drive, &mut store, &ld.path).await?;
-                    }
-                    Err(_) => {
-                        warn!("Unable to go online. Preparation will only occur locally.");
-                        operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
-                    }
+                operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
+
+                // If we can see an api drive
+                if let Some(api_drive) =
+                    helpers::api_drive_with_name(&global, &ld.id.drive_id).await
+                {
+                    // Sync and create a clean slate in the tracker
+                    ld.bfs.sync(&api_drive.id).await?;
+                    ld.bfs.tracker = MemorySyncTracker::default();
                 }
 
+                // Encode
                 ld.bfs.encode(&ld.id).await?;
                 info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
                 Ok(())
@@ -140,6 +141,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Restore => {
+                helpers::sync(global.clone(), &payload.id).await?;
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
                 match ld.bfs.go_online().await {
                     Ok(mut store) => {
@@ -152,80 +154,6 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                     }
                 }
                 info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
-                Ok(())
-            }
-            Sync => {
-                let client = global.get_client().await?;
-                let remote_drives = platform::drives::get_all(&client).await?;
-
-                // Get the remote drive, creating it if need be
-                let remote_drive = match remote_drives
-                    .into_iter()
-                    .find(|remote_drive| remote_drive.name == payload.id.drive_id)
-                {
-                    Some(remote_drive) => remote_drive,
-                    None => {
-                        warn!("Remote drive was missing, creating it!");
-                        let remote_drive_id =
-                            platform::drives::create(&client, &payload.id.drive_id).await?;
-                        platform::drives::get(&client, &remote_drive_id).await?
-                    }
-                };
-
-                info!("found the remote");
-
-                // If there is already a drive stored on disk
-                if let Ok(local_drive) = LocalBanyanFS::decode(&payload.id).await {
-                    // Sync the drive
-                    local_drive.sync(&remote_drive.id).await?;
-                }
-                // If we need to pull down
-                else {
-                    // We need the key loaded
-                    let user_key = SigningKey::decode(&payload.id.user_key_id).await?;
-
-                    let current_metadata =
-                        platform::metadata::get_current(&client, &remote_drive.id).await?;
-                    let metadata_id = current_metadata.id();
-
-                    // metadata for a drive (if we've seen zero its safe to create a new drive, its not otherwise).
-                    let mut stream =
-                        platform::metadata::pull_stream(&client, &remote_drive.id, &metadata_id)
-                            .await?;
-                    let mut drive_bytes = Vec::new();
-                    while let Some(chunk) = stream.next().await {
-                        let bytes = chunk
-                            .map_err(|e| NativeError::Custom(format!("{e}")))?
-                            .to_vec();
-                        drive_bytes.extend(bytes);
-                    }
-
-                    let mut drive_cursor = Cursor::new(drive_bytes);
-                    let drive_loader = DriveLoader::new(&user_key);
-                    let drive = drive_loader.from_reader(&mut drive_cursor).await?;
-
-                    // Ensure the platform key is present
-                    let platform_key = client.platform_public_key().await?;
-                    if !drive.has_maintenance_access(&platform_key.actor_id()).await {
-                        let access_mask = AccessMaskBuilder::maintenance().protected().build()?;
-                        drive
-                            .authorize_key(&mut crypto_rng(), platform_key, access_mask)
-                            .await?;
-                    }
-
-                    // Encode Drive
-                    OnDisk::encode(&drive, &payload.id).await?;
-
-                    // Create the location where reconstructed files will be at home
-                    let files_dir = PathBuf::from(format!("{}/banyan", env!("HOME")))
-                        .join(&payload.id.drive_id);
-                    create_dir_all(&files_dir).await?;
-                    global.set_path(&payload.id.drive_id, &files_dir);
-                    global.encode(&GlobalConfigId).await?;
-
-                    LocalBanyanFS::init_from_drive(&payload.id, drive).await?;
-                }
-
                 Ok(())
             }
             Rename { new_name } => {
