@@ -15,6 +15,7 @@ use crate::{
         local_share::DriveAndKeyId,
         OnDisk,
     },
+    utils::prompt_for_bool,
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
@@ -64,17 +65,88 @@ pub struct DriveOperationPayload {
     pub global: GlobalConfig,
 }
 
+impl DriveOperationPayload {
+    pub async fn sync(&mut self) -> Result<(), NativeError> {
+        let client = self.global.get_client().await?;
+
+        // Get the remote drive, creating it if need be
+        let api_drive = match helpers::api_drive_with_name(&self.global, &self.id.drive_id).await {
+            Some(api_drive) => api_drive,
+            None => {
+                if prompt_for_bool("No remote drive with this name. Create one?", 'y', 'n') {
+                    let remote_drive_id =
+                        platform::drives::create(&client, &self.id.drive_id).await?;
+                    platform::drives::get(&client, &remote_drive_id).await?
+                } else {
+                    error!("Cannot sync when no remote drive matches query.");
+                    return Ok(());
+                }
+            }
+        };
+
+        // If there is already a drive stored on disk
+        if let Ok(local_drive) = LocalBanyanFS::decode(&self.id).await {
+            // Sync the drive
+            local_drive.sync(&api_drive.id).await?;
+        }
+        // If we need to pull down
+        else {
+            // We need the key loaded
+            let user_key = SigningKey::decode(&self.id.user_key_id).await?;
+
+            let current_metadata = platform::metadata::get_current(&client, &api_drive.id).await?;
+            let metadata_id = current_metadata.id();
+
+            // metadata for a drive (if we've seen zero its safe to create a new drive, its not otherwise).
+            let mut stream =
+                platform::metadata::pull_stream(&client, &api_drive.id, &metadata_id).await?;
+            let mut drive_bytes = Vec::new();
+            while let Some(chunk) = stream.next().await {
+                let bytes = chunk
+                    .map_err(|e| NativeError::Custom(format!("{e}")))?
+                    .to_vec();
+                drive_bytes.extend(bytes);
+            }
+
+            let mut drive_cursor = Cursor::new(drive_bytes);
+            let drive_loader = DriveLoader::new(&user_key);
+            let drive = drive_loader.from_reader(&mut drive_cursor).await?;
+
+            // Ensure the platform key is present
+            let platform_key = client.platform_public_key().await?;
+            if !drive.has_maintenance_access(&platform_key.actor_id()).await {
+                let access_mask = AccessMaskBuilder::maintenance().protected().build()?;
+                drive
+                    .authorize_key(&mut crypto_rng(), platform_key, access_mask)
+                    .await?;
+            }
+
+            // Encode Drive
+            OnDisk::encode(&drive, &self.id).await?;
+
+            // Create the location where reconstructed files will be at home
+            let files_dir =
+                PathBuf::from(format!("{}/banyan", env!("HOME"))).join(&self.id.drive_id);
+            create_dir_all(&files_dir).await?;
+            self.global.set_path(&self.id.drive_id, &files_dir);
+            self.global.encode(&GlobalConfigId).await?;
+
+            LocalBanyanFS::init_from_drive(&self.id, drive).await?;
+        }
+        Ok(())
+    }
+}
+
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DriveOperationCommand {
     type Payload = DriveOperationPayload;
-    async fn run_internal(self, payload: Self::Payload) -> Result<(), NativeError> {
+    async fn run_internal(self, mut payload: Self::Payload) -> Result<(), NativeError> {
         use DriveOperationCommand::*;
-        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             // Info
             Info => {
                 let mut table_rows = Vec::new();
-                let api = helpers::api_drive_with_name(&global, &payload.id.drive_id).await;
+                let api = helpers::api_drive_with_name(&payload.global, &payload.id.drive_id).await;
                 let local = LocalLoadedDrive::load(&payload).await.ok();
                 match (api, local) {
                     (Some(api), Some(local)) => table_rows.push(vec![
@@ -110,13 +182,13 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Prepare { follow_links: _ } => {
-                helpers::sync(global.clone(), &payload.id).await?;
+                payload.sync().await?;
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
                 operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
 
                 // If we can see an api drive
                 if let Some(api_drive) =
-                    helpers::api_drive_with_name(&global, &ld.id.drive_id).await
+                    helpers::api_drive_with_name(&payload.global, &ld.id.drive_id).await
                 {
                     // Sync and create a clean slate in the tracker
                     ld.bfs.sync(&api_drive.id).await?;
@@ -130,10 +202,10 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             }
             Delete => {
                 let ld = LocalLoadedDrive::load(&payload).await?;
-                global.remove_path(&ld.id.drive_id)?;
+                payload.global.remove_path(&ld.id.drive_id)?;
                 Drive::erase(&ld.id).await?;
                 LocalBanyanFS::erase(&ld.id).await?;
-                global.encode(&GlobalConfigId).await?;
+                payload.global.encode(&GlobalConfigId).await?;
 
                 info!("<< DRIVE DATA DELETED SUCCESSFULLY >>");
                 info!("{:?}", ld.bfs.drive.id());
@@ -141,7 +213,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Restore => {
-                helpers::sync(global.clone(), &payload.id).await?;
+                payload.sync().await?;
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
                 match ld.bfs.go_online().await {
                     Ok(mut store) => {
@@ -171,14 +243,16 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 let new_path = old_path.parent().unwrap().join(new_name);
                 rename(old_path, &new_path).await?;
 
-                global.remove_path(&old_id.drive_id)?;
-                global.set_path(&new_id.drive_id, &new_path);
-                global.encode(&GlobalConfigId).await?;
+                payload.global.remove_path(&old_id.drive_id)?;
+                payload.global.set_path(&new_id.drive_id, &new_path);
+                payload.global.encode(&GlobalConfigId).await?;
 
                 info!("<< RENAMED DRIVE LOCALLY >>");
 
-                if let Ok(drive_platform_id) = global.drive_platform_id(&old_id.drive_id).await {
-                    let client = global.get_client().await?;
+                if let Ok(drive_platform_id) =
+                    payload.global.drive_platform_id(&old_id.drive_id).await
+                {
+                    let client = payload.global.get_client().await?;
                     platform::drives::update(
                         &client,
                         &drive_platform_id,
