@@ -20,10 +20,13 @@ use crate::{
 };
 use async_trait::async_trait;
 use banyanfs::{
-    api::platform,
-    codec::{crypto::SigningKey, header::AccessMaskBuilder},
+    api::{platform, VecStream},
+    codec::{
+        crypto::{SigningKey, VerifyingKey},
+        header::{AccessMaskBuilder, ContentOptions},
+    },
     filesystem::{Drive, DriveLoader},
-    stores::MemorySyncTracker,
+    stores::{MemorySyncTracker, SyncTracker, SyncableDataStore},
     utils::crypto_rng,
 };
 use clap::Subcommand;
@@ -84,10 +87,75 @@ impl DriveOperationPayload {
             }
         };
 
-        // If there is already a drive stored on disk
+        // If we need to push up
         if let Ok(local_drive) = LocalBanyanFS::decode(&self.id).await {
+            let bucket_id = api_drive.id;
             // Sync the drive
-            local_drive.sync(&api_drive.id).await?;
+            let mut store = local_drive.go_online().await?;
+
+            let mut rng = crypto_rng();
+            // For Metadata push
+            let content_options = ContentOptions::metadata();
+            let mut encoded_drive = Vec::new();
+            local_drive
+                .drive
+                .encode(&mut rng, content_options, &mut encoded_drive)
+                .await?;
+            let expected_data_size = store.unsynced_data_size().await?;
+            let root_cid = local_drive.drive.root_cid().await?;
+
+            let verifying_keys: Vec<VerifyingKey> = local_drive
+                .drive
+                .verifying_keys()
+                .await
+                .into_iter()
+                .filter_map(|(key, mask)| {
+                    if !mask.is_historical() {
+                        Some(key)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            let deleted_block_cids = store.deleted_cids().await?;
+            let drive_stream = VecStream::new(encoded_drive).pinned();
+
+            let push_response = platform::metadata::push_stream(
+                &client,
+                &bucket_id,
+                expected_data_size,
+                root_cid,
+                //self.last_saved_metadata.as_ref().map(|m| m.id()).clone(),
+                None,
+                drive_stream,
+                verifying_keys,
+                deleted_block_cids,
+            )
+            .await?;
+            let new_metadata_id = push_response.id();
+
+            if let Some(host) = push_response.storage_host() {
+                if let Err(err) = store.set_sync_host(host.clone()).await {
+                    // In practice this should never happen, the trait defines an error type for
+                    // flexibility in the future but no implementations currently produce an error.
+                    warn!("failed to set sync host: {err}");
+                }
+                if let Some(grant) = push_response.storage_authorization() {
+                    client.record_storage_grant(host, grant).await;
+                }
+            }
+
+            let _new_metadata =
+                platform::metadata::get(&client, &bucket_id, &new_metadata_id).await?;
+            match store.sync(&new_metadata_id).await {
+                Ok(()) => info!("Synced metadata to platform."),
+                Err(err) => {
+                    warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
+                }
+            }
+
+            local_drive.encode(&self.id).await?;
         }
         // If we need to pull down
         else {
@@ -183,20 +251,11 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             }
             Prepare { follow_links: _ } => {
                 payload.sync().await?;
-                let mut ld = LocalLoadedDrive::load(&payload).await?;
-                operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
-
-                // If we can see an api drive
-                if let Some(api_drive) =
-                    helpers::api_drive_with_name(&payload.global, &ld.id.drive_id).await
-                {
-                    // Sync and create a clean slate in the tracker
-                    ld.bfs.sync(&api_drive.id).await?;
-                    ld.bfs.tracker = MemorySyncTracker::default();
-                }
-
-                // Encode
-                ld.bfs.encode(&ld.id).await?;
+                let path = payload.global.get_path(&payload.id.drive_id)?;
+                let mut bfs = LocalBanyanFS::decode(&payload.id).await?;
+                operations::prepare(&mut bfs.drive, &mut bfs.store, &path).await?;
+                bfs.encode(&payload.id).await?;
+                payload.sync().await?;
                 info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
                 Ok(())
             }
@@ -217,7 +276,6 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
                 match ld.bfs.go_online().await {
                     Ok(mut store) => {
-                        info!("Utilizing API sync for this restoration");
                         operations::restore(&mut ld.bfs.drive, &mut store, &ld.path).await?;
                     }
                     Err(_) => {

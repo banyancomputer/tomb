@@ -69,77 +69,16 @@ impl LocalBanyanFS {
         ))
     }
 
-    pub async fn sync(&self, bucket_id: &str) -> Result<(), NativeError> {
-        let global = GlobalConfig::decode(&GlobalConfigId).await?;
-        let client = global.get_client().await?;
-        let mut store = self.go_online().await?;
-
-        let mut rng = crypto_rng();
-        // For Metadata push
-        let content_options = ContentOptions::metadata();
-        let mut encoded_drive = Vec::new();
-        self.drive
-            .encode(&mut rng, content_options, &mut encoded_drive)
-            .await?;
-        let expected_data_size = store.unsynced_data_size().await?;
-        let root_cid = self.drive.root_cid().await?;
-
-        let verifying_keys: Vec<VerifyingKey> = self
-            .drive
-            .verifying_keys()
-            .await
-            .into_iter()
-            .filter_map(|(key, mask)| {
-                if !mask.is_historical() {
-                    Some(key)
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        let deleted_block_cids = store.deleted_cids().await?;
-        let drive_stream = VecStream::new(encoded_drive).pinned();
-
-        let push_response = platform::metadata::push_stream(
-            &client,
-            bucket_id,
-            expected_data_size,
-            root_cid,
-            //self.last_saved_metadata.as_ref().map(|m| m.id()).clone(),
-            None,
-            drive_stream,
-            verifying_keys,
-            deleted_block_cids,
-        )
-        .await?;
-        let new_metadata_id = push_response.id();
-
-        if let Some(host) = push_response.storage_host() {
-            if let Err(err) = store.set_sync_host(host.clone()).await {
-                // In practice this should never happen, the trait defines an error type for
-                // flexibility in the future but no implementations currently produce an error.
-                warn!("failed to set sync host: {err}");
-            }
-            if let Some(grant) = push_response.storage_authorization() {
-                client.record_storage_grant(host, grant).await;
-            }
-        }
-
-        let _new_metadata = platform::metadata::get(&client, bucket_id, &new_metadata_id).await?;
-        if let Err(err) = store.sync(&new_metadata_id).await {
-            warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
-            // note(sstelfox): this could be recoverable with future syncs, but we
-            // should probably still fail here...
-            return Err(NativeError::Custom(
-                "failed to sync data store to remotes".into(),
-            ));
-        }
-
-        info!("drive synced");
+    /*
+    pub async fn sync(
+        &mut self,
+        global: &GlobalConfig,
+        bucket_id: &str,
+    ) -> Result<(), NativeError> {
 
         Ok(())
     }
+    */
 }
 
 /// ~/.local/share/banyan/drive_blocks
