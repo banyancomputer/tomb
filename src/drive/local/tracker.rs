@@ -66,7 +66,6 @@ impl OnDisk<String> for CborSyncTracker {
 
     async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
         let writer = Self::get_std_writer(identifier)?;
-        tracing::warn!("about to make vec!");
         ciborium::into_writer(&self, &writer)?;
         Ok(())
     }

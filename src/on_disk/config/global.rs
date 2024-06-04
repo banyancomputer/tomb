@@ -15,6 +15,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use tracing::info;
 use uuid::Uuid;
 
 /// Represents the Global contents of the tomb configuration file in a user's .config
@@ -133,12 +134,10 @@ impl OnDisk<GlobalConfigId> for GlobalConfig {
     const SUFFIX: &'static str = "";
     const EXTENSION: &'static str = "json";
 
-    // TODO async serde_json?
-
     async fn encode(&self, identifier: &GlobalConfigId) -> Result<(), OnDiskError> {
         let mut writer = Self::get_std_writer(identifier)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
-        tracing::info!("<< PREFERENCE SAVED >>");
+        info!("<< PREFERENCE SAVED >>");
         Ok(())
     }
     async fn decode(identifier: &GlobalConfigId) -> Result<Self, OnDiskError> {

@@ -89,7 +89,7 @@ impl DriveOperationPayload {
         };
 
         // If we need to push up
-        if let Ok(local_drive) = LocalBanyanFS::decode(&self.id).await {
+        if let Ok(mut local_drive) = LocalBanyanFS::decode(&self.id).await {
             let bucket_id = api_drive.id;
             // Sync the drive
             let mut store = local_drive.go_online().await?;
@@ -149,10 +149,12 @@ impl DriveOperationPayload {
 
             let _new_metadata =
                 platform::metadata::get(&client, &bucket_id, &new_metadata_id).await?;
-            info!("tracked: {:?}", store.tracked_cids().await?);
-            info!("deleted: {:?}", store.deleted_cids().await?);
             match store.sync(&new_metadata_id).await {
-                Ok(()) => info!("Synced metadata to platform."),
+                Ok(()) => {
+                    info!("<< SYNCED DRIVE DATA TO PLATFORM >>");
+                    // Empty the tracker because it worked
+                    local_drive.tracker = CborSyncTracker::default();
+                }
                 Err(err) => {
                     warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
                 }
@@ -262,13 +264,9 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                     bfs.tracker.clone(),
                 );
                 operations::prepare(&mut bfs.drive, &mut store, &path).await?;
-                info!("b tracked: {:?}", store.tracked_cids().await?);
-                info!("b deleted: {:?}", store.deleted_cids().await?);
                 bfs.tracker = store.tracker().await;
                 bfs.encode(&payload.id).await?;
-                info!("re-encoded bfs");
                 payload.sync().await?;
-                info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
                 Ok(())
             }
             Delete => {

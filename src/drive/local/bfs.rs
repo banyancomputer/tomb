@@ -84,9 +84,7 @@ impl OnDisk<DriveAndKeyId> for LocalBanyanFS {
     async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), OnDiskError> {
         // The data store is already "saved" deterministically in the location and doesn't need
         // explicit encoding here
-        warn!("encoding tracker");
         self.tracker.encode(&identifier.drive_id).await?;
-        warn!("encoded tracker");
         OnDisk::encode(&self.drive, identifier).await
     }
 
