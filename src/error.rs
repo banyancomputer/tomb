@@ -1,7 +1,8 @@
 use crate::on_disk::*;
 use banyanfs::{
     api::ApiError,
-    filesystem::{DriveError, OperationError},
+    codec::header::AccessMaskError,
+    filesystem::{DriveAccessError, DriveError, DriveLoaderError, OperationError},
     stores::DataStoreError,
 };
 use std::{
@@ -16,6 +17,9 @@ pub enum NativeError {
     Disk(OnDiskError),
     Store(DataStoreError),
     Drive(DriveError),
+    DriveLoader(DriveLoaderError),
+    DriveAccess(DriveAccessError),
+    AccessMask(AccessMaskError),
     ConfigState(ConfigStateError),
     Operation(OperationError),
     Custom(String),
@@ -28,6 +32,9 @@ impl Display for NativeError {
             NativeError::Api(err) => f.write_str(&err.to_string()),
             NativeError::Disk(err) => f.write_str(&err.to_string()),
             NativeError::Drive(err) => f.write_str(&err.to_string()),
+            NativeError::DriveLoader(err) => f.write_str(&err.to_string()),
+            NativeError::DriveAccess(err) => f.write_str(&err.to_string()),
+            NativeError::AccessMask(err) => f.write_str(&err.to_string()),
             NativeError::Store(err) => f.write_str(&err.to_string()),
             NativeError::ConfigState(err) => f.write_str(&err.to_string()),
             NativeError::Operation(err) => f.write_str(&err.to_string()),
@@ -127,5 +134,23 @@ impl From<DataStoreError> for NativeError {
 impl From<DriveError> for NativeError {
     fn from(value: DriveError) -> Self {
         Self::Drive(value)
+    }
+}
+
+impl From<DriveLoaderError> for NativeError {
+    fn from(value: DriveLoaderError) -> Self {
+        Self::DriveLoader(value)
+    }
+}
+
+impl From<DriveAccessError> for NativeError {
+    fn from(value: DriveAccessError) -> Self {
+        Self::DriveAccess(value)
+    }
+}
+
+impl From<AccessMaskError> for NativeError {
+    fn from(value: AccessMaskError) -> Self {
+        Self::AccessMask(value)
     }
 }

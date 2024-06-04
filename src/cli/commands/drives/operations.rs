@@ -12,8 +12,14 @@ use crate::{
     NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{api::platform, filesystem::Drive};
+use banyanfs::{
+    api::platform,
+    codec::{crypto::SigningKey, header::AccessMaskBuilder},
+    filesystem::{Drive, DriveLoader},
+    utils::crypto_rng,
+};
 use clap::Subcommand;
+use futures::{io::Cursor, StreamExt};
 use tokio::fs::rename;
 use tracing::*;
 
@@ -108,39 +114,65 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 let client = global.get_client().await?;
                 let remote_drives = platform::drives::get_all(&client).await?;
 
-                // Local drive and key identifier
-                let drive_and_key_id = payload.id;
+                // Get the remote drive, creating it if need be
+                let remote_drive = match remote_drives
+                    .into_iter()
+                    .find(|remote_drive| remote_drive.name == payload.id.drive_id)
+                {
+                    Some(remote_drive) => remote_drive,
+                    None => {
+                        warn!("Remote drive was missing, creating it!");
+                        let remote_drive_id =
+                            platform::drives::create(&client, &payload.id.drive_id).await?;
+                        platform::drives::get(&client, &remote_drive_id).await?
+                    }
+                };
+
+                info!("found the remote");
 
                 // If there is already a drive stored on disk
-                if let Ok(local_drive) = LocalBanyanFS::decode(&drive_and_key_id).await {
-                    // Get the remote drive
-                    let remote_drive = match remote_drives
-                        .into_iter()
-                        .find(|remote_drive| remote_drive.name == drive_and_key_id.drive_id)
-                    {
-                        Some(remote_drive) => remote_drive,
-                        None => {
-                            warn!("Remote drive was missing, creating it!");
-                            let remote_drive_id =
-                                platform::drives::create(&client, &drive_and_key_id.drive_id)
-                                    .await?;
-                            platform::drives::get(&client, &remote_drive_id).await?
-                        }
-                    };
-                    info!("found the remote");
-
+                if let Ok(local_drive) = LocalBanyanFS::decode(&payload.id).await {
                     // Sync the drive
                     local_drive.sync(&remote_drive.id).await?;
-                } else {
-                    error!("IDK WHAT TO DO HERE YET");
+                }
+                // If we need to pull down
+                else {
+                    // We need the key loaded
+                    let user_key = SigningKey::decode(&payload.id.user_key_id).await?;
+
+                    let current_metadata =
+                        platform::metadata::get_current(&client, &remote_drive.id).await?;
+                    let metadata_id = current_metadata.id();
+
+                    // metadata for a drive (if we've seen zero its safe to create a new drive, its not otherwise).
+                    let mut stream =
+                        platform::metadata::pull_stream(&client, &remote_drive.id, &metadata_id)
+                            .await?;
+                    let mut drive_bytes = Vec::new();
+                    while let Some(chunk) = stream.next().await {
+                        let bytes = chunk
+                            .map_err(|e| NativeError::Custom(format!("{e}")))?
+                            .to_vec();
+                        drive_bytes.extend(bytes);
+                    }
+
+                    let mut drive_cursor = Cursor::new(drive_bytes);
+                    let drive_loader = DriveLoader::new(&user_key);
+                    let drive = drive_loader.from_reader(&mut drive_cursor).await?;
+
+                    // Ensure the platform key is present
+                    let platform_key = client.platform_public_key().await?;
+                    if !drive.has_maintenance_access(&platform_key.actor_id()).await {
+                        let access_mask = AccessMaskBuilder::maintenance().protected().build()?;
+                        drive
+                            .authorize_key(&mut crypto_rng(), platform_key, access_mask)
+                            .await?;
+                    }
+
+                    OnDisk::encode(&drive, &payload.id).await?;
                 }
 
-                //if let Ok(drive_id) = di.get_id().await { }
-
-                //let remote = if let DriveId::DriveId(id) = di { }
-                // There is already a local drive here
-                //if let Ok(_ld) = LoadedDrive::load(&di, &global).await {}
-                todo!()
+                Ok(())
             }
             Rename { new_name } => {
                 let loaded = LocalLoadedDrive::load(&payload).await?;

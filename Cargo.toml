@@ -55,6 +55,7 @@ uuid = { version = "^1", features = ["serde", "v4"] }
 # Local Object Storage
 object_store = { version = "^0.9" }
 cli-table = "0.4.7"
+futures = "0.3.30"
 
 #futures = { version = "^0.3" }
 #futures-core = { version = "^0.3" }
