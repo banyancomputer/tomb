@@ -158,13 +158,10 @@ impl OnDisk<DriveAndKeyId> for LocalBanyanFS {
     }
 
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
-        info!("getting tracker");
         // Load the tracker
         let tracker = DiskSyncTracker::decode(&identifier.drive_id).await?;
-        info!("getting drive");
         // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;
-        info!("getting store");
         // Create a new
         let store = LocalDataStore::new(Self::path(identifier)?)?;
         Ok(Self {

@@ -49,7 +49,7 @@ pub enum BanyanCommand {
     },
 }
 
-use super::{RunnableCommand};
+use super::RunnableCommand;
 use crate::{on_disk::config::GlobalConfig, NativeError};
 use async_trait::async_trait;
 #[async_trait(?Send)]

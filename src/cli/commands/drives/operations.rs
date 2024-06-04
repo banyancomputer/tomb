@@ -74,7 +74,6 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
         match self {
             // Info
             Info => {
-                info!("trying local");
                 let mut table_rows = Vec::new();
                 let api = helpers::api_drive_with_name(&global, &payload.id.drive_id).await;
                 let local = LocalLoadedDrive::load(&payload).await.ok();
