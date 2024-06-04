@@ -1,7 +1,8 @@
-use super::LocalDataStore;
+use super::{CborSyncTracker, LocalDataStore};
 use banyanfs::stores::{ApiSyncableStore, MemorySyncTracker};
 
-pub type SyncDataStore = ApiSyncableStore<LocalDataStore, MemorySyncTracker>;
+pub type SyncDataStore = ApiSyncableStore<LocalDataStore, CborSyncTracker>;
+//pub type SyncableStore = SyncableStore<LocalDataStore, MemorySyncTracker>;
 
 /*
 #[async_trait(?Send)]

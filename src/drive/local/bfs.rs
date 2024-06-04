@@ -12,7 +12,7 @@ use tracing::{info, warn};
 
 use std::fs::create_dir_all;
 
-use crate::drive::local::{LocalDataStore, SyncDataStore};
+use crate::drive::local::{CborSyncTracker, LocalDataStore, SyncDataStore};
 
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct LocalBanyanFS {
@@ -21,7 +21,7 @@ pub struct LocalBanyanFS {
     /// Stores CIDs on behalf of the Drive
     pub store: LocalDataStore,
     /// Sync Tracker
-    pub tracker: MemorySyncTracker,
+    pub tracker: CborSyncTracker,
 }
 
 impl LocalBanyanFS {
@@ -36,7 +36,7 @@ impl LocalBanyanFS {
             create_dir_all(&store_path)?;
         }
         let store = LocalDataStore::new(store_path)?;
-        let tracker = MemorySyncTracker::default();
+        let tracker = CborSyncTracker::default();
         tracker.encode(&identifier.drive_id).await?;
 
         let bfs = Self {
@@ -94,14 +94,15 @@ impl OnDisk<DriveAndKeyId> for LocalBanyanFS {
     async fn encode(&self, identifier: &DriveAndKeyId) -> Result<(), OnDiskError> {
         // The data store is already "saved" deterministically in the location and doesn't need
         // explicit encoding here
-
+        warn!("encoding tracker");
         self.tracker.encode(&identifier.drive_id).await?;
+        warn!("encoded tracker");
         OnDisk::encode(&self.drive, identifier).await
     }
 
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         // Load the tracker
-        let tracker = MemorySyncTracker::decode(&identifier.drive_id).await?;
+        let tracker = CborSyncTracker::decode(&identifier.drive_id).await?;
         // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;
         // Create a new

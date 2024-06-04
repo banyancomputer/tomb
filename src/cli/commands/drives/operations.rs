@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::{
     cli::{
         commands::{
-            drives::{LocalBanyanFS, LocalLoadedDrive},
+            drives::{LocalBanyanFS, LocalLoadedDrive, SyncDataStore},
             helpers,
         },
         display::Persistence,
@@ -148,13 +148,14 @@ impl DriveOperationPayload {
 
             let _new_metadata =
                 platform::metadata::get(&client, &bucket_id, &new_metadata_id).await?;
+            info!("tracked: {:?}", store.tracked_cids().await?);
+            info!("deleted: {:?}", store.deleted_cids().await?);
             match store.sync(&new_metadata_id).await {
                 Ok(()) => info!("Synced metadata to platform."),
                 Err(err) => {
                     warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
                 }
             }
-
             local_drive.encode(&self.id).await?;
         }
         // If we need to pull down
@@ -253,8 +254,17 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 payload.sync().await?;
                 let path = payload.global.get_path(&payload.id.drive_id)?;
                 let mut bfs = LocalBanyanFS::decode(&payload.id).await?;
-                operations::prepare(&mut bfs.drive, &mut bfs.store, &path).await?;
+                let mut store = SyncDataStore::new(
+                    payload.global.get_client().await?,
+                    bfs.store.clone(),
+                    bfs.tracker.clone(),
+                );
+                operations::prepare(&mut bfs.drive, &mut store, &path).await?;
+                info!("b tracked: {:?}", store.tracked_cids().await?);
+                info!("b deleted: {:?}", store.deleted_cids().await?);
+                bfs.tracker = store.tracker().await;
                 bfs.encode(&payload.id).await?;
+                info!("re-encoded bfs");
                 payload.sync().await?;
                 info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
                 Ok(())
