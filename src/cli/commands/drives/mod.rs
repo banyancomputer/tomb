@@ -18,7 +18,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{api::platform, codec::crypto::SigningKey, filesystem::Drive};
+use banyanfs::filesystem::Drive;
 use operations::DriveOperationCommand;
 pub use operations::DriveOperationPayload;
 
@@ -26,7 +26,7 @@ use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
 use std::{env::current_dir, path::PathBuf};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
