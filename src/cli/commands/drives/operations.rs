@@ -112,11 +112,19 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             }
             Prepare { follow_links: _ } => {
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
-                info!("loaded!");
-                operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
+                match ld.bfs.go_online().await {
+                    Ok(mut store) => {
+                        info!("Utilizing API sync for this preparation.");
+                        operations::prepare(&mut ld.bfs.drive, &mut store, &ld.path).await?;
+                    }
+                    Err(_) => {
+                        warn!("Unable to go online. Preparation will only occur locally.");
+                        operations::prepare(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
+                    }
+                }
+
                 ld.bfs.encode(&ld.id).await?;
                 info!("<< DRIVE DATA STORED SUCCESSFULLY >>");
-                info!("{:?}", ld.bfs.drive.id());
                 Ok(())
             }
             Delete => {
