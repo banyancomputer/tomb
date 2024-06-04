@@ -25,7 +25,7 @@ use banyanfs::{
         header::{AccessMaskBuilder, ContentOptions},
     },
     filesystem::{Drive, DriveLoader},
-    stores::{MemorySyncTracker, SyncTracker, SyncableDataStore},
+    stores::{SyncTracker, SyncableDataStore},
     utils::crypto_rng,
 };
 use cli_table::{print_stdout, Cell, Table};
