@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use tracing::info;
+
 use crate::{
     cli::commands::*,
     on_disk::{local_share::DriveAndKeyId, OnDisk},
@@ -20,6 +22,7 @@ pub struct LocalLoadedDrive {
 impl LocalLoadedDrive {
     pub async fn load(payload: &DriveOperationPayload) -> Result<Self, NativeError> {
         let path = payload.global.get_path(&payload.id.drive_id)?;
+        info!("got path: {}", path.display());
         let bfs = LocalBanyanFS::decode(&payload.id).await?;
         Ok(Self {
             path,

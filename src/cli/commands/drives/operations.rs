@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     cli::{
         commands::drives::{LocalBanyanFS, LocalLoadedDrive},
@@ -20,7 +22,7 @@ use banyanfs::{
 };
 use clap::Subcommand;
 use futures::{io::Cursor, StreamExt};
-use tokio::fs::rename;
+use tokio::fs::{create_dir_all, rename};
 use tracing::*;
 
 #[derive(Subcommand, Clone, Debug)]
@@ -68,7 +70,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             // Info
             Info => {
                 info!("trying local");
-                let _local = LocalLoadedDrive::load(&payload).await?;
+                let local = LocalLoadedDrive::load(&payload).await?;
                 /*
                 info!("local: {:?}", local.path.display());
                 let client = global.get_client().await?;
@@ -169,7 +171,17 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                             .await?;
                     }
 
+                    // Encode Drive
                     OnDisk::encode(&drive, &payload.id).await?;
+
+                    // Create the location where reconstructed files will be at home
+                    let files_dir = PathBuf::from(format!("{}/banyan", env!("HOME")))
+                        .join(&payload.id.drive_id);
+                    create_dir_all(&files_dir).await?;
+                    global.set_path(&payload.id.drive_id, &files_dir);
+                    global.encode(&GlobalConfigId).await?;
+
+                    LocalBanyanFS::init_from_drive(&payload.id, drive).await?;
                 }
 
                 Ok(())

@@ -25,14 +25,10 @@ pub struct LocalBanyanFS {
 }
 
 impl LocalBanyanFS {
-    pub async fn init(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
-        let mut rng = crypto_rng();
-        // Decode the specified UserKey
-        let user_key = SigningKey::decode(&identifier.user_key_id).await?;
-        // Initialize a new private Drive with this key
-        let drive = Drive::initialize_private(&mut rng, user_key.into())
-            .map_err(|err| OnDiskError::Implementation(err.to_string()))?;
-
+    pub async fn init_from_drive(
+        identifier: &DriveAndKeyId,
+        drive: Drive,
+    ) -> Result<Self, OnDiskError> {
         // Determine where we'll put our cid bins
         let store_path = Self::path(identifier)?;
         // Create dir if needed
@@ -41,6 +37,7 @@ impl LocalBanyanFS {
         }
         let store = LocalDataStore::new(store_path)?;
         let tracker = DiskSyncTracker::new(&identifier.drive_id);
+        tracker.encode(&identifier.drive_id).await?;
 
         let bfs = Self {
             store,
@@ -49,6 +46,17 @@ impl LocalBanyanFS {
         };
         bfs.encode(identifier).await?;
         Ok(bfs)
+    }
+
+    pub async fn init(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
+        let mut rng = crypto_rng();
+        // Decode the specified UserKey
+        let user_key = SigningKey::decode(&identifier.user_key_id).await?;
+        // Initialize a new private Drive with this key
+        let drive = Drive::initialize_private(&mut rng, user_key.into())
+            .map_err(|err| OnDiskError::Implementation(err.to_string()))?;
+        // Init from drive
+        Self::init_from_drive(identifier, drive).await
     }
 
     pub async fn go_online(&self) -> Result<SyncDataStore, NativeError> {
@@ -150,10 +158,13 @@ impl OnDisk<DriveAndKeyId> for LocalBanyanFS {
     }
 
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
+        info!("getting tracker");
         // Load the tracker
         let tracker = DiskSyncTracker::decode(&identifier.drive_id).await?;
+        info!("getting drive");
         // Load the drive using the key
         let drive: Drive = OnDisk::decode(identifier).await?;
+        info!("getting store");
         // Create a new
         let store = LocalDataStore::new(Self::path(identifier)?)?;
         Ok(Self {

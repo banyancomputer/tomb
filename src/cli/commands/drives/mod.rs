@@ -58,10 +58,13 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // List all Buckets tracked remotely and locally
             Ls => {
                 let remote_drives = match global.get_client().await {
-                    Ok(client) => platform::drives::get_all(&client).await.unwrap_or({
-                        error!("Logged in, but failed to fetch remote drives.");
-                        vec![]
-                    }),
+                    Ok(client) => match platform::drives::get_all(&client).await {
+                        Ok(d) => d,
+                        Err(err) => {
+                            error!("Logged in, but failed to fetch remote drives. {err}");
+                            vec![]
+                        }
+                    },
                     Err(_) => {
                         warn!("You aren't logged in. Login to see remote drives.");
                         vec![]
@@ -117,14 +120,17 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 debug!("found remote drives");
 
-                let table = table_rows.table().title(vec![
-                    "Name".cell(),
-                    "ID".cell(),
-                    "Path".cell(),
-                    "Persistence".cell(),
-                ]);
-
-                print_stdout(table)?;
+                if table_rows.is_empty() {
+                    warn!("No known drives. Make or sync!");
+                } else {
+                    let table = table_rows.table().title(vec![
+                        "Name".cell(),
+                        "ID".cell(),
+                        "Path".cell(),
+                        "Persistence".cell(),
+                    ]);
+                    print_stdout(table)?;
+                }
 
                 Ok(())
             }
