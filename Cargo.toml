@@ -1,10 +1,10 @@
 [package]
-name = "banyan-cli"
+name = "banyan"
 license = "MIT"
-description = "Banyan manages data and security for use with Filecoin"
+description = "Command line interface for utilizing the banyan platform and filesystem."
 homepage = "https://banyan.computer"
-repository = "https://github.com/banyancomputer/tomb"
-version = "1.1.1"
+repository = "https://github.com/banyancomputer/banyan-cli"
+version = "2.0.0"
 readme = "README.md"
 edition = "2021"
 
@@ -30,6 +30,7 @@ tracing-subscriber = { version = "^0.3", features = [
 # CLI Output
 bytesize = { version = "^1.3" }
 colored = { version = "^2" }
+cli-table = { version = "^0.4" }
 
 # CLI Argument Capture
 clap = { version = "^4", features = ["derive"] }
@@ -42,30 +43,24 @@ tokio = { version = "^1", features = ["full", "io-util", "fs"] }
 tokio-util = { version = "^0.7" }
 async-recursion = { version = "^1" }
 async-trait = { version = "^0.1" }
+futures = { versoin = "^0.3" }
 
 # Url Parsing
 url = { version = "^2", features = ["serde"] }
+
 # Random
 rand = { version = "^0.8" }
+
 # Serialization
 serde = { version = "^1", features = ["derive"] }
 serde_json = { version = "^1", features = ["std"] }
-# UUID
-uuid = { version = "^1", features = ["serde", "v4"] }
-# Local Object Storage
-object_store = { version = "^0.9" }
-cli-table = "0.4.7"
-futures = "0.3.30"
 ciborium = "0.2.2"
 
-#futures = { version = "^0.3" }
-#futures-core = { version = "^0.3" }
-#bytes = { version = "^1.5" }
-#chrono = { version = "^0.4", default-features = false, features = [
-#"clock",
-#"std",
-#] }
+# UUID
+uuid = { version = "^1", features = ["serde", "v4"] }
 
+# Local Object Storage
+object_store = { version = "^0.9" }
 
 [dev-dependencies]
 dir-assert = { git = "https://github.com/banyancomputer/dir-assert.git", branch = "non-utf8", version = "^0.2" }
