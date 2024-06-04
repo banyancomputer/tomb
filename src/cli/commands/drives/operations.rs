@@ -40,11 +40,7 @@ use super::helpers::api_drive_with_name;
 pub enum DriveOperationCommand {
     Info,
     /// Prepare a Drive for Pushing by encrypting new data
-    Prepare {
-        /// Follow symbolic links
-        #[arg(short, long)]
-        follow_links: bool,
-    },
+    Prepare,
     /// Reconstruct a Drive filesystem locally
     Restore,
     /// Delete a Drive
@@ -254,7 +250,7 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 print_stdout(table)?;
                 Ok(())
             }
-            Prepare { follow_links: _ } => {
+            Prepare => {
                 payload.sync().await?;
                 let path = payload.global.get_path(&payload.id.drive_id)?;
                 let mut bfs = LocalBanyanFS::decode(&payload.id).await?;

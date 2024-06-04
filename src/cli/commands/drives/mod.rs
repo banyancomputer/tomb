@@ -18,7 +18,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::filesystem::Drive;
+use banyanfs::{api::platform, filesystem::Drive};
 use operations::DriveOperationCommand;
 pub use operations::DriveOperationPayload;
 
@@ -31,21 +31,41 @@ use tracing::{debug, info, warn};
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
 pub enum DrivesCommand {
+    /// Information about a specific drive
+    Info {
+        /// Drive name
+        name: String,
+    },
     /// List all Drives
     Ls,
     /// Initialize a new Drive
     Create {
-        /// Drive Root
-        #[arg(short, long)]
+        /// Drive name
         path: Option<PathBuf>,
     },
-    /// Operate on a known drive
-    Operation {
-        #[clap(flatten)]
-        drive_specifier: DriveSpecifier,
-
-        #[clap(subcommand)]
-        subcommand: DriveOperationCommand,
+    /// Prepare a Drive for Pushing by encrypting new data
+    Prepare {
+        /// Drive name
+        name: String,
+    },
+    /// Reconstruct a Drive filesystem locally
+    Restore {
+        /// Drive name
+        name: String,
+    },
+    /// Delete a Drive
+    Delete {
+        /// Drive name
+        name: String,
+    },
+    /// Change the name of a Drive
+    Rename {
+        /// Drive name
+        #[arg(short, long)]
+        name: String,
+        /// New Drive name
+        #[arg(short, long)]
+        new_name: String,
     },
 }
 
@@ -55,7 +75,33 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
     async fn run_internal(self, mut global: GlobalConfig) -> Result<(), NativeError> {
         use DrivesCommand::*;
-        match self {
+        match &self {
+            Info { name }
+            | Prepare { name }
+            | Restore { name }
+            | Delete { name }
+            | Rename { name, .. } => {
+                let payload = DriveOperationPayload {
+                    id: DriveAndKeyId {
+                        drive_id: name.to_string(),
+                        user_key_id: global.selected_user_key_id()?,
+                    },
+                    global,
+                };
+
+                match self {
+                    Info { .. } => DriveOperationCommand::Info.run_internal(payload).await,
+                    Prepare { .. } => DriveOperationCommand::Prepare.run_internal(payload).await,
+                    Restore { .. } => DriveOperationCommand::Restore.run_internal(payload).await,
+                    Delete { .. } => DriveOperationCommand::Delete.run_internal(payload).await,
+                    Rename { new_name, .. } => {
+                        DriveOperationCommand::Rename { new_name }
+                            .run_internal(payload)
+                            .await
+                    }
+                    _ => panic!(),
+                }
+            }
             // List all Buckets tracked remotely and locally
             Ls => {
                 let api_drives = helpers::api_drives(&global).await;
@@ -124,7 +170,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
             Create { path } => {
-                let path = path.unwrap_or(current_dir()?);
+                let path = path.to_owned().unwrap_or(current_dir()?);
                 let drive_id =
                     name_of(&path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
                 // Save location association
@@ -143,21 +189,20 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 info!("<< CREATED LOCAL DRIVE >>");
 
                 Ok(())
-            }
-            Operation {
-                drive_specifier,
-                subcommand,
-            } => {
-                let drive_id = DriveId::from(drive_specifier).get_id().await?;
-                let payload = DriveOperationPayload {
-                    id: DriveAndKeyId {
-                        drive_id,
-                        user_key_id: global.selected_user_key_id()?,
-                    },
-                    global: global.clone(),
-                };
-                subcommand.run_internal(payload).await
-            }
+            } //Access { subcommand } => subcommand.run_internal(payload).await,
+
+              /*
+              Operation { name, subcommand } => {
+                  let payload = DriveOperationPayload {
+                      id: DriveAndKeyId {
+                          drive_id: name,
+                          user_key_id: global.selected_user_key_id()?,
+                      },
+                      global: global.clone(),
+                  };
+                  subcommand.run_internal(payload).await
+              }
+              */
         }
     }
 }
