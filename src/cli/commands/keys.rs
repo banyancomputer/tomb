@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    cli::display::{Persistence, TableEntry},
+    cli::Persistence,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,

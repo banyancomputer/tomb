@@ -59,6 +59,7 @@ impl LocalBanyanFS {
         Self::init_from_drive(identifier, drive).await
     }
 
+    // TODO REMOVE
     pub async fn go_online(&self) -> Result<SyncDataStore, NativeError> {
         let global = GlobalConfig::decode(&GlobalConfigId).await?;
         let client = global.get_client().await?;
@@ -68,17 +69,6 @@ impl LocalBanyanFS {
             self.tracker.clone(),
         ))
     }
-
-    /*
-    pub async fn sync(
-        &mut self,
-        global: &GlobalConfig,
-        bucket_id: &str,
-    ) -> Result<(), NativeError> {
-
-        Ok(())
-    }
-    */
 }
 
 /// ~/.local/share/banyan/drive_blocks

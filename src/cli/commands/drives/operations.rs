@@ -6,8 +6,7 @@ use crate::{
             drives::{LocalBanyanFS, LocalLoadedDrive, SyncDataStore},
             helpers,
         },
-        display::Persistence,
-        RunnableCommand,
+        Persistence, RunnableCommand,
     },
     drive::operations,
     on_disk::{

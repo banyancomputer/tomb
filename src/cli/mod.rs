@@ -1,7 +1,5 @@
 /// Commands to run
 pub mod commands;
-/// CLI Output Impls
-pub mod display;
 /// Command Trait
 mod runnable_command;
 /// Ways of specifying resources
@@ -21,4 +19,21 @@ pub struct Args {
     /// Verbosity level.
     #[arg(short, long, help = "verbosity level", default_value = "normal")]
     pub verbose: verbosity::MyVerbosity,
+}
+
+#[derive(Debug)]
+pub enum Persistence {
+    LocalOnly,
+    RemoteOnly,
+    Sync,
+}
+
+impl std::fmt::Display for Persistence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Persistence::LocalOnly => f.write_str("Local Only"),
+            Persistence::RemoteOnly => f.write_str("Remote Only"),
+            Persistence::Sync => f.write_str("Sync"),
+        }
+    }
 }

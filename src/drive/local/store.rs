@@ -78,21 +78,3 @@ impl DataStore for LocalDataStore {
             .map(|_| ())
     }
 }
-
-/*
-#[async_trait(?Send)]
-impl OnDisk<String> for LocalDataStore {
-    const TYPE: DiskType = DiskType::Config;
-    const SUFFIX: &'static str = "data_stores";
-    const EXTENSION: &'static str = "ds";
-
-    async fn encode(&self, _: &String) -> Result<(), OnDiskError> {
-        Ok(())
-    }
-
-    async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
-        self.path(&identifier)
-        Ok(Self {})
-    }
-}
-*/

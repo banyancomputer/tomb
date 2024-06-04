@@ -5,8 +5,8 @@ mod operations;
 use crate::{
     cli::{
         commands::RunnableCommand,
-        display::Persistence,
         specifiers::{DriveId, DriveSpecifier},
+        Persistence,
     },
     drive::local::*,
     on_disk::{

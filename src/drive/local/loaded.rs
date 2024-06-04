@@ -10,6 +10,7 @@ use crate::{
 
 use super::LocalBanyanFS;
 
+// TODO remove
 pub struct LocalLoadedDrive {
     /// Location of the Drive in user space
     pub path: PathBuf,
@@ -30,18 +31,4 @@ impl LocalLoadedDrive {
             bfs,
         })
     }
-
-    /*
-    pub async fn load(di: &DriveId, global: &GlobalConfig) -> Result<Self, NativeError> {
-        let drive_id = di.get_id().await?;
-        let path = global.get_path(&drive_id)?;
-        let user_key_id = global.selected_user_key_id()?;
-        let id = DriveAndKeyId {
-            drive_id,
-            user_key_id,
-        };
-        let bfs = LocalBanyanFS::decode(&id).await?;
-        Ok(Self { path, id, bfs })
-    }
-    */
 }
