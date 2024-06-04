@@ -16,8 +16,8 @@ use url::Url;
 
 /// Subcommand for endpoint configuration
 #[derive(Subcommand, Clone, Debug)]
-pub enum ApiCommand {
-    /// Display the current remote endpoint
+pub enum PlatformCommand {
+    /// Display the current platform endpoint
     Display,
     /// Set the endpoint to a new value
     Set {
@@ -28,20 +28,20 @@ pub enum ApiCommand {
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for ApiCommand {
+impl RunnableCommand<NativeError> for PlatformCommand {
     type Payload = ();
 
     async fn run(self, _payload: ()) -> Result<(), NativeError> {
         let _global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
-            ApiCommand::Display => {
+            PlatformCommand::Display => {
                 let table = vec![vec![env!("ENDPOINT").cell()]]
                     .table()
                     .title(vec!["Remote Address".cell()]);
                 print_stdout(table)?;
                 Ok(())
             }
-            ApiCommand::Set { address } => {
+            PlatformCommand::Set { address } => {
                 let _ = Url::parse(&address).map_err(|err| NativeError::Custom(err.to_string()));
                 std::env::set_var("ENDPOINT", address);
                 info!("<< ENDPOINT UPDATED SUCCESSFULLY >>");

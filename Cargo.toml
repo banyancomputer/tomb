@@ -43,7 +43,7 @@ tokio = { version = "^1", features = ["full", "io-util", "fs"] }
 tokio-util = { version = "^0.7" }
 async-recursion = { version = "^1" }
 async-trait = { version = "^0.1" }
-futures = { versoin = "^0.3" }
+futures = { version = "^0.3" }
 
 # Url Parsing
 url = { version = "^2", features = ["serde"] }

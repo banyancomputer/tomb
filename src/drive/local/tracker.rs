@@ -1,14 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    io::Write,
-};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use banyanfs::prelude::*;
 
 use serde::{Deserialize, Serialize};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
 use crate::on_disk::{DiskType, OnDisk, OnDiskError};
 /// A minimal implementation of a memory backed sync tracker. This implementation

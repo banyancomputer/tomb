@@ -3,11 +3,7 @@ pub mod helpers;
 mod operations;
 
 use crate::{
-    cli::{
-        commands::RunnableCommand,
-        specifiers::{DriveId, DriveSpecifier},
-        Persistence,
-    },
+    cli::{commands::RunnableCommand, Persistence},
     drive::local::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
@@ -18,7 +14,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{api::platform, filesystem::Drive};
+use banyanfs::filesystem::Drive;
 use operations::DriveOperation;
 pub use operations::DriveOperationPayload;
 
@@ -100,23 +96,23 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     _ => panic!(),
                 }
             }
-            // List all Buckets tracked remotely and locally
+            // List all Buckets tracked on platform and locally
             Ls => {
-                let api_drives = helpers::api_drives(&global).await;
-                debug!("fetched remote drives");
+                let platform_drives = helpers::platform_drives(&global).await;
+                debug!("fetched platform drives");
 
                 let mut table_rows = Vec::new();
                 let local_drive_names = Drive::entries();
 
-                // Find the drives that exist both locally and remotely
+                // Find the drives that exist both locally and on platform
                 let mut sync_names = Vec::new();
                 for local_name in local_drive_names.iter() {
-                    for api in api_drives.iter() {
-                        if *local_name == api.name {
+                    for platform_drive in platform_drives.iter() {
+                        if *local_name == platform_drive.name {
                             sync_names.push(local_name.clone());
                             table_rows.push(vec![
-                                api.name.clone().cell(),
-                                api.id.clone().cell(),
+                                platform_drive.name.clone().cell(),
+                                platform_drive.id.clone().cell(),
                                 global.get_path(local_name)?.display().cell(),
                                 Persistence::Sync.cell(),
                             ])
@@ -139,13 +135,13 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 debug!("found local drives");
 
-                for remote in api_drives.into_iter() {
-                    if !sync_names.contains(&remote.name) {
+                for platform in platform_drives.into_iter() {
+                    if !sync_names.contains(&platform.name) {
                         table_rows.push(vec![
-                            remote.name.clone().cell(),
-                            remote.id.clone().cell(),
+                            platform.name.clone().cell(),
+                            platform.id.clone().cell(),
                             "N/A".cell(),
-                            Persistence::RemoteOnly.cell(),
+                            Persistence::PlatformOnly.cell(),
                         ])
                     }
                 }
@@ -166,7 +162,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
 
                 Ok(())
             }
-            // Create a new Bucket. This attempts to create the Bucket both locally and remotely, but settles for a simple local creation if remote permissions fail
+            // Create a new Bucket. This attempts to create the Bucket both locally and on platform, but settles for a simple local creation if remote permissions fail
             Create { path } => {
                 let path = path.to_owned().unwrap_or(current_dir()?);
                 let drive_id =
@@ -178,8 +174,8 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 let id = DriveAndKeyId::new(&drive_id, &user_key_id);
 
                 if let Ok(client) = global.get_client().await {
-                    //let _remote_id = platform::drives::create(&client, &drive_id).await?;
-                    //info!("<< CREATED REMOTE DRIVE >>");
+                    //let _platform_id = platform::drives::create(&client, &drive_id).await?;
+                    //info!("<< CREATED PLATFORM DRIVE >>");
                 }
 
                 // Create and encode the Drive and Store

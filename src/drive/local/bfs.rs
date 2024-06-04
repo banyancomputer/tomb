@@ -5,10 +5,8 @@ use crate::{on_disk::*, NativeError};
 
 use async_trait::async_trait;
 
-use banyanfs::api::{platform, VecStream};
 use banyanfs::prelude::*;
 use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
-use tracing::{info, warn};
 
 use std::fs::create_dir_all;
 

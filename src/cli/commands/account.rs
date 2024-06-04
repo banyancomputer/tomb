@@ -79,7 +79,7 @@ impl RunnableCommand<NativeError> for AccountCommand {
             Logout => {
                 global.remove_account_id();
                 global.encode(&GlobalConfigId).await?;
-                info!("<< SUCCESSFULLY LOGGED OUT OF REMOTE ACCESS >>");
+                info!("<< SUCCESSFULLY LOGGED OUT OF PLATFORM >>");
                 Ok(())
             }
             Usage => {

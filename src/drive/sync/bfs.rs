@@ -106,12 +106,9 @@ impl SyncBanyanFS {
 
         let _new_metadata = platform::metadata::get(&client, bucket_id, &new_metadata_id).await?;
         if let Err(err) = self.store.sync(&new_metadata_id).await {
-            warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
-            // note(sstelfox): this could be recoverable with future syncs, but we
-            // should probably still fail here...
-            return Err(NativeError::Custom(
-                "failed to sync data store to remotes".into(),
-            ));
+            return Err(NativeError::Custom(String::from(
+                "Failed to sync data to platform",
+            )));
         }
 
         info!("drive synced");

@@ -54,12 +54,11 @@ impl RunnableCommand<NativeError> for KeysCommand {
         use KeysCommand::*;
         match self {
             Ls => {
-                let remote_keys: Vec<ApiUserKey> = if let Ok(client) = global.get_client().await {
-                    info!("Fetching remote keys, too.");
+                let platform_keys: Vec<ApiUserKey> = if let Ok(client) = global.get_client().await {
                     platform::account::user_key_access(&client)
                         .await
                         .map_err(|err| {
-                            warn!("Error requesting user keys from remote: {err:?}");
+                            warn!("Error requesting user keys from platform: {err:?}");
                         })
                         .unwrap_or(vec![])
                         .into_iter()
@@ -83,42 +82,42 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     let local_public_key = local_private_key.verifying_key();
                     let local_fingerprint = api_fingerprint_key(&local_public_key);
 
-                    for remote_key in remote_keys.iter() {
+                    for platform_key in platform_keys.iter() {
                         // Sync key found
-                        if remote_key.fingerprint() == local_fingerprint {
+                        if platform_key.fingerprint() == local_fingerprint {
                             // Ensure name congruence
                             // If the names are different for some reason
-                            let remote_name = remote_key.name();
-                            let key_name = if remote_name != local_name {
+                            let platform_name = platform_key.name();
+                            let key_name = if platform_name != local_name {
                                 warn!(
-                                    "Remote key with name `{}` is named `{}` locally.",
-                                    remote_name, local_name
+                                    "Platform key with name `{}` is named `{}` locally.",
+                                    platform_name, local_name
                                 );
-                                if prompt_for_bool("Keep local or remote name?", 'l', 'r') {
-                                    info!("Renaming remote key.");
+                                if prompt_for_bool("Keep local or platform name?", 'l', 'p') {
+                                    info!("Renaming platform key.");
                                     let client = global.get_client().await?;
                                     platform::account::rename_user_key(
                                         &client,
                                         local_name,
-                                        remote_key.id(),
+                                        platform_key.id(),
                                     )
                                     .await?;
                                     local_name
                                 } else {
                                     info!("Renaming local key.");
                                     // Write by new name, erase by old
-                                    local_private_key.encode(remote_name).await?;
+                                    local_private_key.encode(platform_name).await?;
                                     SigningKey::erase(local_name).await?;
 
                                     // Handle config
                                     if let Ok(selected_user_key_id) = global.selected_user_key_id()
                                     {
                                         if selected_user_key_id == *local_name {
-                                            global.select_user_key_id(remote_name.to_string());
+                                            global.select_user_key_id(platform_name.to_string());
                                             global.encode(&GlobalConfigId).await?;
                                         }
                                     }
-                                    remote_name
+                                    platform_name
                                 }
                             } else {
                                 local_name
@@ -126,13 +125,13 @@ impl RunnableCommand<NativeError> for KeysCommand {
 
                             //
                             sync_names.insert(local_name);
-                            sync_names.insert(remote_name);
+                            sync_names.insert(platform_name);
                             table_rows.push(vec![
                                 key_name.cell(),
-                                remote_key.user_id().cell(),
-                                remote_key.fingerprint().cell(),
-                                remote_key.api_access().cell(),
-                                remote_key.public_key().cell(),
+                                platform_key.user_id().cell(),
+                                platform_key.fingerprint().cell(),
+                                platform_key.api_access().cell(),
+                                platform_key.public_key().cell(),
                                 Persistence::Sync.cell(),
                             ])
                         }
@@ -158,15 +157,15 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     }
                 }
 
-                for remote_key in remote_keys.iter() {
-                    if !sync_names.contains(remote_key.name()) {
+                for platform_key in platform_keys.iter() {
+                    if !sync_names.contains(platform_key.name()) {
                         table_rows.push(vec![
-                            remote_key.name().cell(),
-                            remote_key.user_id().cell(),
-                            remote_key.fingerprint().cell(),
-                            remote_key.api_access().cell(),
-                            remote_key.public_key().cell(),
-                            Persistence::RemoteOnly.cell(),
+                            platform_key.name().cell(),
+                            platform_key.user_id().cell(),
+                            platform_key.fingerprint().cell(),
+                            platform_key.api_access().cell(),
+                            platform_key.public_key().cell(),
+                            Persistence::PlatformOnly.cell(),
                         ])
                     }
                 }

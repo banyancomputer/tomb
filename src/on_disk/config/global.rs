@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::Display,
-    fs::File,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -31,7 +30,7 @@ pub struct GlobalConfig {
     drive_paths: HashMap<String, PathBuf>,
     /// Drive Identifiers -> Platform Drive Identifiers
     drive_platform_ids: HashMap<String, String>,
-    /// Remote account id
+    /// Platform account id
     account_id: Option<Uuid>,
 }
 

@@ -33,7 +33,7 @@ use futures::{io::Cursor, StreamExt};
 use tokio::fs::{create_dir_all, rename};
 use tracing::*;
 
-use super::helpers::api_drive_with_name;
+use super::helpers::platform_drive_with_name;
 
 pub enum DriveOperation {
     Info,
@@ -66,24 +66,25 @@ impl DriveOperationPayload {
     pub async fn sync(&mut self) -> Result<(), NativeError> {
         let client = self.global.get_client().await?;
 
-        // Get the remote drive, creating it if need be
-        let api_drive = match helpers::api_drive_with_name(&self.global, &self.id.drive_id).await {
-            Some(api_drive) => api_drive,
-            None => {
-                if prompt_for_bool("No remote drive with this name. Create one?", 'y', 'n') {
-                    let remote_drive_id =
-                        platform::drives::create(&client, &self.id.drive_id).await?;
-                    platform::drives::get(&client, &remote_drive_id).await?
-                } else {
-                    error!("Cannot sync when no remote drive matches query.");
-                    return Ok(());
+        // Get the platform drive, creating it if need be
+        let platform_drive =
+            match helpers::platform_drive_with_name(&self.global, &self.id.drive_id).await {
+                Some(platform_drive) => platform_drive,
+                None => {
+                    if prompt_for_bool("No platform drive with this name. Create one?", 'y', 'n') {
+                        let platform_drive_id =
+                            platform::drives::create(&client, &self.id.drive_id).await?;
+                        platform::drives::get(&client, &platform_drive_id).await?
+                    } else {
+                        error!("Cannot sync when no platform drive matches query.");
+                        return Ok(());
+                    }
                 }
-            }
-        };
+            };
 
         // If we need to push up
         if let Ok(mut local_drive) = LocalBanyanFS::decode(&self.id).await {
-            let bucket_id = api_drive.id;
+            let bucket_id = platform_drive.id;
             // Sync the drive
             let mut store = local_drive.go_online().await?;
 
@@ -149,7 +150,8 @@ impl DriveOperationPayload {
                     local_drive.tracker = CborSyncTracker::default();
                 }
                 Err(err) => {
-                    warn!("failed to sync data store to remotes, data remains cached locally but unsynced and can be retried: {err}");
+                    error!("failed to sync data store to platform: {err}");
+                    return Ok(());
                 }
             }
             local_drive.encode(&self.id).await?;
@@ -159,12 +161,13 @@ impl DriveOperationPayload {
             // We need the key loaded
             let user_key = SigningKey::decode(&self.id.user_key_id).await?;
 
-            let current_metadata = platform::metadata::get_current(&client, &api_drive.id).await?;
+            let current_metadata =
+                platform::metadata::get_current(&client, &platform_drive.id).await?;
             let metadata_id = current_metadata.id();
 
             // metadata for a drive (if we've seen zero its safe to create a new drive, its not otherwise).
             let mut stream =
-                platform::metadata::pull_stream(&client, &api_drive.id, &metadata_id).await?;
+                platform::metadata::pull_stream(&client, &platform_drive.id, &metadata_id).await?;
             let mut drive_bytes = Vec::new();
             while let Some(chunk) = stream.next().await {
                 let bytes = chunk
@@ -211,27 +214,28 @@ impl RunnableCommand<NativeError> for DriveOperation {
             // Info
             Info => {
                 let mut table_rows = Vec::new();
-                let api = helpers::api_drive_with_name(&payload.global, &payload.id.drive_id).await;
+                let platform_drive =
+                    helpers::platform_drive_with_name(&payload.global, &payload.id.drive_id).await;
                 //let local = LocalLoadedDrive::load(&payload).await.ok();
                 let path = payload.global.get_path(&payload.id.drive_id).ok();
-                match (api, path) {
-                    (Some(api), Some(path)) => table_rows.push(vec![
-                        api.name.clone().cell(),
-                        api.id.clone().cell(),
+                match (platform_drive, path) {
+                    (Some(platform_drive), Some(path)) => table_rows.push(vec![
+                        platform_drive.name.clone().cell(),
+                        platform_drive.id.clone().cell(),
                         path.display().cell(),
                         Persistence::Sync.cell(),
                     ]),
-                    (Some(api), None) => table_rows.push(vec![
-                        api.name.clone().cell(),
-                        api.id.clone().cell(),
+                    (Some(platform_drive), None) => table_rows.push(vec![
+                        platform_drive.name.clone().cell(),
+                        platform_drive.id.clone().cell(),
                         "N/A".cell(),
-                        Persistence::RemoteOnly.cell(),
+                        Persistence::PlatformOnly.cell(),
                     ]),
                     (None, Some(path)) => table_rows.push(vec![
                         payload.id.drive_id.cell(),
                         "N/A".cell(),
                         path.display().cell(),
-                        Persistence::RemoteOnly.cell(),
+                        Persistence::PlatformOnly.cell(),
                     ]),
                     (None, None) => {
                         return Err(ConfigStateError::MissingDrive(payload.id.drive_id).into());
@@ -271,11 +275,11 @@ impl RunnableCommand<NativeError> for DriveOperation {
                     info!("<< LOCAL DRIVE DATA DELETED SUCCESSFULLY >>");
                 }
 
-                if let Some(api_drive) =
-                    api_drive_with_name(&payload.global, &payload.id.drive_id).await
+                if let Some(platform_drive) =
+                    platform_drive_with_name(&payload.global, &payload.id.drive_id).await
                 {
                     let client = payload.global.get_client().await?;
-                    platform::drives::delete(&client, &api_drive.id).await?;
+                    platform::drives::delete(&client, &platform_drive.id).await?;
                     info!("<< PLATFORM DRIVE DATA DELETED SUCCESSFULLY >>");
                 }
 
@@ -328,7 +332,7 @@ impl RunnableCommand<NativeError> for DriveOperation {
                         },
                     )
                     .await?;
-                    info!("<< RENAMED DRIVE REMOTELY >>");
+                    info!("<< RENAMED DRIVE ON PLATFORM >>");
                 }
 
                 Ok(())

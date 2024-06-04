@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use async_trait::async_trait;
-use clap::Subcommand;
 
 /// Async function for running a command
 #[async_trait(?Send)]

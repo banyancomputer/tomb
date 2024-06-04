@@ -4,30 +4,30 @@ use clap::Subcommand;
 //mod access;
 /// Login / Logout Account
 mod account;
-/// View / Change API endpoint
-mod api;
 /// Drive access management
 //mod drive_access;
 /// Drive interaction
 mod drives;
 /// User Keys
 mod keys;
+/// View / Change Platform endpoint
+mod platform;
 
 /// Export all commands
 //pub use access::*;
 pub use account::*;
-pub use api::*;
 pub use drives::*;
+pub use platform::*;
 //pub use drives::*;
 
 /// Defines the types of commands that can be executed from the CLI.
 #[derive(Debug, Subcommand, Clone)]
 pub enum BanyanCommand {
-    /// Manually configure remote endpoints
+    /// Manually configure platform endpoints
     Api {
         /// Subcommand
         #[clap(subcommand)]
-        command: api::ApiCommand,
+        command: platform::PlatformCommand,
     },
     /// Account Login and Details
     Account {
