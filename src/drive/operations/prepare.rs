@@ -4,7 +4,11 @@ use crate::{
     utils::{all_bfs_paths, is_visible},
     NativeError,
 };
-use banyanfs::{filesystem::Drive, stores::DataStore, utils::crypto_rng};
+use banyanfs::{
+    filesystem::Drive,
+    stores::DataStore,
+    utils::{calculate_cid, crypto_rng},
+};
 use tokio::io::AsyncReadExt;
 use tracing::{info, warn};
 use walkdir::WalkDir;
@@ -19,23 +23,17 @@ pub async fn prepare(
 
     // Iterate over every entry in the FileSystem
     for bfs_path in all_bfs_paths(drive).await? {
-        //info!("enumerated: {:?}", path);
         // Deterministically canonicalize the path
-        let canon = path.join(&bfs_path);
-        //
-        if !canon.exists() {
+        if !path.join(&bfs_path).exists() {
             warn!(
                 "{} was present in the FS but not on disk. Deleting.",
                 bfs_path.display()
             );
-            //if prompt_for_bool("Delete?") {
             let bfs_path: Vec<&str> = bfs_path
                 .components()
                 .filter_map(|v| v.as_os_str().to_str())
                 .collect();
-
             root.rm(store, &bfs_path).await.ok();
-            //}
         }
     }
 
@@ -57,26 +55,34 @@ pub async fn prepare(
                     .collect();
 
                 if !bfs_path.is_empty() {
-                    info!("canonical: {:?}", canonical_path);
-                    info!("bfs: {:?}", bfs_path);
-
                     // If directory
                     if canonical_path.is_dir() {
-                        info!("making dir");
                         root.mkdir(&mut rng, &bfs_path, true).await?;
                     }
                     // If file
                     else {
-                        info!("making file");
-
                         // Read in the data
                         let mut data = Vec::new();
                         let mut file = tokio::fs::File::open(&canonical_path).await?;
                         file.read_to_end(&mut data).await?;
-                        // TODO this kinda sucks.
-                        root.rm(store, &bfs_path).await.ok();
-                        // Write doesn't work unless the thing isn't already there
-                        root.write(&mut rng, store, &bfs_path, &data).await?;
+
+                        match root.cid(&bfs_path).await {
+                            // There is a file and it has a cid
+                            Ok(plaintext_cid) => {
+                                // Remove and rewrite the file if it has changed
+                                if calculate_cid(&data) != plaintext_cid {
+                                    info!("File at path {bfs_path:?} has been modified and is being rewritten.");
+                                    root.rm(store, &bfs_path).await.ok();
+                                    root.write(&mut rng, store, &bfs_path, &data).await?;
+                                }
+                            }
+                            // Assume this failed because the path doesn't exist in the filesystem
+                            // TODO improve resilience?
+                            Err(_) => {
+                                info!("Writing new file at {bfs_path:?}");
+                                root.write(&mut rng, store, &bfs_path, &data).await?;
+                            }
+                        }
                     }
                 }
             }
