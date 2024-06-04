@@ -7,7 +7,7 @@ use banyanfs::{
 };
 use object_store::{local::LocalFileSystem, path::Path, ObjectStore};
 
-use crate::on_disk::{DiskType, OnDisk, OnDiskError};
+use crate::on_disk::OnDiskError;
 
 pub struct LocalDataStore {
     prefix: PathBuf,

@@ -1,13 +1,5 @@
-use crate::on_disk::{DiskType, OnDisk, OnDiskError};
-
 use super::LocalDataStore;
-use async_trait::async_trait;
-use banyanfs::{
-    codec::Cid,
-    stores::{ApiSyncableStore, DataStoreError, MemorySyncTracker, SyncTracker},
-};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
+use banyanfs::stores::{ApiSyncableStore, MemorySyncTracker};
 
 pub type SyncDataStore = ApiSyncableStore<LocalDataStore, MemorySyncTracker>;
 

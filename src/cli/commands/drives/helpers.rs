@@ -1,25 +1,7 @@
-use std::path::PathBuf;
-
-use banyanfs::{
-    api::platform::{self, ApiDrive},
-    codec::{crypto::SigningKey, header::AccessMaskBuilder},
-    filesystem::DriveLoader,
-    utils::crypto_rng,
-};
-use futures::{io::Cursor, StreamExt};
-use tokio::fs::create_dir_all;
+use banyanfs::api::platform::{self, ApiDrive};
 use tracing::{error, warn};
 
-use crate::{
-    on_disk::{
-        config::{GlobalConfig, GlobalConfigId},
-        local_share::DriveAndKeyId,
-        OnDisk,
-    },
-    NativeError,
-};
-
-use super::{DriveOperationPayload, LocalBanyanFS};
+use crate::on_disk::config::GlobalConfig;
 
 pub async fn api_drive_with_name(global: &GlobalConfig, name: &str) -> Option<ApiDrive> {
     api_drives(global)
