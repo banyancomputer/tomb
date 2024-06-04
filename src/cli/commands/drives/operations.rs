@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::{
     cli::{
         commands::{
-            drives::{LocalBanyanFS, LocalLoadedDrive, SyncDataStore},
+            drives::{CborSyncTracker, LocalBanyanFS, SyncDataStore},
             helpers,
         },
         Persistence, RunnableCommand,
@@ -33,6 +33,8 @@ use cli_table::{print_stdout, Cell, Table};
 use futures::{io::Cursor, StreamExt};
 use tokio::fs::{create_dir_all, rename};
 use tracing::*;
+
+use super::helpers::api_drive_with_name;
 
 #[derive(Subcommand, Clone, Debug)]
 pub enum DriveOperationCommand {
@@ -215,12 +217,13 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
             Info => {
                 let mut table_rows = Vec::new();
                 let api = helpers::api_drive_with_name(&payload.global, &payload.id.drive_id).await;
-                let local = LocalLoadedDrive::load(&payload).await.ok();
-                match (api, local) {
-                    (Some(api), Some(local)) => table_rows.push(vec![
+                //let local = LocalLoadedDrive::load(&payload).await.ok();
+                let path = payload.global.get_path(&payload.id.drive_id).ok();
+                match (api, path) {
+                    (Some(api), Some(path)) => table_rows.push(vec![
                         api.name.clone().cell(),
                         api.id.clone().cell(),
-                        local.path.display().cell(),
+                        path.display().cell(),
                         Persistence::Sync.cell(),
                     ]),
                     (Some(api), None) => table_rows.push(vec![
@@ -229,10 +232,10 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                         "N/A".cell(),
                         Persistence::RemoteOnly.cell(),
                     ]),
-                    (None, Some(local)) => table_rows.push(vec![
-                        local.id.drive_id.cell(),
+                    (None, Some(path)) => table_rows.push(vec![
+                        payload.id.drive_id.cell(),
                         "N/A".cell(),
-                        local.path.display().cell(),
+                        path.display().cell(),
                         Persistence::RemoteOnly.cell(),
                     ]),
                     (None, None) => {
@@ -269,44 +272,50 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Delete => {
-                let ld = LocalLoadedDrive::load(&payload).await?;
-                payload.global.remove_path(&ld.id.drive_id)?;
-                Drive::erase(&ld.id).await?;
-                LocalBanyanFS::erase(&ld.id).await?;
-                payload.global.encode(&GlobalConfigId).await?;
+                if Drive::entries().contains(&payload.id.drive_id) {
+                    payload.global.remove_path(&payload.id.drive_id).ok();
+                    Drive::erase(&payload.id).await?;
+                    LocalBanyanFS::erase(&payload.id).await?;
+                    payload.global.encode(&GlobalConfigId).await?;
+                    info!("<< LOCAL DRIVE DATA DELETED SUCCESSFULLY >>");
+                }
 
-                info!("<< DRIVE DATA DELETED SUCCESSFULLY >>");
-                info!("{:?}", ld.bfs.drive.id());
+                if let Some(api_drive) =
+                    api_drive_with_name(&payload.global, &payload.id.drive_id).await
+                {
+                    let client = payload.global.get_client().await?;
+                    platform::drives::delete(&client, &api_drive.id).await?;
+                    info!("<< PLATFORM DRIVE DATA DELETED SUCCESSFULLY >>");
+                }
 
                 Ok(())
             }
             Restore => {
                 payload.sync().await?;
-                let mut ld = LocalLoadedDrive::load(&payload).await?;
-                match ld.bfs.go_online().await {
-                    Ok(mut store) => {
-                        operations::restore(&mut ld.bfs.drive, &mut store, &ld.path).await?;
-                    }
-                    Err(_) => {
-                        warn!("Unable to go online. Restoration will fail if data is not already on disk.");
-                        operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
-                    }
-                }
+                let path = payload.global.get_path(&payload.id.drive_id)?;
+                let mut bfs = LocalBanyanFS::decode(&payload.id).await?;
+                let mut store = SyncDataStore::new(
+                    payload.global.get_client().await?,
+                    bfs.store.clone(),
+                    bfs.tracker.clone(),
+                );
+                operations::restore(&mut bfs.drive, &mut store, &path).await?;
                 info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
                 Ok(())
             }
             Rename { new_name } => {
-                let loaded = LocalLoadedDrive::load(&payload).await?;
-                let old_id = loaded.id.clone();
+                let old_path = payload.global.get_path(&payload.id.drive_id)?;
+                let old_id = payload.id.clone();
                 let new_id = DriveAndKeyId::new(&new_name, &old_id.user_key_id);
 
                 // Rename drive.bfs
                 Drive::rename(&old_id, &new_id).await?;
+                // Rename sync tracker
+                CborSyncTracker::rename(&old_id.drive_id, &new_id.drive_id).await?;
                 // Rename drive_blocks folder
                 LocalBanyanFS::rename(&old_id, &new_id).await?;
 
                 // Rename the folder in user land
-                let old_path = loaded.path.clone();
                 let new_path = old_path.parent().unwrap().join(new_name);
                 rename(old_path, &new_path).await?;
 
