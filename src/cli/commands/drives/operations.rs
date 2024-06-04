@@ -132,13 +132,18 @@ impl RunnableCommand<NativeError> for DriveOperationCommand {
                 Ok(())
             }
             Restore => {
-                //let client = global.api_client().await?;
-                //let drive = platform::drives::get(&client, drive_id).await?;
-
                 let mut ld = LocalLoadedDrive::load(&payload).await?;
-                operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
+                match ld.bfs.go_online().await {
+                    Ok(mut store) => {
+                        info!("Utilizing API sync for this restoration");
+                        operations::restore(&mut ld.bfs.drive, &mut store, &ld.path).await?;
+                    }
+                    Err(_) => {
+                        warn!("Unable to go online. Restoration will fail if data is not already on disk.");
+                        operations::restore(&mut ld.bfs.drive, &mut ld.bfs.store, &ld.path).await?;
+                    }
+                }
                 info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
-                info!("{:?}", ld.bfs.drive.id());
                 Ok(())
             }
             Sync => {
