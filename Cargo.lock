@@ -343,6 +343,7 @@ dependencies = [
 [[package]]
 name = "banyanfs"
 version = "0.2.2"
+source = "git+https://github.com/banyancomputer/banyanfs.git?branch=vera/eng-617-banyan-cli#aa2790b361cfdd9d18a7841427ed837e69d48122"
 dependencies = [
  "async-recursion",
  "async-std",

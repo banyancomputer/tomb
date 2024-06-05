@@ -16,7 +16,7 @@ keywords = ["decentralization", "filecoin", "ipfs", "storage"]
 [dependencies]
 # BanyanFS
 #banyanfs = { path = "../banyanfs/", features = ["banyan-api"] }
-banyanfs = { git = "https://github.com/banyancomputer/banyanfs.git", branch = "vera/eng-617-banyan-cli" }
+banyanfs = { version = "^0.2", git = "https://github.com/banyancomputer/banyanfs.git", branch = "vera/eng-617-banyan-cli" }
 
 # Tracing
 tracing = { version = "^0.1" }
