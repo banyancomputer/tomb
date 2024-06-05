@@ -15,6 +15,7 @@ use std::{
     sync::Arc,
 };
 use tracing::info;
+use url::Url;
 use uuid::Uuid;
 
 /// Represents the Global contents of the tomb configuration file in a user's .config
@@ -32,6 +33,7 @@ pub struct GlobalConfig {
     drive_platform_ids: HashMap<String, String>,
     /// Drive Previous Metadata ID
     pub(crate) drive_previous_metadata_ids: HashMap<String, String>,
+    pub(crate) storage_grants: HashMap<Url, String>,
     /// Platform account id
     account_id: Option<Uuid>,
 }
@@ -45,6 +47,7 @@ impl Default for GlobalConfig {
             drive_paths: HashMap::new(),
             drive_platform_ids: HashMap::new(),
             drive_previous_metadata_ids: HashMap::new(),
+            storage_grants: HashMap::new(),
             account_id: None,
         }
     }
@@ -54,8 +57,12 @@ impl GlobalConfig {
     pub async fn get_client(&self) -> Result<ApiClient, NativeError> {
         let account_id = self.get_account_id()?.to_string();
         let key = Arc::new(SigningKey::decode(&self.selected_user_key_id()?).await?);
-        Ok(ApiClient::new(env!("ENDPOINT"), &account_id, key)
-            .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?)
+        let client = ApiClient::new(env!("ENDPOINT"), &account_id, key)
+            .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?;
+        for (host, grant) in self.storage_grants.iter() {
+            client.record_storage_grant(host.clone(), grant).await;
+        }
+        Ok(client)
     }
 
     pub fn select_user_key_id(&mut self, user_key_id: String) {

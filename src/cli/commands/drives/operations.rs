@@ -16,7 +16,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use banyanfs::{
-    api::{platform, ApiClient, VecStream},
+    api::{platform, VecStream},
     codec::{
         crypto::{SigningKey, VerifyingKey},
         header::{AccessMaskBuilder, ContentOptions},
@@ -134,7 +134,9 @@ impl DriveOperationPayload {
                     warn!("failed to set sync host: {err}");
                 }
                 if let Some(grant) = push_response.storage_authorization() {
-                    client.record_storage_grant(host, grant).await;
+                    client.record_storage_grant(host.clone(), grant).await;
+                    self.global.storage_grants.insert(host, grant.to_string());
+                    self.global.encode(&GlobalConfigId).await?;
                 }
             }
 
