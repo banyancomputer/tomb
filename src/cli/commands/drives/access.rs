@@ -87,32 +87,9 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
                 // You need to already have access locally to do this
                 let bfs = LocalBanyanFS::decode(&payload.id).await?;
 
-                // Grab the verifying key and fingerprint, either from disk or Platform
                 let (public_key, fingerprint) =
-                    if let Ok(user_key) = SigningKey::decode(&name).await {
-                        let public_key = user_key.verifying_key();
-                        let fingerprint = api_fingerprint_key(&public_key);
-                        (public_key, fingerprint)
-                    } else {
-                        match helpers::platform_user_keys(&payload.global)
-                            .await
-                            .into_iter()
-                            .find(|key| *key.name() == name)
-                        {
-                            Some(api_key) => {
-                                let fingerprint = api_key.fingerprint().to_string();
-                                let public_key_pem = api_key.public_key();
-                                let public_key = VerifyingKey::from_spki(&public_key_pem)
-                                    .map_err(|_| NativeError::Custom("Decode SPKI".into()))?;
-                                (public_key, fingerprint)
-                            }
-                            None => {
-                                error!("No known user key with that name locally or remotely.");
-                                return Ok(());
-                            }
-                        }
-                    };
-
+                    helpers::public_key_and_fingerprint(&payload.global, &name).await?;
+                // Grab the verifying key and fingerprint, either from disk or Platform
                 let access_mask = AccessMaskBuilder::full_access().build()?;
                 if let Some((_, _mask)) =
                     bfs.drive.verifying_keys().await.iter().find(|(key, mask)| {
@@ -133,12 +110,9 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
                 Ok(())
             }
             DriveKeyCommand::Revoke { name } => {
-                let user_key = SigningKey::decode(&name).await?;
-                let public_user_key = user_key.verifying_key();
-                let fingerprint = api_fingerprint_key(&public_user_key);
                 let bfs = LocalBanyanFS::decode(&payload.id).await?;
-                let access_mask = AccessMaskBuilder::full_access().historical().build()?;
-
+                let (public_key, fingerprint) =
+                    helpers::public_key_and_fingerprint(&payload.global, &name).await?;
                 if let Some((_, mask)) = bfs
                     .drive
                     .verifying_keys()
@@ -151,8 +125,9 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
                             "This is a protected user key and can not be revoked from the Drive."
                         );
                     } else {
+                        let current_key = SigningKey::decode(&payload.id.user_key_id).await?;
                         bfs.drive
-                            .authorize_key(&mut crypto_rng(), public_user_key, access_mask)
+                            .remove_key(&current_key, &public_key.actor_id())
                             .await?;
                         bfs.encode(&payload.id).await?;
                         info!("<< REVOKED LOCAL ACCESS FOR USER KEY >>");
