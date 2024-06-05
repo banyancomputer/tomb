@@ -185,11 +185,14 @@ jobs:
       # easily install any rust bins without building them
       - uses: cargo-bins/cargo-binstall@main
       # install cargo-auditable to produce the binary
-      - run: cargo binstall -y cargo-audit --locked 
+      - run: cargo binstall -y cargo-deny --locked 
       # install sccache (compilation cache)
       - uses: mozilla-actions/sccache-action@v0.0.4
       # install mold (linker)
       - uses: rui314/setup-mold@v1
       - run: ld --version
-      - run: mold -run cargo audit --ignore ${{ inputs.cargo_audit_ignores }}
+      - name: bans licenses sources
+        run: mold -run cargo deny check bans licenses sources
+      - name: advisories
+        run: mold -run cargo deny check advisories
 

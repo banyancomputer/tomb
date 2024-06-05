@@ -15,10 +15,3 @@ jobs:
     uses: ./.github/workflows/rust.yml
     with:
       cache_version: v1
-      # FIXME remove audit ignores
-      #       RUSTSEC-2023-007: rsa crate, side-channel timing attack, no fix as of 2024-03-20
-      cargo_audit_ignores: RUSTSEC-2023-0071
-  audits:
-    uses: ./.github/workflows/audits.yml
-  advisories:
-    uses: ./.github/workflows/advisories.yml

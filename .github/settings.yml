@@ -37,8 +37,7 @@ branches:
           - "rust / build"
           - "rust / format"
           - "rust / test"
-          - "cargo-deny (advisories)"
-          - "cargo-deny (bans licenses sources)"
+          - "rust / audit"
 
       # Required to to be present due too a limitation in GitHub's GraphQL API
       restrictions: null
