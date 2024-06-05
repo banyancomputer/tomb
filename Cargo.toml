@@ -15,7 +15,8 @@ keywords = ["decentralization", "filecoin", "ipfs", "storage"]
 # Dependencies that must exist independent of architecture
 [dependencies]
 # BanyanFS
-banyanfs = { path = "../banyanfs/", features = ["banyan-api"] }
+#banyanfs = { path = "../banyanfs/", features = ["banyan-api"] }
+banyanfs = { git = "https://github.com/banyancomputer/banyanfs.git", branch = "vera/eng-617-banyan-cli" }
 
 # Tracing
 tracing = { version = "^0.1" }
