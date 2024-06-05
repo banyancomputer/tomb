@@ -18,11 +18,7 @@ all-features = true
 # continue development, or because a vulnerability doesn't effect how we use
 # the other crate their identifier should be added to this list. It should be
 # periodically reviewed and cleaned out as fixes become available.
-ignore = [
-	# This is only a vulnerability for Windows machines where mio is <0.8.11.
-	# By the time we care about supporting Windows, tokio will have updated it as a dependency.
-	"RUSTSEC-2024-0019",
-]
+ignore = []
 
 [licenses]
 
