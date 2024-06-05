@@ -54,18 +54,23 @@ pub fn prompt_for_bool(msg: &str, t: char, f: char) -> bool {
     }
 }
 
-pub fn prompt_for_uuid(msg: &str) -> String {
+pub fn prompt_for_uuid(msg: &str) -> Uuid {
     info!("{msg}");
     let mut input = String::new();
-    while Uuid::parse_str(&input).is_err() {
-        if !input.is_empty() {
-            warn!("that wasn't a valid UUID.");
-            input = String::new();
+
+    loop {
+        match Uuid::parse_str(&input) {
+            Ok(uuid) => return uuid,
+            Err(_) => {
+                if !input.is_empty() {
+                    warn!("that wasn't a valid UUID.");
+                    input = String::new();
+                }
+                let _ = std::io::stdin().read_line(&mut input);
+                input = input.trim().to_string();
+            }
         }
-        let _ = std::io::stdin().read_line(&mut input);
-        input = input.trim().to_string();
     }
-    input
 }
 
 pub fn prompt_for_key_name(msg: &str) -> Result<String, OnDiskError> {

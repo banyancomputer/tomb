@@ -45,7 +45,7 @@ impl RunnableCommand<NativeError> for AccountCommand {
                     row.push("None".cell());
                 }
 
-                if let Ok(selected_user_key_id) = global.selected_user_key_id() {
+                if let Ok(selected_user_key_id) = global.selected_key_id() {
                     row.push(selected_user_key_id.cell());
                 } else {
                     row.push("None".cell());
@@ -61,13 +61,13 @@ impl RunnableCommand<NativeError> for AccountCommand {
             Login => {
                 let key_management_url = format!("{}/account/manage-keys", env!("ENDPOINT"));
                 info!("Navigate to {}", key_management_url);
-                let user_key_id = global.selected_user_key_id()?;
+                let user_key_id = global.selected_key_id()?;
                 let user_key: SigningKey = OnDisk::decode(&user_key_id).await?;
                 let public_key = user_key.verifying_key().to_spki().unwrap();
                 info!("public_key:");
                 println!("{}", public_key);
                 let account_id = prompt_for_uuid("Enter your account id:");
-                global.set_account_id(&account_id)?;
+                global.account_id = Some(account_id);
                 let _ = global.get_client().await?;
                 global.encode(&GlobalConfigId).await?;
                 info!("<< SUCCESSFULLY LOGGED IN >>");

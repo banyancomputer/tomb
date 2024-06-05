@@ -8,12 +8,7 @@ use banyanfs::{
     codec::crypto::SigningKey,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{collections::HashMap, fmt::Display, path::PathBuf, sync::Arc};
 use tracing::info;
 use url::Url;
 use uuid::Uuid;
@@ -24,25 +19,26 @@ pub struct GlobalConfig {
     /// Banyan-Cli version
     version: String,
     /// User Key Identifier of Key in Use
-    selected_user_key_id: Option<String>,
+    pub(crate) selected_key_id: Option<String>,
     /// User Key Identifiers
     user_key_ids: Vec<String>,
     /// Drive Identifiers/Names -> Disk Locations
-    drive_paths: HashMap<String, PathBuf>,
+    pub(crate) drive_paths: HashMap<String, PathBuf>,
     /// Drive Identifiers -> Platform Drive Identifiers
     drive_platform_ids: HashMap<String, String>,
     /// Drive Previous Metadata ID
     pub(crate) drive_previous_metadata_ids: HashMap<String, String>,
+    /// Cached storage grants
     pub(crate) storage_grants: HashMap<Url, String>,
     /// Platform account id
-    account_id: Option<Uuid>,
+    pub(crate) account_id: Option<Uuid>,
 }
 
 impl Default for GlobalConfig {
     fn default() -> Self {
         Self {
             version: env!("CARGO_PKG_VERSION").to_string(),
-            selected_user_key_id: None,
+            selected_key_id: None,
             user_key_ids: vec![],
             drive_paths: HashMap::new(),
             drive_platform_ids: HashMap::new(),
@@ -56,7 +52,7 @@ impl Default for GlobalConfig {
 impl GlobalConfig {
     pub async fn get_client(&self) -> Result<ApiClient, NativeError> {
         let account_id = self.get_account_id()?.to_string();
-        let key = Arc::new(SigningKey::decode(&self.selected_user_key_id()?).await?);
+        let key = Arc::new(SigningKey::decode(&self.selected_key_id()?).await?);
         let client = ApiClient::new(env!("ENDPOINT"), &account_id, key)
             .map_err(|_| OnDiskError::Implementation("Api Client creation".to_string()))?;
         for (host, grant) in self.storage_grants.iter() {
@@ -65,23 +61,10 @@ impl GlobalConfig {
         Ok(client)
     }
 
-    pub fn select_user_key_id(&mut self, user_key_id: String) {
-        self.selected_user_key_id = Some(user_key_id);
-    }
-
-    pub fn deselect_user_key_id(&mut self) {
-        self.selected_user_key_id = None;
-    }
-
-    pub fn selected_user_key_id(&self) -> Result<String, ConfigStateError> {
-        self.selected_user_key_id
+    pub fn selected_key_id(&self) -> Result<String, ConfigStateError> {
+        self.selected_key_id
             .clone()
             .ok_or(ConfigStateError::NoKeySelected)
-    }
-
-    pub fn set_path(&mut self, drive_id: &str, path: &Path) {
-        self.drive_paths
-            .insert(drive_id.to_string(), path.to_path_buf());
     }
 
     pub fn get_path(&self, drive_id: &str) -> Result<PathBuf, ConfigStateError> {
@@ -95,11 +78,6 @@ impl GlobalConfig {
         self.drive_paths
             .remove(drive_id)
             .ok_or(ConfigStateError::MissingDrive(drive_id.to_string()))
-    }
-
-    pub fn set_account_id(&mut self, account_id: &str) -> Result<(), NativeError> {
-        self.account_id = Some(Uuid::parse_str(account_id)?);
-        Ok(())
     }
 
     pub fn get_account_id(&self) -> Result<Uuid, ConfigStateError> {

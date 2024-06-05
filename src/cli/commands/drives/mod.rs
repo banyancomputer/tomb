@@ -87,7 +87,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 let payload = DriveOperationPayload {
                     id: DriveAndKeyId {
                         drive_id: name.to_string(),
-                        user_key_id: global.selected_user_key_id()?,
+                        user_key_id: global.selected_key_id()?,
                     },
                     global,
                 };
@@ -184,9 +184,11 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 }
 
                 // Save location association
-                global.set_path(&drive_id, path);
+                global
+                    .drive_paths
+                    .insert(drive_id.clone(), path.to_path_buf());
                 global.encode(&GlobalConfigId).await?;
-                let user_key_id = global.selected_user_key_id()?;
+                let user_key_id = global.selected_key_id()?;
                 let id = DriveAndKeyId::new(&drive_id, &user_key_id);
 
                 // Create and encode the Drive and Store
@@ -204,7 +206,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 let payload = DriveOperationPayload {
                     id: DriveAndKeyId {
                         drive_id: name.to_string(),
-                        user_key_id: global.selected_user_key_id()?,
+                        user_key_id: global.selected_key_id()?,
                     },
                     global,
                 };

@@ -94,10 +94,9 @@ impl RunnableCommand<NativeError> for KeysCommand {
                                     SigningKey::erase(local_name).await?;
 
                                     // Handle config
-                                    if let Ok(selected_user_key_id) = global.selected_user_key_id()
-                                    {
+                                    if let Ok(selected_user_key_id) = global.selected_key_id() {
                                         if selected_user_key_id == *local_name {
-                                            global.select_user_key_id(platform_name.to_string());
+                                            global.selected_key_id = Some(platform_name.into());
                                             global.encode(&GlobalConfigId).await?;
                                         }
                                     }
@@ -175,7 +174,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 new_key.encode(&new_key_id).await?;
                 // Update the config if the user so wishes
                 if prompt_for_bool("Select this key for use?", 'y', 'n') {
-                    global.select_user_key_id(new_key_id);
+                    global.selected_key_id = Some(new_key_id);
                     global.encode(&GlobalConfigId).await?;
                 }
                 info!("<< KEY CREATED >>");
@@ -188,9 +187,9 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     if name == prompt_for_string("Re-enter the name of your key to confirm") {
                         SigningKey::erase(&name).await?;
                         // Make sure we also delesect the key if it was in use
-                        if let Ok(selected_user_key_id) = global.selected_user_key_id() {
+                        if let Ok(selected_user_key_id) = global.selected_key_id() {
                             if selected_user_key_id == name {
-                                global.deselect_user_key_id();
+                                global.selected_key_id = None;
                                 global.encode(&GlobalConfigId).await?;
                             }
                         }
@@ -207,7 +206,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 // If we can successfully load the key
                 if SigningKey::decode(&name).await.is_ok() {
                     // Update the config
-                    global.select_user_key_id(name);
+                    global.selected_key_id = Some(name);
                     global.encode(&GlobalConfigId).await?;
                     Ok(())
                 } else {
@@ -215,7 +214,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 }
             }
             Selected => {
-                let selected_user_key_id = global.selected_user_key_id()?;
+                let selected_user_key_id = global.selected_key_id()?;
                 let private_key = SigningKey::decode(&selected_user_key_id).await?;
                 let private_key_path = SigningKey::path(&selected_user_key_id)?;
                 let public_key = private_key.verifying_key();

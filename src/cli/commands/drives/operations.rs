@@ -200,7 +200,9 @@ impl DriveOperationPayload {
             let files_dir =
                 PathBuf::from(format!("{}/banyan", env!("HOME"))).join(&self.id.drive_id);
             create_dir_all(&files_dir).await?;
-            self.global.set_path(&self.id.drive_id, &files_dir);
+            self.global
+                .drive_paths
+                .insert(self.id.drive_id.clone(), files_dir);
             self.global.encode(&GlobalConfigId).await?;
 
             LocalBanyanFS::init_from_drive(&self.id, drive).await?;
@@ -326,7 +328,10 @@ impl RunnableCommand<NativeError> for DriveOperation {
                 rename(old_path, &new_path).await?;
 
                 payload.global.remove_path(&old_id.drive_id)?;
-                payload.global.set_path(&new_id.drive_id, &new_path);
+                payload
+                    .global
+                    .drive_paths
+                    .insert(new_id.drive_id.clone(), new_path);
                 payload.global.encode(&GlobalConfigId).await?;
 
                 info!("<< RENAMED DRIVE LOCALLY >>");
