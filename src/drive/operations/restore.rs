@@ -25,14 +25,11 @@ pub async fn restore(
     file_opts.create(true);
     file_opts.truncate(true);
 
-    let paths = all_bfs_paths(drive).await?;
-    println!("paths: {:?}", paths);
-
+    info!("Reconstructing data locally...");
     let root = drive.root().await?;
     for path in all_bfs_paths(drive).await? {
         // Disk location
         let canon = output.join(&path);
-        info!("canon: {}", canon.display());
         // Path on FS
         let bfs_path: Vec<&str> = path
             .components()
@@ -43,7 +40,6 @@ pub async fn restore(
             // File
             Ok(data) => {
                 // Write file data!
-                info!("about to write!");
                 let _ = file_opts
                     .open(&canon)
                     .await?
@@ -54,7 +50,6 @@ pub async fn restore(
             }
             // Directory
             Err(OperationError::NotReadable) => {
-                info!("about to make dir!");
                 if !canon.exists() {
                     create_dir(&canon).await?;
                 }

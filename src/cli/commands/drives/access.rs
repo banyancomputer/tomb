@@ -6,7 +6,7 @@ use banyanfs::utils::crypto_rng;
 use banyanfs::{api::api_fingerprint_key, codec::crypto::SigningKey};
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
-use tracing::{error, info};
+use tracing::info;
 
 use crate::cli::commands::drives::LocalBanyanFS;
 use crate::{cli::RunnableCommand, on_disk::OnDisk, NativeError};
@@ -95,48 +95,44 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
                         api_fingerprint_key(key) == fingerprint && *mask == access_mask
                     })
                 {
-                    error!("That key has already been granted access to this Drive!");
-                } else {
-                    bfs.drive
-                        .authorize_key(&mut crypto_rng(), public_key, access_mask)
-                        .await?;
-                    bfs.encode(&payload.id).await?;
-                    info!("<< GRANTED LOCAL ACCESS FOR USER KEY >>");
-                    payload.sync().await?;
-                    info!("<< GRANTED PLATFORM ACCESS FOR USER KEY >>");
+                    return Err("That key has already been granted access to this Drive!".into());
                 }
-
+                bfs.drive
+                    .authorize_key(&mut crypto_rng(), public_key, access_mask)
+                    .await?;
+                bfs.encode(&payload.id).await?;
+                info!("<< GRANTED LOCAL ACCESS FOR USER KEY >>");
+                payload.sync().await?;
+                info!("<< GRANTED PLATFORM ACCESS FOR USER KEY >>");
                 Ok(())
             }
             DriveKeyCommand::Revoke { name } => {
                 let bfs = LocalBanyanFS::decode(&payload.id).await?;
                 let (public_key, fingerprint) =
                     payload.global.public_key_and_fingerprint(&name).await?;
-                if let Some((_, mask)) = bfs
-                    .drive
-                    .verifying_keys()
-                    .await
+                let verifying_keys = bfs.drive.verifying_keys().await;
+                let mask = verifying_keys
                     .iter()
                     .find(|(key, _)| api_fingerprint_key(key) == fingerprint)
-                {
-                    if mask.is_protected() {
-                        error!(
-                            "This is a protected user key and can not be revoked from the Drive."
-                        );
-                    } else {
-                        let current_key = SigningKey::decode(&payload.id.user_key_id).await?;
-                        bfs.drive
-                            .remove_key(&current_key, &public_key.actor_id())
-                            .await?;
-                        bfs.encode(&payload.id).await?;
-                        info!("<< REVOKED LOCAL ACCESS FOR USER KEY >>");
-                        payload.sync().await?;
-                        info!("<< REVOKED PLATFORM ACCESS FOR USER KEY >>");
-                    }
-                } else {
-                    error!("Can't find a user key with that identity in the Drive!");
-                }
+                    .map(|(_, mask)| mask)
+                    .ok_or(Into::<NativeError>::into(
+                        "Can't find a user key with that identity in the Drive!",
+                    ))?;
 
+                if mask.is_protected() {
+                    return Err(
+                        "This is a protected user key and can not be revoked from the Drive."
+                            .into(),
+                    );
+                }
+                let current_key = SigningKey::decode(&payload.id.user_key_id).await?;
+                bfs.drive
+                    .remove_key(&current_key, &public_key.actor_id())
+                    .await?;
+                bfs.encode(&payload.id).await?;
+                info!("<< REVOKED LOCAL ACCESS FOR USER KEY >>");
+                payload.sync().await?;
+                info!("<< REVOKED PLATFORM ACCESS FOR USER KEY >>");
                 Ok(())
             }
         }

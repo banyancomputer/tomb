@@ -73,8 +73,7 @@ impl DriveOperationPayload {
                         platform::drives::create(&client, &self.id.drive_id).await?;
                     platform::drives::get(&client, &platform_drive_id).await?
                 } else {
-                    error!("Cannot sync when no platform drive matches query.");
-                    return Ok(());
+                    return Err("Cannot sync when no platform drive matches query.".into());
                 }
             }
         };
@@ -157,9 +156,8 @@ impl DriveOperationPayload {
                         .insert(self.id.drive_id.clone(), new_metadata_id);
                     self.global.encode(&GlobalConfigId).await?;
                 }
-                Err(err) => {
-                    error!("failed to sync data store to platform: {err}");
-                    return Ok(());
+                Err(_) => {
+                    return Err("Failed to sync data store to platform".into());
                 }
             }
             local_drive.encode(&self.id).await?;
@@ -301,10 +299,10 @@ impl RunnableCommand<NativeError> for DriveOperation {
                 }
 
                 if !removal {
-                    error!("No local or platform drive corresponding to that name.");
+                    Err("No local or platform drive corresponding to that name".into())
+                } else {
+                    Ok(())
                 }
-
-                Ok(())
             }
             Restore => {
                 payload.sync().await?;
@@ -320,6 +318,7 @@ impl RunnableCommand<NativeError> for DriveOperation {
                 Ok(())
             }
             Rename { rename } => {
+                let mut renamed = false;
                 if let Some(platform_id) = payload
                     .global
                     .platform_drive_with_name(&payload.id.drive_id)
@@ -335,6 +334,8 @@ impl RunnableCommand<NativeError> for DriveOperation {
                         },
                     )
                     .await?;
+
+                    renamed = true;
                     info!("<< RENAMED DRIVE ON PLATFORM >>");
                 } else {
                     warn!("No known platform Drive with that name.");
@@ -342,7 +343,6 @@ impl RunnableCommand<NativeError> for DriveOperation {
 
                 if let Ok(old_path) = payload.global.get_path(&payload.id.drive_id) {
                     let old_id = payload.id.clone();
-
                     let new_id = DriveAndKeyId::new(&rename, &old_id.user_key_id);
 
                     // Rename drive.bfs
@@ -363,11 +363,16 @@ impl RunnableCommand<NativeError> for DriveOperation {
                         .insert(new_id.drive_id.clone(), new_path);
                     payload.global.encode(&GlobalConfigId).await?;
 
+                    renamed = true;
                     info!("<< RENAMED DRIVE LOCALLY >>");
                 }
 
-                Ok(())
-            } //Access { subcommand } => subcommand.run_internal(payload).await,
+                if renamed {
+                    Ok(())
+                } else {
+                    Err("No local or platform Drive with that name.".into())
+                }
+            }
         }
     }
 }

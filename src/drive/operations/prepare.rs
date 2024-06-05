@@ -37,6 +37,7 @@ pub async fn prepare(
         }
     }
 
+    info!("Preparing data locally...");
     // Iterate over every entry on disk
     for entry in WalkDir::new(path)
         .follow_links(true)
@@ -79,7 +80,7 @@ pub async fn prepare(
                             // Assume this failed because the path doesn't exist in the filesystem
                             // TODO improve resilience?
                             Err(_) => {
-                                info!("Writing new file at {bfs_path:?}");
+                                info!("{bfs_path:?}");
                                 root.write(&mut rng, store, &bfs_path, &data).await?;
                             }
                         }

@@ -155,3 +155,9 @@ impl From<AccessMaskError> for NativeError {
         Self::AccessMask(value)
     }
 }
+
+impl From<&str> for NativeError {
+    fn from(value: &str) -> Self {
+        Self::Custom(value.to_string())
+    }
+}

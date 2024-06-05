@@ -5,7 +5,7 @@ use banyanfs::{
     },
     codec::crypto::{SigningKey, VerifyingKey},
 };
-use tracing::{error, warn};
+use tracing::warn;
 
 use crate::{
     on_disk::{config::GlobalConfig, OnDisk},
@@ -74,10 +74,7 @@ impl GlobalConfig {
                         .map_err(|_| NativeError::Custom("Decode SPKI".into()))?;
                     Ok((public_key, fingerprint))
                 }
-                None => {
-                    error!("No known user key with that name locally or remotely.");
-                    Err(NativeError::Custom("missing usrkey".into()))
-                }
+                None => Err("No known user key with that name locally or remotely.".into()),
             }
         }
     }

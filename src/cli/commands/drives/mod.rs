@@ -22,7 +22,7 @@ use cli_table::{print_stdout, Cell, Table};
 
 use self::access::DriveKeyCommand;
 use std::path::PathBuf;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
@@ -175,8 +175,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 if Drive::entries().contains(&drive_id)
                     || global.platform_drive_with_name(&drive_id).await.is_some()
                 {
-                    error!("There is already a local or remote drive by that name.");
-                    return Ok(());
+                    return Err("There is already a local or remote drive by that name.".into());
                 }
 
                 // Save location association

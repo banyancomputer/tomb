@@ -244,6 +244,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 Ok(())
             }
             Rename { old, new } => {
+                let mut renamed = false;
                 if let Some(platform_key) = global
                     .platform_user_keys()
                     .await
@@ -252,6 +253,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                 {
                     let client = global.get_client().await?;
                     platform::account::rename_user_key(&client, &new, platform_key.id()).await?;
+                    renamed = true;
                     info!("<< UPDATED KEY NAME ON PLATFORM >>");
                 }
 
@@ -264,10 +266,15 @@ impl RunnableCommand<NativeError> for KeysCommand {
                         global.encode(&GlobalConfigId).await?;
                     }
 
+                    renamed = true;
                     info!("<< UPDATED KEY NAME LOCALLY >>");
                 }
 
-                Ok(())
+                if renamed {
+                    Ok(())
+                } else {
+                    Err("No local or platform Key with that name.".into())
+                }
             }
         }
     }
