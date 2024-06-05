@@ -1,7 +1,18 @@
 name: rust
 
 on:
-  - pull_request
+  workflow_call:
+    inputs:
+      cache_version:
+        type: string
+        default: v1
+      cargo_audit_version:
+        type: string
+        default: 0.20.0
+      cargo_audit_ignores:
+        type: string
+        default: ''
+        description: Comma-delimited list of RUSTSEC CVE identifiers to ignore during audit.
 
 env:
   RUSTC_WRAPPER: sccache

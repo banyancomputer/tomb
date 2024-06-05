@@ -1,11 +1,11 @@
 # Reference: https://github.com/apps/settings
 repository:
-    name: tomb
+    name: banyan-cli
 
     default_branch: main
     private: false
 
-    description: Banyan's client, WNFS+CAR encrypted filesystem packer and metadata handler.
+    description: Command line interface for interacting with the Banyan Filesystem and Platform
     homepage: https://banyan.computer/
     topics: cli, platform
 
@@ -34,6 +34,10 @@ branches:
       required_status_checks:
         strict: true
         contexts:
+          - "rust / audit"
+          - "rust / build"
+          - "rust / format"
+          - "rust / test"
           - "cargo-deny (advisories)"
           - "cargo-deny (bans licenses sources)"
 
