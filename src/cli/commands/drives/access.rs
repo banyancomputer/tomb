@@ -9,11 +9,7 @@ use cli_table::{print_stdout, Cell, Table};
 use tracing::{error, info};
 
 use crate::cli::commands::drives::LocalBanyanFS;
-use crate::{
-    cli::RunnableCommand,
-    on_disk::{config::GlobalConfig, local_share::DriveAndKeyId, OnDisk},
-    NativeError,
-};
+use crate::{cli::RunnableCommand, on_disk::OnDisk, NativeError};
 
 use super::DriveOperationPayload;
 
