@@ -2,10 +2,7 @@ mod access;
 mod operations;
 
 use crate::{
-    cli::{
-        commands::{drives::access::DriveAccessPayload, RunnableCommand},
-        helpers, Persistence,
-    },
+    cli::{commands::RunnableCommand, helpers, Persistence},
     drive::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
@@ -204,7 +201,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 Ok(())
             }
             Access { name, subcommand } => {
-                let payload = DriveAccessPayload {
+                let payload = DriveOperationPayload {
                     id: DriveAndKeyId {
                         drive_id: name.to_string(),
                         user_key_id: global.selected_user_key_id()?,
