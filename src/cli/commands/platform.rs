@@ -1,12 +1,5 @@
-use crate::{
-    on_disk::{
-        config::{GlobalConfig, GlobalConfigId},
-        OnDisk,
-    },
-    NativeError,
-};
-
 use super::RunnableCommand;
+use crate::NativeError;
 use async_trait::async_trait;
 use clap::Subcommand;
 
@@ -32,7 +25,6 @@ impl RunnableCommand<NativeError> for PlatformCommand {
     type Payload = ();
 
     async fn run(self, _payload: ()) -> Result<(), NativeError> {
-        let _global = GlobalConfig::decode(&GlobalConfigId).await?;
         match self {
             PlatformCommand::Display => {
                 let table = vec![vec![env!("ENDPOINT").cell()]]

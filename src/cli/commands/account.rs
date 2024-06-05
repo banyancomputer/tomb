@@ -31,11 +31,8 @@ pub enum AccountCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for AccountCommand {
-    type Payload = ();
-
-    async fn run(self, _payload: Self::Payload) -> Result<(), NativeError> {
-        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
-
+    type Payload = GlobalConfig;
+    async fn run(self, mut global: GlobalConfig) -> Result<(), NativeError> {
         // Process the command
         use AccountCommand::*;
         match self {

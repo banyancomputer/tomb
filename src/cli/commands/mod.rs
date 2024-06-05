@@ -24,7 +24,7 @@ pub use platform::*;
 #[derive(Debug, Subcommand, Clone)]
 pub enum BanyanCommand {
     /// Manually configure platform endpoints
-    Api {
+    Platform {
         /// Subcommand
         #[clap(subcommand)]
         command: platform::PlatformCommand,
@@ -57,8 +57,8 @@ impl RunnableCommand<NativeError> for BanyanCommand {
     type Payload = GlobalConfig;
     async fn run(self, payload: Self::Payload) -> Result<(), NativeError> {
         match self {
-            BanyanCommand::Api { command } => Ok(command.run(()).await?),
-            BanyanCommand::Account { command } => Ok(command.run(()).await?),
+            BanyanCommand::Platform { command } => Ok(command.run(()).await?),
+            BanyanCommand::Account { command } => Ok(command.run(payload).await?),
             BanyanCommand::Drives { command } => command.run(payload).await,
             BanyanCommand::Keys { command } => command.run(payload).await,
         }
