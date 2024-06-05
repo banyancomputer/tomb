@@ -69,7 +69,7 @@ jobs:
       - uses: rui314/setup-mold@v1
       - run: ld --version
       # build
-      - run: mold -run cargo auditable build --target x86_64-unknown-linux-musl --workspace --all-targets --release --bins
+      - run: mold -run cargo auditable build --target x86_64-unknown-linux-musl --all-targets --release --bins
 
   test:
     runs-on: ubuntu-latest
@@ -134,8 +134,8 @@ jobs:
       # cargo check
       - name: check
         run: mold -run cargo check --all-targets --all-features --tests
-      # cargo fmt --check
-      - name: cargo fmt --check
+      # cargo fmt
+      - name: cargo fmt
         run: mold -run cargo +nightly fmt --all --check
       # cargo clippy
       - name: cargo clippy

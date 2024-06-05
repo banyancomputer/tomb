@@ -30,6 +30,8 @@ pub struct GlobalConfig {
     drive_paths: HashMap<String, PathBuf>,
     /// Drive Identifiers -> Platform Drive Identifiers
     drive_platform_ids: HashMap<String, String>,
+    /// Drive Previous Metadata ID
+    pub(crate) drive_previous_metadata_ids: HashMap<String, String>,
     /// Platform account id
     account_id: Option<Uuid>,
 }
@@ -42,6 +44,7 @@ impl Default for GlobalConfig {
             user_key_ids: vec![],
             drive_paths: HashMap::new(),
             drive_platform_ids: HashMap::new(),
+            drive_previous_metadata_ids: HashMap::new(),
             account_id: None,
         }
     }

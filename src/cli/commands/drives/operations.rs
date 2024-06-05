@@ -16,7 +16,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use banyanfs::{
-    api::{platform, VecStream},
+    api::{platform, ApiClient, VecStream},
     codec::{
         crypto::{SigningKey, VerifyingKey},
         header::{AccessMaskBuilder, ContentOptions},
@@ -48,6 +48,12 @@ pub struct DriveOperationPayload {
     pub id: DriveAndKeyId,
     pub global: GlobalConfig,
 }
+
+/*
+impl ApiClient {
+    pub async fn sync(&mut self, payload: &DriveOperationPayload) -> Result<(), NativeError> {}
+}
+*/
 
 impl DriveOperationPayload {
     pub async fn sync(&mut self) -> Result<(), NativeError> {
@@ -102,14 +108,18 @@ impl DriveOperationPayload {
 
             let deleted_block_cids = store.deleted_cids().await?;
             let drive_stream = VecStream::new(encoded_drive).pinned();
+            let previous_metadata_id = self
+                .global
+                .drive_previous_metadata_ids
+                .get(&self.id.drive_id)
+                .cloned();
 
             let push_response = platform::metadata::push_stream(
                 &client,
                 &bucket_id,
                 expected_data_size,
                 root_cid,
-                //self.last_saved_metadata.as_ref().map(|m| m.id()).clone(),
-                None,
+                previous_metadata_id,
                 drive_stream,
                 verifying_keys,
                 deleted_block_cids,
@@ -135,6 +145,11 @@ impl DriveOperationPayload {
                     info!("<< SYNCED DRIVE DATA TO PLATFORM >>");
                     // Empty the tracker because it worked
                     local_drive.tracker = CborSyncTracker::default();
+                    // Save the new id
+                    self.global
+                        .drive_previous_metadata_ids
+                        .insert(self.id.drive_id.clone(), new_metadata_id);
+                    self.global.encode(&GlobalConfigId).await?;
                 }
                 Err(err) => {
                     error!("failed to sync data store to platform: {err}");
