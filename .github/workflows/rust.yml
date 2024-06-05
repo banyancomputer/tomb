@@ -55,10 +55,8 @@ jobs:
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get clean >/dev/null && \
             sudo DEBIAN_FRONTEND=noninteractive apt-get update >/dev/null && \
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential musl musl-dev musl-tools libssl-dev
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential libssl-dev
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-musl
       # easily install any rust bins without building them
       - uses: cargo-bins/cargo-binstall@main
       # install cargo-auditable to produce the binary
@@ -69,7 +67,7 @@ jobs:
       - uses: rui314/setup-mold@v1
       - run: ld --version
       # build
-      - run: mold -run cargo auditable build --target x86_64-unknown-linux-musl --workspace --all-targets --release --bins
+      - run: mold -run cargo build --all-targets --release --bins --tests
 
   test:
     runs-on: ubuntu-latest
@@ -102,7 +100,7 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout @v4
+      - uses: actions/checkout@v4
       - uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-${{ github.sha }}
@@ -132,11 +130,11 @@ jobs:
       - uses: rui314/setup-mold@v1
       - run: ld --version
       # cargo check
-      - run: mold -run cargo check --workspace --all-targets --all-features --tests
+      - run: mold -run cargo check --all-targets --all-features --tests
       # cargo fmt --check
       - name: cargo fmt --check
         run: mold -run cargo +nightly fmt --all --check
       # cargo clippy
       - name: cargo clippy
-        run: mold -run cargo clippy --workspace --all-targets --all-features --tests -- -D warnings
+        run: mold -run cargo clippy --all-targets --all-features --tests -- -D warnings
 
