@@ -9,14 +9,15 @@ use cli_table::{print_stdout, Cell, Table};
 use tracing::{error, info};
 
 use crate::cli::commands::drives::LocalBanyanFS;
+use crate::cli::helpers;
 use crate::{cli::RunnableCommand, on_disk::OnDisk, NativeError};
 
 use super::DriveOperationPayload;
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
-pub enum DriveAccessCommand {
-    /// List drive actors
+pub enum DriveKeyCommand {
+    /// List drive keys
     Ls,
     /// Grant access to a known key
     Grant {
@@ -31,11 +32,11 @@ pub enum DriveAccessCommand {
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for DriveAccessCommand {
+impl RunnableCommand<NativeError> for DriveKeyCommand {
     type Payload = DriveOperationPayload;
 
     async fn run(self, mut payload: DriveOperationPayload) -> Result<(), NativeError> {
-        use DriveAccessCommand::*;
+        use DriveKeyCommand::*;
         match self {
             Ls => {
                 let mut key_names = HashMap::new();
@@ -44,6 +45,9 @@ impl RunnableCommand<NativeError> for DriveAccessCommand {
                         api_fingerprint_key(&SigningKey::decode(&name).await?.verifying_key()),
                         name,
                     );
+                }
+                for key in helpers::platform_user_keys(&payload.global).await {
+                    key_names.insert(key.fingerprint().to_string(), key.name().to_string());
                 }
 
                 let drive = Drive::decode(&payload.id).await?;
@@ -79,11 +83,36 @@ impl RunnableCommand<NativeError> for DriveAccessCommand {
 
                 Ok(())
             }
-            DriveAccessCommand::Grant { name } => {
-                let user_key = SigningKey::decode(&name).await?;
-                let public_user_key = user_key.verifying_key();
-                let fingerprint = api_fingerprint_key(&public_user_key);
+            DriveKeyCommand::Grant { name } => {
+                // You need to already have access locally to do this
                 let bfs = LocalBanyanFS::decode(&payload.id).await?;
+
+                // Grab the verifying key and fingerprint, either from disk or Platform
+                let (public_key, fingerprint) =
+                    if let Ok(user_key) = SigningKey::decode(&name).await {
+                        let public_key = user_key.verifying_key();
+                        let fingerprint = api_fingerprint_key(&public_key);
+                        (public_key, fingerprint)
+                    } else {
+                        match helpers::platform_user_keys(&payload.global)
+                            .await
+                            .into_iter()
+                            .find(|key| *key.name() == name)
+                        {
+                            Some(api_key) => {
+                                let fingerprint = api_key.fingerprint().to_string();
+                                let public_key_pem = api_key.public_key();
+                                let public_key = VerifyingKey::from_spki(&public_key_pem)
+                                    .map_err(|_| NativeError::Custom("Decode SPKI".into()))?;
+                                (public_key, fingerprint)
+                            }
+                            None => {
+                                error!("No known user key with that name locally or remotely.");
+                                return Ok(());
+                            }
+                        }
+                    };
+
                 let access_mask = AccessMaskBuilder::full_access().build()?;
                 if let Some((_, _mask)) =
                     bfs.drive.verifying_keys().await.iter().find(|(key, mask)| {
@@ -93,7 +122,7 @@ impl RunnableCommand<NativeError> for DriveAccessCommand {
                     error!("That key has already been granted access to this Drive!");
                 } else {
                     bfs.drive
-                        .authorize_key(&mut crypto_rng(), public_user_key, access_mask)
+                        .authorize_key(&mut crypto_rng(), public_key, access_mask)
                         .await?;
                     bfs.encode(&payload.id).await?;
                     info!("<< GRANTED LOCAL ACCESS FOR USER KEY >>");
@@ -103,7 +132,7 @@ impl RunnableCommand<NativeError> for DriveAccessCommand {
 
                 Ok(())
             }
-            DriveAccessCommand::Revoke { name } => {
+            DriveKeyCommand::Revoke { name } => {
                 let user_key = SigningKey::decode(&name).await?;
                 let public_user_key = user_key.verifying_key();
                 let fingerprint = api_fingerprint_key(&public_user_key);

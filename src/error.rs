@@ -125,6 +125,7 @@ impl From<uuid::Error> for NativeError {
         Self::Custom(format!("UUID parsing: {value}"))
     }
 }
+
 impl From<DataStoreError> for NativeError {
     fn from(value: DataStoreError) -> Self {
         Self::Store(value)

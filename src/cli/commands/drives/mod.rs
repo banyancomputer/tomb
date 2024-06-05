@@ -20,7 +20,7 @@ pub use operations::DriveOperationPayload;
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
-use self::access::DriveAccessCommand;
+use self::access::DriveKeyCommand;
 use std::path::PathBuf;
 use tracing::{debug, error, info, warn};
 
@@ -64,11 +64,11 @@ pub enum DrivesCommand {
         new_name: String,
     },
     /// Drive Key management
-    Access {
+    Keys {
         name: String,
         /// Subcommand
         #[clap(subcommand)]
-        subcommand: DriveAccessCommand,
+        subcommand: DriveKeyCommand,
     },
 }
 
@@ -202,7 +202,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 }
                 Ok(())
             }
-            Access { name, subcommand } => {
+            Keys { name, subcommand } => {
                 let payload = DriveOperationPayload {
                     id: DriveAndKeyId {
                         drive_id: name.to_string(),
