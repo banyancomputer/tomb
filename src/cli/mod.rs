@@ -4,8 +4,6 @@ pub mod commands;
 pub mod helpers;
 /// Command Trait
 mod runnable_command;
-/// Ways of specifying resources
-pub mod specifiers;
 /// Export
 pub use runnable_command::RunnableCommand;
 
