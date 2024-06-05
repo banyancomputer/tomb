@@ -1,0 +1,175 @@
+name: rust
+
+on:
+  workflow_call:
+    inputs:
+      cache_version:
+        type: string
+        default: v1
+      cargo_audit_version:
+        type: string
+        default: 0.20.0
+      cargo_audit_ignores:
+        type: string
+        default: ''
+        description: Comma-delimited list of RUSTSEC CVE identifiers to ignore during audit.
+
+env:
+  RUSTC_WRAPPER: sccache
+  SCCACHE_GHA_ENABLED: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-${{ github.sha }}
+          path: |
+            ~/.cache/sccache
+            ~/.cargo/bin/
+            ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
+            ~/.cargo/git/db/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-
+      # NOTE this is done because microsoft is horrible at hosting apt repos and has historically broken this build
+      - name: install main ubuntu apt repository
+        run: |-
+          sudo tee /etc/apt/sources.list <<EOF
+          deb http://archive.ubuntu.com/ubuntu/ jammy main restricted
+          deb http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted
+          deb http://archive.ubuntu.com/ubuntu/ jammy universe
+          deb http://archive.ubuntu.com/ubuntu/ jammy-updates universe
+          deb http://archive.ubuntu.com/ubuntu/ jammy multiverse
+          deb http://archive.ubuntu.com/ubuntu/ jammy-updates multiverse
+          deb http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+          deb http://archive.ubuntu.com/ubuntu/ jammy-security main restricted
+          deb http://archive.ubuntu.com/ubuntu/ jammy-security universe
+          deb http://archive.ubuntu.com/ubuntu/ jammy-security multiverse
+          EOF
+      - name: install system dependencies
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get clean >/dev/null && \
+            sudo DEBIAN_FRONTEND=noninteractive apt-get update >/dev/null && \
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential musl musl-dev musl-tools libssl-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      # easily install any rust bins without building them
+      - uses: cargo-bins/cargo-binstall@main
+      # install cargo-auditable to produce the binary
+      - run: cargo binstall -y cargo-auditable
+      # install sccache (compilation cache)
+      - uses: mozilla-actions/sccache-action@v0.0.4
+      # install mold (linker)
+      - uses: rui314/setup-mold@v1
+      - run: ld --version
+      # build
+      - run: mold -run cargo auditable build --target x86_64-unknown-linux-musl --all-targets --release --bins
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-${{ github.sha }}
+          path: |
+            ~/.cache/sccache
+            ~/.cargo/bin/
+            ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
+            ~/.cargo/git/db/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-
+      - uses: dtolnay/rust-toolchain@stable
+      # easily install any rust bins without building them
+      - uses: cargo-bins/cargo-binstall@main
+      # install sccache (compilation cache)
+      - uses: mozilla-actions/sccache-action@v0.0.4
+      # install mold (linker)
+      - uses: rui314/setup-mold@v1
+      - run: ld --version
+      # test
+      - run: mold -run cargo test --workspace
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-${{ github.sha }}
+          path: |
+            ~/.cache/sccache
+            ~/.cargo/bin/
+            ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
+            ~/.cargo/git/db/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      # also install nightly regardless
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+          components: clippy, rustfmt
+      # easily install any rust bins without building them
+      - uses: cargo-bins/cargo-binstall@main
+      # install sccache (compilation cache)
+      - uses: mozilla-actions/sccache-action@v0.0.4
+      # install mold (linker)
+      - uses: rui314/setup-mold@v1
+      - run: ld --version
+      # cargo check
+      - name: check
+        run: mold -run cargo check --all-targets --all-features --tests
+      # cargo fmt
+      - name: cargo fmt
+        run: mold -run cargo +nightly fmt --all --check
+      # cargo clippy
+      - name: cargo clippy
+        run: mold -run cargo clippy --all-targets --all-features --tests -- -D warnings
+      
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-${{ github.sha }}
+          path: |
+            ~/.cache/sccache
+            ~/.cargo/bin/
+            ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
+            ~/.cargo/git/db/
+            target/
+          restore-keys: |
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-
+            ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-
+      - uses: dtolnay/rust-toolchain@stable
+      # easily install any rust bins without building them
+      - uses: cargo-bins/cargo-binstall@main
+      # install cargo-auditable to produce the binary
+      - run: cargo binstall -y cargo-deny --locked 
+      # install sccache (compilation cache)
+      - uses: mozilla-actions/sccache-action@v0.0.4
+      # install mold (linker)
+      - uses: rui314/setup-mold@v1
+      - run: ld --version
+      - name: bans licenses sources
+        run: mold -run cargo deny check bans licenses sources
+      - name: advisories
+        run: mold -run cargo deny check advisories
+

@@ -9,73 +9,49 @@
 
 # Collect metadata using all the features available in this repository. We do
 # not want security vulnerabilities in any of our subset of builds.
+[graph]
 all-features = true
 
 [advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-yanked = "deny"
-notice = "deny"
 
 # If we accept an advisory either because no fix is available and we need to
 # continue development, or because a vulnerability doesn't effect how we use
 # the other crate their identifier should be added to this list. It should be
 # periodically reviewed and cleaned out as fixes become available.
-ignore = [
-    # This is an unsoundness bug in atty that has been ignored for the CI baseline
-    "RUSTSEC-2021-0145",
-
-    # This is a bug in the rsa crate which is dependended on by jwt-simple, we
-    # don't use the rsa features in jwt-simple, there isn't an upstream fix for
-    # it, and there isn't a feature flag to disable support for rsa on the
-    # crate.
-    "RUSTSEC-2023-0071",
-]
+ignore = []
 
 [licenses]
-unlicensed = "deny"
 
 # Licenses we always allow without any additional thoughts, this list should
 # only be updated when we encounter a dependency using a license we want to
 # include here rather than trying to proactively enumerate all acceptable
 # licenses.
 allow = [
-    "Apache-2.0",
-    "0BSD",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "CC0-1.0",
-    "ISC",
-    "MIT",
-    "MIT-0",
-    "Zlib",
-    # Additional licenses that need to actually be reviewed but have been allowed for CI expediency
-    "BSL-1.0",
-    "LGPL-3.0",
-    "MPL-2.0",
-    "Unicode-DFS-2016",
+	"Apache-2.0",
+	"0BSD",
+	"BSD-2-Clause",
+	"BSD-3-Clause",
+	"CC0-1.0",
+	"ISC",
+	"MIT",
+	"MIT-0",
+	"Zlib",
+	# Additional licenses that need to actually be reviewed but have been allowed for CI expediency
+	"BSL-1.0",
+	"MPL-2.0",
+	"Unicode-DFS-2016",
+	"OpenSSL",
 ]
-
-# We don't care what these organization think of the license, we are making our
-# own assessments as to whether they are fit for our project.
-allow-osi-fsf-free = "neither"
-
-# Licenses that we have reviewed and chosen to explicitly reject.
-deny = []
-
-# If a license is considered copyleft, we want to consider them carefully as
-# they may violate our license or goals by their use. Copy left licenses should
-# be reviewed
-copyleft = "deny"
-
-# If we haven't approved it, explicitly deny it
-default = "deny"
 
 # If we need to use a crate that violates our general policy, we can add that
 # to the list here to accept it.
-exceptions = [
-  { name = "tomb-crypt", allow = ["LicenseRef-LICENSE.txt"] },
-]
+# The `ring` license is being pulled in by banyanfs so I'm assuming it's fine here too
+# https://github.com/briansmith/ring/blob/HEAD/LICENSE
+
+[[licenses.clarify]]
+name = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 
 [bans]
 multiple-versions = "allow"
@@ -83,14 +59,14 @@ wildcards = "deny"
 
 # Crates/versions that are always allowed regardless of which checks they trigger
 allow = [
-    # Usage example:
-    #{ name = "ansi_term", version = "=0.11.0" },
+	# Usage example:
+	#{ name = "ansi_term", version = "=0.11.0" },
 ]
 
 # Crates and versions that are explicitly denied from use in this project
 deny = [
-    # Usage example:
-    #{ name = "ansi_term", version = "=0.11.0" },
+	# Usage example:
+	#{ name = "ansi_term", version = "=0.11.0" },
 ]
 
 # Certain crates/versions that will be skipped when doing duplicate detection.

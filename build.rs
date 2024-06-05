@@ -1,3 +1,13 @@
+fn set_endpoint() {
+    #[cfg(not(debug_assertions))]
+    println!(
+        "cargo:rustc-env=ENDPOINT={}",
+        "https://beta.data.banyan.computer"
+    );
+    #[cfg(debug_assertions)]
+    println!("cargo:rustc-env=ENDPOINT=http://127.0.0.1:3001");
+}
+
 fn report_build_profile() {
     println!(
         "cargo:rustc-env=BUILD_PROFILE={}",
@@ -28,6 +38,7 @@ fn report_repository_version() {
 }
 
 fn main() {
+    set_endpoint();
     report_repository_version();
     report_build_profile();
     report_enabled_features();

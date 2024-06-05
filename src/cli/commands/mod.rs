@@ -1,66 +1,66 @@
-mod account;
-mod api;
-mod drives;
-mod keys;
-mod metadata;
-mod runnable_command;
-
-use std::io::Read;
-
-use crate::native::NativeError;
-pub use account::AccountCommand;
-pub use api::ApiCommand;
-use async_trait::async_trait;
 use clap::Subcommand;
-pub use drives::DrivesCommand;
-pub use keys::KeyCommand;
-pub use metadata::MetadataCommand;
-pub use runnable_command::RunnableCommand;
 
-/// Prompt the user for a y/n answer
-pub fn prompt_for_bool(msg: &str) -> bool {
-    info!("{msg} y/n");
-    loop {
-        let mut input = [0];
-        let _ = std::io::stdin().read(&mut input);
-        match input[0] as char {
-            'y' | 'Y' => return true,
-            'n' | 'N' => return false,
-            _ => info!("y/n only please."),
-        }
-    }
-}
+/// View / Modify Drive Access
+//mod access;
+/// Login / Logout Account
+mod account;
+/// Drive access management
+//mod drive_access;
+/// Drive interaction
+mod drives;
+/// User Keys
+mod keys;
+/// View / Change Platform endpoint
+mod platform;
+
+/// Export all commands
+//pub use access::*;
+pub use account::*;
+pub use drives::*;
+pub use platform::*;
+//pub use drives::*;
 
 /// Defines the types of commands that can be executed from the CLI.
 #[derive(Debug, Subcommand, Clone)]
-pub enum TombCommand {
-    /// Manually configure remote endpoints
-    Api {
+pub enum BanyanCommand {
+    /// Manually configure platform endpoints
+    Platform {
         /// Subcommand
         #[clap(subcommand)]
-        command: ApiCommand,
+        command: platform::PlatformCommand,
     },
     /// Account Login and Details
     Account {
         /// Subcommand
         #[clap(subcommand)]
-        command: AccountCommand,
+        command: account::AccountCommand,
     },
     /// Drive management
     Drives {
         /// Subcommand
         #[clap(subcommand)]
-        command: DrivesCommand,
+        command: drives::DrivesCommand,
+    },
+    /// Key management
+    Keys {
+        /// Subcommand
+        #[clap(subcommand)]
+        command: keys::KeysCommand,
     },
 }
 
+use super::RunnableCommand;
+use crate::{on_disk::config::GlobalConfig, NativeError};
+use async_trait::async_trait;
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for TombCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
+impl RunnableCommand<NativeError> for BanyanCommand {
+    type Payload = GlobalConfig;
+    async fn run(self, payload: Self::Payload) -> Result<(), NativeError> {
         match self {
-            TombCommand::Api { command } => Ok(command.run_internal().await?),
-            TombCommand::Account { command } => Ok(command.run_internal().await?),
-            TombCommand::Drives { command } => command.run_internal().await,
+            BanyanCommand::Platform { command } => Ok(command.run(()).await?),
+            BanyanCommand::Account { command } => Ok(command.run(payload).await?),
+            BanyanCommand::Drives { command } => command.run(payload).await,
+            BanyanCommand::Keys { command } => command.run(payload).await,
         }
     }
 }

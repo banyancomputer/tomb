@@ -1,140 +1,281 @@
+use std::collections::HashSet;
+
 use crate::{
-    api::{client::Client, models::bucket_key::BucketKey},
-    native::{configuration::globalconfig::GlobalConfig, sync::OmniBucket, NativeError},
+    cli::Persistence,
+    on_disk::{
+        config::{GlobalConfig, GlobalConfigId},
+        OnDisk, OnDiskExt,
+    },
+    utils::{prompt_for_bool, prompt_for_key_name, prompt_for_string},
+    ConfigStateError, NativeError,
 };
 
-use super::{
-    super::specifiers::{DriveSpecifier, KeySpecifier},
-    RunnableCommand,
-};
+use super::RunnableCommand;
 use async_trait::async_trait;
-use clap::Subcommand;
-use colored::Colorize;
-use tomb_crypt::{
-    hex_fingerprint,
-    prelude::{PrivateKey, PublicKey},
+use banyanfs::{
+    api::{api_fingerprint_key, platform},
+    codec::crypto::SigningKey,
+    utils::crypto_rng,
 };
-use uuid::Uuid;
+use clap::Subcommand;
 
-/// Subcommand for Drive Keys
+use cli_table::{print_stdout, Cell, Table};
+use tracing::{info, warn};
+
+/// Subcommand for endpoint configuration
 #[derive(Subcommand, Clone, Debug)]
-pub enum KeyCommand {
-    /// Request Access to a Drive if you dont already have it
-    RequestAccess(DriveSpecifier),
-    /// List all Keys in a Drive
-    Ls(DriveSpecifier),
-    /// Get information about an individual Drive Key
-    Info(KeySpecifier),
-    /// Delete a given Key
-    Delete(KeySpecifier),
-    /// Reject or remove a key and sync that witht the remote endpoint
-    Reject(KeySpecifier),
+pub enum KeysCommand {
+    /// List User Keys on disk and show which is selected
+    Ls,
+    /// Create a new Key
+    Create,
+    /// Delete a key
+    Rm {
+        /// Key name
+        name: String,
+    },
+    /// Select a key for use
+    Select {
+        /// Key name
+        name: String,
+    },
+    /// Display the currently selected key
+    Selected,
+    Rename {
+        /// Key name
+        old: String,
+        /// New Key name
+        new: String,
+    },
 }
 
 #[async_trait(?Send)]
-impl RunnableCommand<NativeError> for KeyCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
-        let global = GlobalConfig::from_disk().await?;
-        let mut client = global.get_client().await?;
+impl RunnableCommand<NativeError> for KeysCommand {
+    type Payload = GlobalConfig;
+    async fn run(self, mut global: GlobalConfig) -> Result<(), NativeError> {
+        use KeysCommand::*;
         match self {
-            KeyCommand::RequestAccess(drive_specifier) => {
-                let private_key = global.wrapping_key().await?;
-                let public_key = private_key.public_key()?;
-                // Compute PEM
-                let fingerprint = hex_fingerprint(&public_key.fingerprint().await?.to_vec());
-                let pem = String::from_utf8(public_key.export().await?)?;
+            Ls => {
+                let platform_keys = global.platform_user_keys().await;
 
-                // Get Drive
-                let omni = OmniBucket::from_specifier(&drive_specifier).await;
-                if let Ok(id) = omni.get_id() {
-                    let existing_keys = BucketKey::read_all(id, &mut client).await?;
-                    if let Some(existing_key) = existing_keys
-                        .iter()
-                        .find(|key| key.fingerprint == fingerprint)
-                    {
-                        info!("\n{}\n", existing_key.context_fmt(&fingerprint));
-                        Err(NativeError::custom_error(
-                            "You've already requested access on this Bucket!",
-                        ))
-                    } else {
-                        BucketKey::create(id, pem, &mut client)
-                            .await
-                            .map(|key| format!("\n{}", key))
-                            .map_err(NativeError::api)
+                // Collect the public key fingerprints of every private user key
+                let local_named_keys: Vec<(String, SigningKey)> = SigningKey::decode_all().await?;
+                if local_named_keys.is_empty() {
+                    warn!("<< NO KEYS ON DISK; CREATE ONE >>");
+                    return Ok(());
+                }
+
+                let mut sync_names = HashSet::new();
+                let mut table_rows = Vec::new();
+
+                for (local_name, local_private_key) in local_named_keys.iter() {
+                    let local_public_key = local_private_key.verifying_key();
+                    let local_fingerprint = api_fingerprint_key(&local_public_key);
+
+                    for platform_key in platform_keys.iter() {
+                        // Sync key found
+                        if platform_key.fingerprint() == local_fingerprint {
+                            // Ensure name congruence
+                            // If the names are different for some reason
+                            let platform_name = platform_key.name();
+                            let key_name = if platform_name != local_name {
+                                warn!(
+                                    "Platform key with name `{}` is named `{}` locally.",
+                                    platform_name, local_name
+                                );
+                                if prompt_for_bool("Keep local or platform name?", 'l', 'p') {
+                                    info!("Renaming platform key.");
+                                    let client = global.get_client().await?;
+                                    platform::account::rename_user_key(
+                                        &client,
+                                        local_name,
+                                        platform_key.id(),
+                                    )
+                                    .await?;
+                                    local_name
+                                } else {
+                                    info!("Renaming local key.");
+                                    // Write by new name, erase by old
+                                    local_private_key.encode(platform_name).await?;
+                                    SigningKey::erase(local_name).await?;
+
+                                    // Handle config
+                                    if let Ok(selected_user_key_id) = global.selected_key_id() {
+                                        if selected_user_key_id == *local_name {
+                                            global.selected_key_id = Some(platform_name.into());
+                                            global.encode(&GlobalConfigId).await?;
+                                        }
+                                    }
+                                    platform_name
+                                }
+                            } else {
+                                local_name
+                            };
+
+                            //
+                            sync_names.insert(local_name);
+                            sync_names.insert(platform_name);
+                            table_rows.push(vec![
+                                key_name.cell(),
+                                platform_key.user_id().cell(),
+                                platform_key.fingerprint().cell(),
+                                platform_key.api_access().cell(),
+                                platform_key.public_key().cell(),
+                                Persistence::Sync.cell(),
+                            ])
+                        }
                     }
+                }
+
+                for (local_name, private_key) in local_named_keys.iter() {
+                    if !sync_names.contains(local_name) {
+                        let public_key = private_key.verifying_key();
+                        let fingerprint = api_fingerprint_key(&public_key);
+                        // List it manually
+                        table_rows.push(vec![
+                            local_name.cell(),
+                            "N/A".cell(),
+                            fingerprint.cell(),
+                            false.cell(),
+                            public_key
+                                .to_spki()
+                                .map_err(|_| NativeError::Custom("Spki".to_string()))?
+                                .cell(),
+                            Persistence::LocalOnly.cell(),
+                        ]);
+                    }
+                }
+
+                for platform_key in platform_keys.iter() {
+                    if !sync_names.contains(platform_key.name()) {
+                        table_rows.push(vec![
+                            platform_key.name().cell(),
+                            platform_key.user_id().cell(),
+                            platform_key.fingerprint().cell(),
+                            platform_key.api_access().cell(),
+                            platform_key.public_key().cell(),
+                            Persistence::PlatformOnly.cell(),
+                        ])
+                    }
+                }
+
+                let table = table_rows.table().title(vec![
+                    "Name".cell(),
+                    "User ID".cell(),
+                    "Fingerprint".cell(),
+                    "API".cell(),
+                    "Public Key".cell(),
+                    "Persistence".cell(),
+                ]);
+
+                print_stdout(table)?;
+
+                Ok(())
+            }
+            Create => {
+                let mut rng = crypto_rng();
+                let new_key = SigningKey::generate(&mut rng);
+                let new_key_id = prompt_for_key_name("Name this Key:")?;
+                // Save on disk
+                new_key.encode(&new_key_id).await?;
+                // Update the config if the user so wishes
+                if prompt_for_bool("Select this key for use?", 'y', 'n') {
+                    global.selected_key_id = Some(new_key_id);
+                    global.encode(&GlobalConfigId).await?;
+                }
+                info!("<< KEY CREATED >>");
+                Ok(())
+            }
+            Rm { name } => {
+                // If we can successfully load the key
+                if SigningKey::decode(&name).await.is_ok() {
+                    warn!("This is private key material. This operation will erase it from your local machine. Use with caution.");
+                    if name == prompt_for_string("Re-enter the name of your key to confirm") {
+                        SigningKey::erase(&name).await?;
+                        // Make sure we also delesect the key if it was in use
+                        if let Ok(selected_user_key_id) = global.selected_key_id() {
+                            if selected_user_key_id == name {
+                                global.selected_key_id = None;
+                                global.encode(&GlobalConfigId).await?;
+                            }
+                        }
+                        info!("Erased key.");
+                    } else {
+                        warn!("Key names don't match.");
+                    }
+                    Ok(())
                 } else {
-                    Err(NativeError::missing_remote_drive())
+                    Err(ConfigStateError::MissingKey(name).into())
                 }
             }
-            KeyCommand::Ls(drive_specifier) => {
-                let omni = OmniBucket::from_specifier(&drive_specifier).await;
-                let id = omni.get_id().unwrap();
-                let my_fingerprint = hex_fingerprint(
-                    &global
-                        .wrapping_key()
-                        .await?
-                        .public_key()?
-                        .fingerprint()
-                        .await?
-                        .to_vec(),
-                );
-                BucketKey::read_all(id, &mut client)
-                    .await
-                    .map(|keys| {
-                        keys.iter().fold(String::new(), |acc, key| {
-                            format!("{}\n\n{}", acc, key.context_fmt(&my_fingerprint))
-                        })
-                    })
-                    .map_err(NativeError::api)
+            Select { name } => {
+                // If we can successfully load the key
+                if SigningKey::decode(&name).await.is_ok() {
+                    // Update the config
+                    global.selected_key_id = Some(name);
+                    global.encode(&GlobalConfigId).await?;
+                    Ok(())
+                } else {
+                    Err(ConfigStateError::MissingKey(name).into())
+                }
             }
-            KeyCommand::Info(ks) => {
-                let (bucket_id, id) = get_key_info(&client, &ks).await?;
-                let my_fingerprint = hex_fingerprint(
-                    &global
-                        .wrapping_key()
-                        .await?
-                        .public_key()?
-                        .fingerprint()
-                        .await?
-                        .to_vec(),
-                );
-                BucketKey::read(bucket_id, id, &mut client)
-                    .await
-                    .map(|key| key.context_fmt(&my_fingerprint))
-                    .map_err(NativeError::api)
+            Selected => {
+                let selected_user_key_id = global.selected_key_id()?;
+                let private_key = SigningKey::decode(&selected_user_key_id).await?;
+                let private_key_path = SigningKey::path(&selected_user_key_id)?;
+                let public_key = private_key.verifying_key();
+                let fingerprint = api_fingerprint_key(&public_key);
+                let public_key = public_key.to_spki().unwrap();
+
+                let table = vec![vec![
+                    selected_user_key_id.cell(),
+                    fingerprint.cell(),
+                    public_key.cell(),
+                    private_key_path.display().cell(),
+                ]]
+                .table()
+                .title(vec![
+                    "Name".cell(),
+                    "Fingerprint".cell(),
+                    "Public Key".cell(),
+                    "Private Key Path".cell(),
+                ]);
+                print_stdout(table)?;
+                Ok(())
             }
-            KeyCommand::Delete(ks) => {
-                let (bucket_id, id) = get_key_info(&client, &ks).await?;
-                BucketKey::delete_by_id(bucket_id, id, &mut client)
+            Rename { old, new } => {
+                let mut renamed = false;
+                if let Some(platform_key) = global
+                    .platform_user_keys()
                     .await
-                    .map(|id| format!("<< DELETED KEY SUCCESSFULLY >>\nid:\t{}", id))
-                    .map_err(NativeError::api)
-            }
-            KeyCommand::Reject(ks) => {
-                let (bucket_id, id) = get_key_info(&client, &ks).await?;
-                BucketKey::reject(bucket_id, id, &mut client)
-                    .await
-                    .map(|_| format!("{}", "<< REJECTED KEY SUCCESSFULLY >>".green()))
-                    .map_err(NativeError::api)
+                    .into_iter()
+                    .find(|key| *key.name() == old)
+                {
+                    let client = global.get_client().await?;
+                    platform::account::rename_user_key(&client, &new, platform_key.id()).await?;
+                    renamed = true;
+                    info!("<< UPDATED KEY NAME ON PLATFORM >>");
+                }
+
+                if let Ok(key) = SigningKey::decode(&old).await {
+                    key.encode(&new).await?;
+                    SigningKey::erase(&old).await?;
+
+                    if global.selected_key_id == Some(old) {
+                        global.selected_key_id = Some(new);
+                        global.encode(&GlobalConfigId).await?;
+                    }
+
+                    renamed = true;
+                    info!("<< UPDATED KEY NAME LOCALLY >>");
+                }
+
+                if renamed {
+                    Ok(())
+                } else {
+                    Err("No local or platform Key with that name.".into())
+                }
             }
         }
     }
-}
-
-async fn get_key_info(
-    client: &Client,
-    key_specifier: &KeySpecifier,
-) -> Result<(Uuid, Uuid), NativeError> {
-    let bucket_id = OmniBucket::from_specifier(&key_specifier.drive_specifier)
-        .await
-        .get_id()?;
-
-    let all_keys = BucketKey::read_all(bucket_id, &mut client.to_owned()).await?;
-    let key_index = all_keys
-        .iter()
-        .position(|key| key.fingerprint == key_specifier.fingerprint)
-        .unwrap();
-
-    let key = all_keys[key_index].clone();
-    Ok((bucket_id, key.id))
 }

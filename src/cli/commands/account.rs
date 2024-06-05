@@ -1,180 +1,122 @@
-use super::RunnableCommand;
 use crate::{
-    api::{
-        client::Credentials,
-        models::account::Account,
-        requests::core::auth::device_api_key::regwait::start::{
-            StartRegwait, StartRegwaitResponse,
-        },
+    on_disk::{
+        config::{GlobalConfig, GlobalConfigId},
+        OnDisk,
     },
-    native::{configuration::globalconfig::GlobalConfig, NativeError},
-    prelude::api::requests::core::auth::who_am_i::read::ReadWhoAmI,
+    utils::prompt_for_uuid,
+    NativeError,
 };
+
+use super::RunnableCommand;
 use async_trait::async_trait;
-use base64::{engine::general_purpose, Engine as _};
+use banyanfs::{api::platform::account::*, codec::crypto::SigningKey};
 use bytesize::ByteSize;
 use clap::Subcommand;
-use colored::Colorize;
-use tokio::task::JoinHandle;
-use tomb_crypt::{
-    hex_fingerprint,
-    prelude::{PrivateKey, PublicKey},
-};
+
+use cli_table::{print_stdout, Cell, Table};
+use tracing::info;
 
 /// Subcommand for Authentication
 #[derive(Subcommand, Clone, Debug)]
 pub enum AccountCommand {
+    /// Display current platform account status
+    Info,
     /// Add Device API Key using browser session
-    RegisterDevice,
+    Login,
     /// Log out from this device
     Logout,
-    /// Register
-    #[cfg(feature = "integration-tests")]
-    Register,
-    /// Ask the server who I am
-    WhoAmI,
     /// Get info about Account usage
     Usage,
 }
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for AccountCommand {
-    async fn run_internal(self) -> Result<String, NativeError> {
-        let mut global = GlobalConfig::from_disk().await?;
-        let mut client = global.get_client().await?;
-
+    type Payload = GlobalConfig;
+    async fn run(self, mut global: GlobalConfig) -> Result<(), NativeError> {
         // Process the command
+        use AccountCommand::*;
         match self {
-            AccountCommand::RegisterDevice => {
-                let private_device_key = GlobalConfig::from_disk().await?.api_key().await?;
-                let public_device_key = private_device_key.public_key()?;
-
-                // If this device api key is alreaddy registered
-                if client.call(ReadWhoAmI).await.is_ok() {
-                    return Ok(format!("{}", "THIS DEVICE IS ALREADY REGISTERED".green()));
+            Info => {
+                let mut row = vec![];
+                if let Ok(account_id) = global.get_account_id() {
+                    row.push(account_id.to_string().cell());
+                    info!("")
+                } else {
+                    row.push("None".cell());
                 }
 
-                // Create a fingerprint from the public key
-                let fingerprint =
-                    hex_fingerprint(public_device_key.fingerprint().await?.as_slice());
+                if let Ok(selected_user_key_id) = global.selected_key_id() {
+                    row.push(selected_user_key_id.cell());
+                } else {
+                    row.push("None".cell());
+                }
 
-                // Create a new request object with the nonce
-                let start_regwait = StartRegwait {
-                    fingerprint: fingerprint.clone(),
-                };
-                // Create a clone of the client to move into the handle
-                let mut client_1 = client.clone();
-                // Create a join handle for later use, starting the call immediately
-                let join_handle: JoinHandle<Result<StartRegwaitResponse, String>> =
-                    tokio::spawn(async move {
-                        // Build the request
-                        client_1
-                            .call(start_regwait)
-                            .await
-                            .map_err(|err| err.to_string())
-                    });
+                let table = vec![row]
+                    .table()
+                    .title(vec!["Account ID".cell(), "User Key".cell()]);
+                print_stdout(table)?;
 
-                // URL encoded DER bytes
-                let spki_b64 =
-                    general_purpose::STANDARD.encode(public_device_key.export_bytes().await?);
-                let spki_b64_url_safe =
-                    url::form_urlencoded::byte_serialize(spki_b64.as_bytes()).collect::<String>();
-                // Construct the proper URL to open
-                let url = global
-                    .get_endpoint()
-                    .join(&format!("register-device/{}", spki_b64_url_safe))
-                    .unwrap();
-
-                // Offer the link directly if it fails to open
-                let _ = open::that(url.as_str());
-                info!(
-                    "open this link in your browser:\n{}",
-                    url.as_str().bright_blue()
-                );
-
-                // Now await the completion of the original request
-                let start_response = join_handle
-                    .await
-                    .map_err(|err| NativeError::custom_error(&err.to_string()))?
-                    .map_err(|msg| NativeError::custom_error(&msg))?;
-
-                // Update the client's credentials
-                client.with_credentials(Credentials {
-                    user_id: start_response.user_id,
-                    signing_key: private_device_key,
-                });
-
-                global.save_client(client).await?;
-
-                // Respond
-                Ok(format!(
-                    "{}\nuser_id:\t\t{}\ndevice_key_fingerprint:\t{}",
-                    "<< DEVICE KEY SUCCESSFULLY ADDED TO ACCOUNT >>".green(),
-                    start_response.user_id,
-                    fingerprint
-                ))
+                Ok(())
             }
-            AccountCommand::Logout => {
-                client.logout();
-                global.save_client(client).await?;
-                Ok(format!(
-                    "{}",
-                    "<< SUCCESSFULLY LOGGED OUT OF REMOTE ACCESS >>".green()
-                ))
+            Login => {
+                let key_management_url = format!("{}/account/manage-keys", env!("ENDPOINT"));
+                info!("Navigate to {}", key_management_url);
+                let user_key_id = global.selected_key_id()?;
+                let user_key: SigningKey = OnDisk::decode(&user_key_id).await?;
+                let public_key = user_key.verifying_key().to_spki().unwrap();
+                info!("public_key:");
+                println!("{}", public_key);
+                let account_id = prompt_for_uuid("Enter your account id:");
+                global.account_id = Some(account_id);
+                let _ = global.get_client().await?;
+                global.encode(&GlobalConfigId).await?;
+                info!("<< SUCCESSFULLY LOGGED IN >>");
+                Ok(())
             }
-            #[cfg(feature = "integration-tests")]
-            AccountCommand::Register => {
-                // Additional imports
-                use crate::api::requests::core::auth::fake_account::create::{
-                    CreateAccountResponse, CreateFakeAccount,
-                };
-                use tomb_crypt::prelude::EcSignatureKey;
-
-                // Create local keys
-                let api_key = EcSignatureKey::generate().await?;
-                let public_api_key = api_key.public_key()?;
-                let public_api_key_pem = String::from_utf8(public_api_key.export().await?)?;
-                // Associate the key material with the backend
-                let response: CreateAccountResponse = client
-                    .call(CreateFakeAccount {
-                        device_api_key_pem: public_api_key_pem,
-                    })
-                    .await?;
-                client.with_credentials(Credentials {
-                    user_id: response.id,
-                    signing_key: api_key.clone(),
-                });
-
-                Ok(format!(
-                    "{}\nuser_id:\t{}",
-                    "<< CREATED NEW ACCOUNT >>".green(),
-                    response.id
-                ))
+            Logout => {
+                global.account_id = None;
+                global.encode(&GlobalConfigId).await?;
+                info!("<< SUCCESSFULLY LOGGED OUT OF PLATFORM >>");
+                Ok(())
             }
-            AccountCommand::WhoAmI => Account::who_am_i(&mut client)
-                .await
-                .map(|v| v.to_string())
-                .map_err(NativeError::api),
-            AccountCommand::Usage => {
-                let mut output = format!("{}", "| ACCOUNT USAGE INFO |".yellow());
-
-                let usage_current_result = Account::usage(&mut client).await;
-                let usage_limit_result = Account::usage_limit(&mut client).await;
-
-                if usage_current_result.is_err() && usage_limit_result.is_err() {
-                    return Err(NativeError::custom_error(
+            Usage => {
+                let client = global.get_client().await?;
+                let current_usage_result = current_usage(&client).await;
+                let usage_limit_result = current_usage_limit(&client).await;
+                if current_usage_result.is_err() && usage_limit_result.is_err() {
+                    return Err(NativeError::Custom(String::from(
                         "Unable to obtain usage stats. Check your authentication!",
-                    ));
+                    )));
                 }
-
-                if let Ok(usage_current) = usage_current_result {
-                    output = format!("{}\nusage_current:\t{}", output, ByteSize(usage_current));
+                if let Ok(usage_current) = current_usage_result {
+                    let table = vec![
+                        vec!["Hot".cell(), ByteSize(usage_current.hot_usage()).cell()],
+                        vec![
+                            "Archival".cell(),
+                            ByteSize(usage_current.archival_usage()).cell(),
+                        ],
+                    ]
+                    .table()
+                    .title(vec!["".cell(), "Current Usage".cell()]);
+                    print_stdout(table)?;
                 }
                 if let Ok(usage_limit) = usage_limit_result {
-                    output = format!("{}\nusage_limit:\t{}", output, ByteSize(usage_limit));
+                    let table = vec![
+                        vec![
+                            "Soft Hot".cell(),
+                            ByteSize(usage_limit.soft_hot_storage_limit() as u64).cell(),
+                        ],
+                        vec![
+                            "Hard Hot".cell(),
+                            ByteSize(usage_limit.hard_hot_storage_limit() as u64).cell(),
+                        ],
+                    ]
+                    .table()
+                    .title(vec!["".cell(), "Usage Limits".cell()]);
+                    print_stdout(table)?;
                 }
 
-                Ok(output)
+                Ok(())
             }
         }
     }
