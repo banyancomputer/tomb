@@ -42,11 +42,11 @@ pub enum DriveOperation {
     /// Reconstruct a Drive filesystem locally
     Restore,
     /// Delete a Drive
-    Delete,
+    Rm,
     /// Change the name of a Drive
     Rename {
         new_name: String,
-    }, //(String),
+    },
 }
 
 pub struct DriveOperationPayload {
@@ -258,13 +258,15 @@ impl RunnableCommand<NativeError> for DriveOperation {
                 payload.sync().await?;
                 Ok(())
             }
-            Delete => {
+            Rm => {
+                let mut removal = false;
                 if Drive::entries().contains(&payload.id.drive_id) {
                     payload.global.remove_path(&payload.id.drive_id).ok();
                     Drive::erase(&payload.id).await?;
                     LocalBanyanFS::erase(&payload.id).await?;
                     payload.global.encode(&GlobalConfigId).await?;
                     info!("<< LOCAL DRIVE DATA DELETED SUCCESSFULLY >>");
+                    removal = true;
                 }
 
                 if let Some(platform_drive) =
@@ -273,6 +275,11 @@ impl RunnableCommand<NativeError> for DriveOperation {
                     let client = payload.global.get_client().await?;
                     platform::drives::delete(&client, &platform_drive.id).await?;
                     info!("<< PLATFORM DRIVE DATA DELETED SUCCESSFULLY >>");
+                    removal = true;
+                }
+
+                if !removal {
+                    error!("No local or platform drive corresponding to that name.");
                 }
 
                 Ok(())

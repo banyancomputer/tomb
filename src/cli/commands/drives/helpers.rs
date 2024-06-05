@@ -15,7 +15,7 @@ pub async fn platform_drives(global: &GlobalConfig) -> Vec<ApiDrive> {
         Ok(client) => match platform::drives::get_all(&client).await {
             Ok(d) => d,
             Err(err) => {
-                error!("Logged in, but failed to fetch platform drives. {err}");
+                warn!("Logged in, but failed to fetch platform drives.");
                 vec![]
             }
         },

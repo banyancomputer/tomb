@@ -17,7 +17,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::filesystem::Drive;
+use banyanfs::{api::platform, filesystem::Drive};
 use operations::DriveOperation;
 pub use operations::DriveOperationPayload;
 
@@ -25,9 +25,9 @@ use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
 use std::{env::current_dir, path::PathBuf};
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
-use self::access::DriveAccessCommand;
+use self::{access::DriveAccessCommand, helpers::platform_drive_with_name};
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
@@ -41,8 +41,8 @@ pub enum DrivesCommand {
     Ls,
     /// Initialize a new Drive
     Create {
-        /// Drive name
-        path: Option<PathBuf>,
+        /// Unencrypted source location
+        path: PathBuf,
     },
     /// Prepare a Drive for Pushing by encrypting new data
     Prepare {
@@ -55,7 +55,7 @@ pub enum DrivesCommand {
         name: String,
     },
     /// Delete a Drive
-    Delete {
+    Rm {
         /// Drive name
         name: String,
     },
@@ -87,7 +87,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             Info { name }
             | Prepare { name }
             | Restore { name }
-            | Delete { name }
+            | Rm { name }
             | Rename { name, .. } => {
                 let payload = DriveOperationPayload {
                     id: DriveAndKeyId {
@@ -101,7 +101,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     Info { .. } => DriveOperation::Info.run(payload).await,
                     Prepare { .. } => DriveOperation::Prepare.run(payload).await,
                     Restore { .. } => DriveOperation::Restore.run(payload).await,
-                    Delete { .. } => DriveOperation::Delete.run(payload).await,
+                    Rm { .. } => DriveOperation::Rm.run(payload).await,
                     Rename { new_name, .. } => {
                         DriveOperation::Rename { new_name }.run(payload).await
                     }
@@ -176,24 +176,32 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             // Create a new Bucket. This attempts to create the Bucket both locally and on platform, but settles for a simple local creation if remote permissions fail
             Create { path } => {
-                let path = path.to_owned().unwrap_or(current_dir()?);
+                // Determine the "drive id" (name)
                 let drive_id =
                     name_of(&path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
+
+                if Drive::entries().contains(&drive_id)
+                    || platform_drive_with_name(&global, &drive_id).await.is_some()
+                {
+                    error!("There is already a local or remote drive by that name.");
+                    return Ok(());
+                }
+
                 // Save location association
                 global.set_path(&drive_id, &path);
                 global.encode(&GlobalConfigId).await?;
                 let user_key_id = global.selected_user_key_id()?;
                 let id = DriveAndKeyId::new(&drive_id, &user_key_id);
 
-                if let Ok(client) = global.get_client().await {
-                    //let _platform_id = platform::drives::create(&client, &drive_id).await?;
-                    //info!("<< CREATED PLATFORM DRIVE >>");
-                }
-
                 // Create and encode the Drive and Store
                 LocalBanyanFS::init(&id).await?;
                 info!("<< CREATED LOCAL DRIVE >>");
 
+                if let Ok(client) = global.get_client().await {
+                    let _platform_id = platform::drives::create(&client, &drive_id).await?;
+                    info!("<< CREATED PLATFORM DRIVE >>");
+                    DriveOperationPayload { id, global }.sync().await?;
+                }
                 Ok(())
             }
             Access { name, subcommand } => {
