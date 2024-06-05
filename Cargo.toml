@@ -64,9 +64,6 @@ uuid = { version = "^1", features = ["serde", "v4"] }
 object_store = { version = "^0.9" }
 
 [dev-dependencies]
-dir-assert = { git = "https://github.com/banyancomputer/dir-assert.git", branch = "non-utf8", version = "^0.2" }
-fake-file = { version = "^0.1" }
-serial_test = { version = "^2" }
 
 [[bin]]
 name = "banyan"
