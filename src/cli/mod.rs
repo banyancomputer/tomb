@@ -4,8 +4,6 @@ pub mod commands;
 mod runnable_command;
 /// Ways of specifying resources
 pub mod specifiers;
-/// Debug level
-pub mod verbosity;
 /// Export
 pub use runnable_command::RunnableCommand;
 
@@ -16,9 +14,6 @@ pub struct Args {
     /// Command passed
     #[command(subcommand)]
     pub command: commands::BanyanCommand,
-    /// Verbosity level.
-    #[arg(short, long, help = "verbosity level", default_value = "normal")]
-    pub verbose: verbosity::MyVerbosity,
 }
 
 #[derive(Debug)]
