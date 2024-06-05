@@ -3,10 +3,7 @@ use crate::{
     ConfigStateError, NativeError,
 };
 use async_trait::async_trait;
-use banyanfs::{
-    api::{platform, ApiClient},
-    codec::crypto::SigningKey,
-};
+use banyanfs::{api::ApiClient, codec::crypto::SigningKey};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, path::PathBuf, sync::Arc};
 use tracing::info;
