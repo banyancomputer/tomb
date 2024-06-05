@@ -1,5 +1,8 @@
 name: 🛡 Dependency Security & License Audit
 
+on:
+  workflow_call:
+
 jobs:
   cargo-deny:
     runs-on: ubuntu-22.04
