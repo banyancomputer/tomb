@@ -132,7 +132,9 @@ jobs:
       - uses: rui314/setup-mold@v1
       - run: ld --version
       # cargo check
-      - run: mold -run cargo check --all-targets --all-features --tests
+      - run: mold -run cargo clean
+      - name: check
+        run: mold -run cargo check --all-targets --all-features --tests
       # cargo fmt --check
       - name: cargo fmt --check
         run: mold -run cargo +nightly fmt --all --check
