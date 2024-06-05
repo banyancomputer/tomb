@@ -27,7 +27,7 @@ use banyanfs::{
 };
 use cli_table::{print_stdout, Cell, Table};
 use futures::{io::Cursor, StreamExt};
-use tokio::fs::{create_dir_all, rename};
+use tokio::fs::create_dir_all;
 use tracing::*;
 
 pub enum DriveOperation {
@@ -40,7 +40,8 @@ pub enum DriveOperation {
     Rm,
     /// Change the name of a Drive
     Rename {
-        new_name: String,
+        /// The new name
+        rename: String,
     },
 }
 
@@ -318,44 +319,51 @@ impl RunnableCommand<NativeError> for DriveOperation {
                 info!("<< DRIVE DATA RESTORED TO DISK SUCCESSFULLY >>");
                 Ok(())
             }
-            Rename { new_name } => {
-                let old_path = payload.global.get_path(&payload.id.drive_id)?;
-                let old_id = payload.id.clone();
-                let new_id = DriveAndKeyId::new(&new_name, &old_id.user_key_id);
-
-                // Rename drive.bfs
-                Drive::rename(&old_id, &new_id).await?;
-                // Rename sync tracker
-                CborSyncTracker::rename(&old_id.drive_id, &new_id.drive_id).await?;
-                // Rename drive_blocks folder
-                LocalBanyanFS::rename(&old_id, &new_id).await?;
-
-                // Rename the folder in user land
-                let new_path = old_path.parent().unwrap().join(new_name);
-                rename(old_path, &new_path).await?;
-
-                payload.global.remove_path(&old_id.drive_id)?;
-                payload
+            Rename { rename } => {
+                if let Some(platform_id) = payload
                     .global
-                    .drive_paths
-                    .insert(new_id.drive_id.clone(), new_path);
-                payload.global.encode(&GlobalConfigId).await?;
-
-                info!("<< RENAMED DRIVE LOCALLY >>");
-
-                if let Ok(drive_platform_id) =
-                    payload.global.drive_platform_id(&old_id.drive_id).await
+                    .platform_drive_with_name(&payload.id.drive_id)
+                    .await
+                    .map(|drive| drive.id)
                 {
                     let client = payload.global.get_client().await?;
                     platform::drives::update(
                         &client,
-                        &drive_platform_id,
+                        &platform_id,
                         platform::ApiDriveUpdateAttributes {
-                            name: Some(new_id.drive_id),
+                            name: Some(rename.clone()),
                         },
                     )
                     .await?;
                     info!("<< RENAMED DRIVE ON PLATFORM >>");
+                } else {
+                    warn!("No known platform Drive with that name.");
+                }
+
+                if let Ok(old_path) = payload.global.get_path(&payload.id.drive_id) {
+                    let old_id = payload.id.clone();
+
+                    let new_id = DriveAndKeyId::new(&rename, &old_id.user_key_id);
+
+                    // Rename drive.bfs
+                    Drive::rename(&old_id, &new_id).await?;
+                    // Rename sync tracker
+                    CborSyncTracker::rename(&old_id.drive_id, &new_id.drive_id).await?;
+                    // Rename drive_blocks folder
+                    LocalBanyanFS::rename(&old_id, &new_id).await?;
+
+                    // Rename the folder in user land
+                    let new_path = old_path.parent().unwrap().join(rename);
+                    tokio::fs::rename(old_path, &new_path).await?;
+
+                    payload.global.remove_path(&old_id.drive_id)?;
+                    payload
+                        .global
+                        .drive_paths
+                        .insert(new_id.drive_id.clone(), new_path);
+                    payload.global.encode(&GlobalConfigId).await?;
+
+                    info!("<< RENAMED DRIVE LOCALLY >>");
                 }
 
                 Ok(())

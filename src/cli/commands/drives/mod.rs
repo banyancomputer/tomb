@@ -61,7 +61,7 @@ pub enum DrivesCommand {
         name: String,
         /// New Drive name
         #[arg(short, long)]
-        new_name: String,
+        rename: String,
     },
     /// Drive Key management
     Keys {
@@ -97,9 +97,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                     Prepare { .. } => DriveOperation::Prepare.run(payload).await,
                     Restore { .. } => DriveOperation::Restore.run(payload).await,
                     Rm { .. } => DriveOperation::Rm.run(payload).await,
-                    Rename { new_name, .. } => {
-                        DriveOperation::Rename { new_name }.run(payload).await
-                    }
+                    Rename { rename, .. } => DriveOperation::Rename { rename }.run(payload).await,
                     _ => panic!(),
                 }
             }

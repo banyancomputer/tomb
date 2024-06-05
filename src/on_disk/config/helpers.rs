@@ -8,31 +8,11 @@ use banyanfs::{
 use tracing::{error, warn};
 
 use crate::{
-    on_disk::{
-        config::{GlobalConfig, GlobalConfigId},
-        OnDisk,
-    },
-    ConfigStateError, NativeError,
+    on_disk::{config::GlobalConfig, OnDisk},
+    NativeError,
 };
 
 impl GlobalConfig {
-    pub async fn drive_platform_id(&mut self, drive_id: &str) -> Result<String, NativeError> {
-        if let Some(platform_id) = self.drive_platform_ids.get(drive_id) {
-            return Ok(platform_id.to_string());
-        }
-        let client = self.get_client().await?;
-        let drive_platform_id = platform::drives::get_all(&client)
-            .await?
-            .into_iter()
-            .find(|drive| drive.name == drive_id)
-            .ok_or(ConfigStateError::MissingDrive(drive_id.into()))?
-            .id;
-        self.drive_platform_ids
-            .insert(drive_id.to_string(), drive_platform_id.clone());
-        self.encode(&GlobalConfigId).await?;
-        Ok(drive_platform_id)
-    }
-
     pub async fn platform_drive_with_name(&self, name: &str) -> Option<ApiDrive> {
         self.platform_drives()
             .await
