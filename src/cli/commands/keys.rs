@@ -248,7 +248,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     .platform_user_keys()
                     .await
                     .into_iter()
-                    .find(|key| key.name().to_string() == old)
+                    .find(|key| *key.name() == old)
                 {
                     let client = global.get_client().await?;
                     platform::account::rename_user_key(&client, &new, platform_key.id()).await?;
