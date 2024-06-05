@@ -41,6 +41,12 @@ pub enum KeysCommand {
     },
     /// Display the currently selected key
     Selected,
+    Rename {
+        /// Key name
+        old: String,
+        /// New Key name
+        new: String,
+    },
 }
 
 #[async_trait(?Send)]
@@ -235,6 +241,32 @@ impl RunnableCommand<NativeError> for KeysCommand {
                     "Private Key Path".cell(),
                 ]);
                 print_stdout(table)?;
+                Ok(())
+            }
+            Rename { old, new } => {
+                if let Some(platform_key) = global
+                    .platform_user_keys()
+                    .await
+                    .into_iter()
+                    .find(|key| key.name().to_string() == old)
+                {
+                    let client = global.get_client().await?;
+                    platform::account::rename_user_key(&client, &new, platform_key.id()).await?;
+                    info!("<< UPDATED KEY NAME ON PLATFORM >>");
+                }
+
+                if let Ok(key) = SigningKey::decode(&old).await {
+                    key.encode(&new).await?;
+                    SigningKey::erase(&old).await?;
+
+                    if global.selected_key_id == Some(old) {
+                        global.selected_key_id = Some(new);
+                        global.encode(&GlobalConfigId).await?;
+                    }
+
+                    info!("<< UPDATED KEY NAME LOCALLY >>");
+                }
+
                 Ok(())
             }
         }
