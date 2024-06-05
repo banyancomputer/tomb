@@ -90,13 +90,13 @@ impl GlobalConfig {
                 Some(api_key) => {
                     let fingerprint = api_key.fingerprint().to_string();
                     let public_key_pem = api_key.public_key();
-                    let public_key = VerifyingKey::from_spki(&public_key_pem)
+                    let public_key = VerifyingKey::from_spki(public_key_pem)
                         .map_err(|_| NativeError::Custom("Decode SPKI".into()))?;
                     Ok((public_key, fingerprint))
                 }
                 None => {
                     error!("No known user key with that name locally or remotely.");
-                    Err(NativeError::Custom("missing usrkey".into()).into())
+                    Err(NativeError::Custom("missing usrkey".into()))
                 }
             }
         }
