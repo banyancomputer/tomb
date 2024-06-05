@@ -10,7 +10,7 @@ use banyanfs::{codec::crypto::SigningKey, utils::crypto_rng};
 
 use std::fs::create_dir_all;
 
-use crate::drive::local::{CborSyncTracker, LocalDataStore, SyncDataStore};
+use crate::drive::{CborSyncTracker, LocalDataStore, SyncDataStore};
 
 /// Pairs BanyanFS Drives with the ObjectStores which handle their CIDs
 pub struct LocalBanyanFS {

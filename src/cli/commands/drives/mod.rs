@@ -7,7 +7,7 @@ use crate::{
         commands::{drives::access::DriveAccessPayload, RunnableCommand},
         Persistence,
     },
-    drive::local::*,
+    drive::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         local_share::DriveAndKeyId,

@@ -2,22 +2,13 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use banyanfs::prelude::*;
-use banyanfs::{
-    api::{api_fingerprint_key},
-    codec::crypto::SigningKey,
-};
+use banyanfs::{api::api_fingerprint_key, codec::crypto::SigningKey};
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
 use crate::{
-    cli::{
-        RunnableCommand,
-    },
-    on_disk::{
-        config::{GlobalConfig},
-        local_share::DriveAndKeyId,
-        OnDisk,
-    },
+    cli::RunnableCommand,
+    on_disk::{config::GlobalConfig, local_share::DriveAndKeyId, OnDisk},
     NativeError,
 };
 
