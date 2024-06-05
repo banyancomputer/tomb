@@ -2,11 +2,8 @@ use std::path::PathBuf;
 
 use crate::{
     cli::{
-        commands::{
-            drives::{CborSyncTracker, LocalBanyanFS, SyncDataStore},
-            helpers,
-        },
-        Persistence, RunnableCommand,
+        commands::drives::{CborSyncTracker, LocalBanyanFS, SyncDataStore},
+        helpers, Persistence, RunnableCommand,
     },
     drive::operations,
     on_disk::{
@@ -32,8 +29,6 @@ use cli_table::{print_stdout, Cell, Table};
 use futures::{io::Cursor, StreamExt};
 use tokio::fs::{create_dir_all, rename};
 use tracing::*;
-
-use super::helpers::platform_drive_with_name;
 
 pub enum DriveOperation {
     Info,
@@ -270,7 +265,7 @@ impl RunnableCommand<NativeError> for DriveOperation {
                 }
 
                 if let Some(platform_drive) =
-                    platform_drive_with_name(&payload.global, &payload.id.drive_id).await
+                    helpers::platform_drive_with_name(&payload.global, &payload.id.drive_id).await
                 {
                     let client = payload.global.get_client().await?;
                     platform::drives::delete(&client, &platform_drive.id).await?;

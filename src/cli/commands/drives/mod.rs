@@ -1,11 +1,10 @@
 mod access;
-pub mod helpers;
 mod operations;
 
 use crate::{
     cli::{
         commands::{drives::access::DriveAccessPayload, RunnableCommand},
-        Persistence,
+        helpers, Persistence,
     },
     drive::*,
     on_disk::{
@@ -24,10 +23,9 @@ pub use operations::DriveOperationPayload;
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
+use self::access::DriveAccessCommand;
 use std::path::PathBuf;
 use tracing::{debug, error, info, warn};
-
-use self::{access::DriveAccessCommand, helpers::platform_drive_with_name};
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
@@ -180,7 +178,9 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 let drive_id = name_of(path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
 
                 if Drive::entries().contains(&drive_id)
-                    || platform_drive_with_name(&global, &drive_id).await.is_some()
+                    || helpers::platform_drive_with_name(&global, &drive_id)
+                        .await
+                        .is_some()
                 {
                     error!("There is already a local or remote drive by that name.");
                     return Ok(());
