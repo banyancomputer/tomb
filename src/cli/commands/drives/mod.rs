@@ -24,7 +24,7 @@ pub use operations::DriveOperationPayload;
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
 
-use std::{env::current_dir, path::PathBuf};
+use std::path::PathBuf;
 use tracing::{debug, error, info, warn};
 
 use self::{access::DriveAccessCommand, helpers::platform_drive_with_name};
@@ -177,8 +177,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             // Create a new Bucket. This attempts to create the Bucket both locally and on platform, but settles for a simple local creation if remote permissions fail
             Create { path } => {
                 // Determine the "drive id" (name)
-                let drive_id =
-                    name_of(&path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
+                let drive_id = name_of(path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
 
                 if Drive::entries().contains(&drive_id)
                     || platform_drive_with_name(&global, &drive_id).await.is_some()
@@ -188,7 +187,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 }
 
                 // Save location association
-                global.set_path(&drive_id, &path);
+                global.set_path(&drive_id, path);
                 global.encode(&GlobalConfigId).await?;
                 let user_key_id = global.selected_user_key_id()?;
                 let id = DriveAndKeyId::new(&drive_id, &user_key_id);

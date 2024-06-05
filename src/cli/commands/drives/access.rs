@@ -3,22 +3,20 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use banyanfs::prelude::*;
 use banyanfs::{
-    api::{api_fingerprint_key, platform},
+    api::{api_fingerprint_key},
     codec::crypto::SigningKey,
 };
 use clap::Subcommand;
 use cli_table::{print_stdout, Cell, Table};
-use tracing::warn;
 
 use crate::{
     cli::{
-        specifiers::{DriveId, DriveSpecifier},
         RunnableCommand,
     },
     on_disk::{
-        config::{GlobalConfig, GlobalConfigId},
+        config::{GlobalConfig},
         local_share::DriveAndKeyId,
-        OnDisk, OnDiskExt,
+        OnDisk,
     },
     NativeError,
 };

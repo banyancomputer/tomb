@@ -1,5 +1,5 @@
 use banyanfs::api::platform::{self, ApiDrive};
-use tracing::{error, warn};
+use tracing::warn;
 
 use crate::on_disk::config::GlobalConfig;
 
@@ -14,7 +14,7 @@ pub async fn platform_drives(global: &GlobalConfig) -> Vec<ApiDrive> {
     match global.get_client().await {
         Ok(client) => match platform::drives::get_all(&client).await {
             Ok(d) => d,
-            Err(err) => {
+            Err(_) => {
                 warn!("Logged in, but failed to fetch platform drives.");
                 vec![]
             }
