@@ -20,5 +20,5 @@ jobs:
       cargo_audit_ignores: RUSTSEC-2023-0071
   audits:
     uses: ./.github/workflows/audits.yml
-  audits:
+  advisories:
     uses: ./.github/workflows/advisories.yml
