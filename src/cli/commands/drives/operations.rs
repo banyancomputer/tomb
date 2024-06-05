@@ -47,14 +47,6 @@ pub enum DriveOperation {
     Rename {
         new_name: String,
     }, //(String),
-       /*
-       /// Drive Key management
-       Access {
-           /// Subcommand
-           #[clap(subcommand)]
-           subcommand: DriveAccessCommand,
-       },
-       */
 }
 
 pub struct DriveOperationPayload {
@@ -235,7 +227,7 @@ impl RunnableCommand<NativeError> for DriveOperation {
                         payload.id.drive_id.cell(),
                         "N/A".cell(),
                         path.display().cell(),
-                        Persistence::PlatformOnly.cell(),
+                        Persistence::LocalOnly.cell(),
                     ]),
                     (None, None) => {
                         return Err(ConfigStateError::MissingDrive(payload.id.drive_id).into());

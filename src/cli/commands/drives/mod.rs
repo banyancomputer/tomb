@@ -1,9 +1,12 @@
-//mod access;
+mod access;
 pub mod helpers;
 mod operations;
 
 use crate::{
-    cli::{commands::RunnableCommand, Persistence},
+    cli::{
+        commands::{drives::access::DriveAccessPayload, RunnableCommand},
+        Persistence,
+    },
     drive::local::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
@@ -23,6 +26,8 @@ use cli_table::{print_stdout, Cell, Table};
 
 use std::{env::current_dir, path::PathBuf};
 use tracing::{debug, info, warn};
+
+use self::access::DriveAccessCommand;
 
 /// Subcommand for Drive Management
 #[derive(Subcommand, Clone, Debug)]
@@ -62,6 +67,13 @@ pub enum DrivesCommand {
         /// New Drive name
         #[arg(short, long)]
         new_name: String,
+    },
+    /// Drive Key management
+    Access {
+        name: String,
+        /// Subcommand
+        #[clap(subcommand)]
+        subcommand: DriveAccessCommand,
     },
 }
 
@@ -183,20 +195,17 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 info!("<< CREATED LOCAL DRIVE >>");
 
                 Ok(())
-            } //Access { subcommand } => subcommand.run_internal(payload).await,
-
-              /*
-              Operation { name, subcommand } => {
-                  let payload = DriveOperationPayload {
-                      id: DriveAndKeyId {
-                          drive_id: name,
-                          user_key_id: global.selected_user_key_id()?,
-                      },
-                      global: global.clone(),
-                  };
-                  subcommand.run_internal(payload).await
-              }
-              */
+            }
+            Access { name, subcommand } => {
+                let payload = DriveAccessPayload {
+                    id: DriveAndKeyId {
+                        drive_id: name.to_string(),
+                        user_key_id: global.selected_user_key_id()?,
+                    },
+                    global,
+                };
+                subcommand.clone().run(payload).await
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use banyanfs::prelude::*;
 use banyanfs::{
     api::{api_fingerprint_key, platform},
     codec::crypto::SigningKey,
@@ -14,9 +15,9 @@ use crate::{
         specifiers::{DriveId, DriveSpecifier},
         RunnableCommand,
     },
-    drive::local::LocalLoadedDrive,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
+        local_share::DriveAndKeyId,
         OnDisk, OnDiskExt,
     },
     NativeError,
@@ -26,19 +27,26 @@ use crate::{
 #[derive(Subcommand, Clone, Debug)]
 pub enum DriveAccessCommand {
     /// List drive actors
-    Ls(DriveSpecifier),
+    Ls,
     /// Grant access to a known key
     Grant,
     /// Revoke access from a known key
     Revoke,
 }
 
+pub struct DriveAccessPayload {
+    pub id: DriveAndKeyId,
+    pub global: GlobalConfig,
+}
+
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for DriveAccessCommand {
-    async fn run_internal(self) -> Result<(), NativeError> {
-        let global = GlobalConfig::decode(&GlobalConfigId).await?;
+    type Payload = DriveAccessPayload;
+
+    async fn run(self, payload: DriveAccessPayload) -> Result<(), NativeError> {
+        use DriveAccessCommand::*;
         match self {
-            DriveAccessCommand::Ls(ds) => {
+            Ls => {
                 let mut key_names = HashMap::new();
                 for name in SigningKey::entries() {
                     key_names.insert(
@@ -47,8 +55,8 @@ impl RunnableCommand<NativeError> for DriveAccessCommand {
                     );
                 }
 
-                let loaded = LocalLoadedDrive::load(&ds.into(), &global).await?;
-                let keys = loaded.bfs.drive.verifying_keys().await;
+                let drive = Drive::decode(&payload.id).await?;
+                let keys = drive.verifying_keys().await;
                 let mut table_rows = Vec::new();
                 for (public_key, mask) in keys {
                     let fingerprint = api_fingerprint_key(&public_key);
