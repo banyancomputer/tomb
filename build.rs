@@ -1,10 +1,10 @@
 fn set_endpoint() {
-    #[cfg(release)]
+    #[cfg(not(debug_assertions))]
     println!(
         "cargo:rustc-env=ENDPOINT={}",
         "https://beta.data.banyan.computer"
     );
-    #[cfg(not(release))]
+    #[cfg(debug_assertions)]
     println!("cargo:rustc-env=ENDPOINT=http://127.0.0.1:3001");
 }
 
