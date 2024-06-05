@@ -98,13 +98,13 @@ impl OnDisk<GlobalConfigId> for GlobalConfig {
     const EXTENSION: &'static str = "json";
 
     async fn encode(&self, identifier: &GlobalConfigId) -> Result<(), OnDiskError> {
-        let mut writer = Self::get_std_writer(identifier)?;
+        let mut writer = Self::sync_writer(identifier)?;
         serde_json::to_writer_pretty(&mut writer, &self)?;
         info!("<< PREFERENCE SAVED >>");
         Ok(())
     }
     async fn decode(identifier: &GlobalConfigId) -> Result<Self, OnDiskError> {
-        let mut reader = Self::get_std_reader(identifier)?;
+        let mut reader = Self::sync_reader(identifier)?;
         Ok(serde_json::from_reader(&mut reader)?)
     }
 }

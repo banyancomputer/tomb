@@ -14,7 +14,7 @@ impl OnDisk<String> for SigningKey {
 
     async fn encode(&self, identifier: &String) -> Result<(), OnDiskError> {
         let pem: String = self.to_pkcs8_pem().unwrap().to_string();
-        Self::get_writer(identifier)
+        Self::async_writer(identifier)
             .await?
             .compat_write()
             .write_all(pem.as_bytes())
@@ -24,7 +24,7 @@ impl OnDisk<String> for SigningKey {
 
     async fn decode(identifier: &String) -> Result<Self, OnDiskError> {
         let mut pem_bytes = Vec::new();
-        Self::get_reader(identifier)
+        Self::async_reader(identifier)
             .await?
             .compat()
             .read_to_end(&mut pem_bytes)

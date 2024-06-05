@@ -40,7 +40,7 @@ impl OnDisk<DriveAndKeyId> for Drive {
         self.encode(
             &mut crypto_rng(),
             ContentOptions::everything(),
-            &mut Self::get_writer(identifier).await?,
+            &mut Self::async_writer(identifier).await?,
         )
         .await?;
         Ok(())
@@ -49,7 +49,7 @@ impl OnDisk<DriveAndKeyId> for Drive {
     async fn decode(identifier: &DriveAndKeyId) -> Result<Self, OnDiskError> {
         let user_key = SigningKey::decode(&identifier.user_key_id).await?;
         let drive = DriveLoader::new(&user_key)
-            .from_reader(&mut Self::get_reader(identifier).await?)
+            .from_reader(&mut Self::async_reader(identifier).await?)
             .await
             .map_err(|err| OnDiskError::Implementation(err.to_string()))?;
         Ok(drive)
