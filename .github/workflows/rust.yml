@@ -132,7 +132,6 @@ jobs:
       - uses: rui314/setup-mold@v1
       - run: ld --version
       # cargo check
-      - run: mold -run cargo clean
       - name: check
         run: mold -run cargo check --all-targets --all-features --tests
       # cargo fmt --check
@@ -159,31 +158,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}-
             ${{ runner.os }}-${{ github.workflow }}-${{ inputs.cache_version }}-rust-${{ github.job }}-
-
-
-      # NOTE this is done because microsoft is horrible at hosting apt repos and has historically broken this build
-      - name: install main ubuntu apt repository
-        run: |-
-          sudo tee /etc/apt/sources.list <<EOF
-          deb http://archive.ubuntu.com/ubuntu/ jammy main restricted
-          deb http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted
-          deb http://archive.ubuntu.com/ubuntu/ jammy universe
-          deb http://archive.ubuntu.com/ubuntu/ jammy-updates universe
-          deb http://archive.ubuntu.com/ubuntu/ jammy multiverse
-          deb http://archive.ubuntu.com/ubuntu/ jammy-updates multiverse
-          deb http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
-          deb http://archive.ubuntu.com/ubuntu/ jammy-security main restricted
-          deb http://archive.ubuntu.com/ubuntu/ jammy-security universe
-          deb http://archive.ubuntu.com/ubuntu/ jammy-security multiverse
-          EOF
-      - name: install system dependencies
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get clean >/dev/null && \
-            sudo DEBIAN_FRONTEND=noninteractive apt-get update >/dev/null && \
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential musl musl-dev musl-tools libssl-dev
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-musl
       # easily install any rust bins without building them
       - uses: cargo-bins/cargo-binstall@main
       # install cargo-auditable to produce the binary
