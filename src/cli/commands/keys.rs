@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    cli::Persistence,
+    cli::{helpers, Persistence},
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
@@ -13,10 +13,7 @@ use crate::{
 use super::RunnableCommand;
 use async_trait::async_trait;
 use banyanfs::{
-    api::{
-        api_fingerprint_key,
-        platform::{self, ApiUserKey},
-    },
+    api::{api_fingerprint_key, platform},
     codec::crypto::SigningKey,
     utils::crypto_rng,
 };
@@ -48,25 +45,12 @@ pub enum KeysCommand {
 
 #[async_trait(?Send)]
 impl RunnableCommand<NativeError> for KeysCommand {
-    type Payload = ();
-    async fn run(self, _payload: ()) -> Result<(), NativeError> {
-        let mut global = GlobalConfig::decode(&GlobalConfigId).await?;
+    type Payload = GlobalConfig;
+    async fn run(self, mut global: GlobalConfig) -> Result<(), NativeError> {
         use KeysCommand::*;
         match self {
             Ls => {
-                let platform_keys: Vec<ApiUserKey> = if let Ok(client) = global.get_client().await {
-                    platform::account::user_key_access(&client)
-                        .await
-                        .map_err(|err| {
-                            warn!("Error requesting user keys from platform: {err:?}");
-                        })
-                        .unwrap_or(vec![])
-                        .into_iter()
-                        .map(|uka| uka.key)
-                        .collect()
-                } else {
-                    vec![]
-                };
+                let platform_keys = helpers::platform_user_keys(&global).await;
 
                 // Collect the public key fingerprints of every private user key
                 let local_named_keys: Vec<(String, SigningKey)> = SigningKey::decode_all().await?;

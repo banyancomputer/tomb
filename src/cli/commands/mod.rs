@@ -60,7 +60,7 @@ impl RunnableCommand<NativeError> for BanyanCommand {
             BanyanCommand::Api { command } => Ok(command.run(()).await?),
             BanyanCommand::Account { command } => Ok(command.run(()).await?),
             BanyanCommand::Drives { command } => command.run(payload).await,
-            BanyanCommand::Keys { command } => command.run(()).await,
+            BanyanCommand::Keys { command } => command.run(payload).await,
         }
     }
 }
