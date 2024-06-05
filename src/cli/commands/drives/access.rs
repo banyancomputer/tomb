@@ -28,7 +28,10 @@ pub enum DriveAccessCommand {
         name: String,
     },
     /// Revoke access from a known key
-    Revoke,
+    Revoke {
+        /// Name of the key
+        name: String,
+    },
 }
 
 #[async_trait(?Send)]
@@ -91,19 +94,52 @@ impl RunnableCommand<NativeError> for DriveAccessCommand {
                         api_fingerprint_key(key) == fingerprint && *mask == access_mask
                     })
                 {
-                    // TODO some secondary check to make sure it's actually usable?
                     error!("That key has already been granted access to this Drive!");
                 } else {
                     bfs.drive
                         .authorize_key(&mut crypto_rng(), public_user_key, access_mask)
                         .await?;
                     bfs.encode(&payload.id).await?;
-                    info!("<< GRANTED LOCAL ACCESS TO USER KEY >>");
+                    info!("<< GRANTED LOCAL ACCESS FOR USER KEY >>");
                     payload.sync().await?;
+                    info!("<< GRANTED PLATFORM ACCESS FOR USER KEY >>");
                 }
+
                 Ok(())
             }
-            DriveAccessCommand::Revoke => Ok(()),
+            DriveAccessCommand::Revoke { name } => {
+                let user_key = SigningKey::decode(&name).await?;
+                let public_user_key = user_key.verifying_key();
+                let fingerprint = api_fingerprint_key(&public_user_key);
+                let bfs = LocalBanyanFS::decode(&payload.id).await?;
+                let access_mask = AccessMaskBuilder::full_access().historical().build()?;
+
+                if let Some((_, mask)) = bfs
+                    .drive
+                    .verifying_keys()
+                    .await
+                    .iter()
+                    .find(|(key, _)| api_fingerprint_key(key) == fingerprint)
+                {
+                    if mask.is_protected() {
+                        error!(
+                            "This is a protected user key and can not be revoked from the Drive."
+                        );
+                    } else {
+                        bfs.drive
+                            .authorize_key(&mut crypto_rng(), public_user_key, access_mask)
+                            .await?;
+                        bfs.encode(&payload.id).await?;
+                        info!("<< REVOKED LOCAL ACCESS FOR USER KEY >>");
+                        payload.sync().await?;
+                        info!("<< REVOKED PLATFORM ACCESS FOR USER KEY >>");
+                    }
+                } else {
+                    error!("Can't find a user key with that identity in the Drive!");
+                }
+
+                Ok(())
+            }
         }
     }
 }
