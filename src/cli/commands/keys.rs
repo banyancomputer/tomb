@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    cli::{helpers, Persistence},
+    cli::Persistence,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
         OnDisk, OnDiskExt,
@@ -50,7 +50,7 @@ impl RunnableCommand<NativeError> for KeysCommand {
         use KeysCommand::*;
         match self {
             Ls => {
-                let platform_keys = helpers::platform_user_keys(&global).await;
+                let platform_keys = global.platform_user_keys().await;
 
                 // Collect the public key fingerprints of every private user key
                 let local_named_keys: Vec<(String, SigningKey)> = SigningKey::decode_all().await?;

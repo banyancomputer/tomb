@@ -1,7 +1,7 @@
 /// Commands to run
 pub mod commands;
 /// Convenience functions for working in user space
-pub mod helpers;
+mod helpers;
 /// Command Trait
 mod runnable_command;
 /// Export

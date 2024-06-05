@@ -9,7 +9,6 @@ use cli_table::{print_stdout, Cell, Table};
 use tracing::{error, info};
 
 use crate::cli::commands::drives::LocalBanyanFS;
-use crate::cli::helpers;
 use crate::{cli::RunnableCommand, on_disk::OnDisk, NativeError};
 
 use super::DriveOperationPayload;
@@ -46,7 +45,7 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
                         name,
                     );
                 }
-                for key in helpers::platform_user_keys(&payload.global).await {
+                for key in payload.global.platform_user_keys().await {
                     key_names.insert(key.fingerprint().to_string(), key.name().to_string());
                 }
 
@@ -88,7 +87,7 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
                 let bfs = LocalBanyanFS::decode(&payload.id).await?;
 
                 let (public_key, fingerprint) =
-                    helpers::public_key_and_fingerprint(&payload.global, &name).await?;
+                    payload.global.public_key_and_fingerprint(&name).await?;
                 // Grab the verifying key and fingerprint, either from disk or Platform
                 let access_mask = AccessMaskBuilder::full_access().build()?;
                 if let Some((_, _mask)) =
@@ -112,7 +111,7 @@ impl RunnableCommand<NativeError> for DriveKeyCommand {
             DriveKeyCommand::Revoke { name } => {
                 let bfs = LocalBanyanFS::decode(&payload.id).await?;
                 let (public_key, fingerprint) =
-                    helpers::public_key_and_fingerprint(&payload.global, &name).await?;
+                    payload.global.public_key_and_fingerprint(&name).await?;
                 if let Some((_, mask)) = bfs
                     .drive
                     .verifying_keys()

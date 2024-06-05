@@ -2,7 +2,7 @@ mod access;
 mod operations;
 
 use crate::{
-    cli::{commands::RunnableCommand, helpers, Persistence},
+    cli::{commands::RunnableCommand, Persistence},
     drive::*,
     on_disk::{
         config::{GlobalConfig, GlobalConfigId},
@@ -105,7 +105,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
             }
             // List all Buckets tracked on platform and locally
             Ls => {
-                let platform_drives = helpers::platform_drives(&global).await;
+                let platform_drives = global.platform_drives().await;
                 debug!("fetched platform drives");
 
                 let mut table_rows = Vec::new();
@@ -175,9 +175,7 @@ impl RunnableCommand<NativeError> for DrivesCommand {
                 let drive_id = name_of(path).ok_or(ConfigStateError::ExpectedPath(path.clone()))?;
 
                 if Drive::entries().contains(&drive_id)
-                    || helpers::platform_drive_with_name(&global, &drive_id)
-                        .await
-                        .is_some()
+                    || global.platform_drive_with_name(&drive_id).await.is_some()
                 {
                     error!("There is already a local or remote drive by that name.");
                     return Ok(());

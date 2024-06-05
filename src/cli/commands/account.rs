@@ -74,7 +74,7 @@ impl RunnableCommand<NativeError> for AccountCommand {
                 Ok(())
             }
             Logout => {
-                global.remove_account_id();
+                global.account_id = None;
                 global.encode(&GlobalConfigId).await?;
                 info!("<< SUCCESSFULLY LOGGED OUT OF PLATFORM >>");
                 Ok(())

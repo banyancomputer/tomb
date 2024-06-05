@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::{
     cli::{
         commands::drives::{CborSyncTracker, LocalBanyanFS, SyncDataStore},
-        helpers, Persistence, RunnableCommand,
+        Persistence, RunnableCommand,
     },
     drive::operations,
     on_disk::{
@@ -60,20 +60,23 @@ impl DriveOperationPayload {
         let client = self.global.get_client().await?;
 
         // Get the platform drive, creating it if need be
-        let platform_drive =
-            match helpers::platform_drive_with_name(&self.global, &self.id.drive_id).await {
-                Some(platform_drive) => platform_drive,
-                None => {
-                    if prompt_for_bool("No platform drive with this name. Create one?", 'y', 'n') {
-                        let platform_drive_id =
-                            platform::drives::create(&client, &self.id.drive_id).await?;
-                        platform::drives::get(&client, &platform_drive_id).await?
-                    } else {
-                        error!("Cannot sync when no platform drive matches query.");
-                        return Ok(());
-                    }
+        let platform_drive = match self
+            .global
+            .platform_drive_with_name(&self.id.drive_id)
+            .await
+        {
+            Some(platform_drive) => platform_drive,
+            None => {
+                if prompt_for_bool("No platform drive with this name. Create one?", 'y', 'n') {
+                    let platform_drive_id =
+                        platform::drives::create(&client, &self.id.drive_id).await?;
+                    platform::drives::get(&client, &platform_drive_id).await?
+                } else {
+                    error!("Cannot sync when no platform drive matches query.");
+                    return Ok(());
                 }
-            };
+            }
+        };
 
         // If we need to push up
         if let Ok(mut local_drive) = LocalBanyanFS::decode(&self.id).await {
@@ -220,8 +223,10 @@ impl RunnableCommand<NativeError> for DriveOperation {
             // Info
             Info => {
                 let mut table_rows = Vec::new();
-                let platform_drive =
-                    helpers::platform_drive_with_name(&payload.global, &payload.id.drive_id).await;
+                let platform_drive = payload
+                    .global
+                    .platform_drive_with_name(&payload.id.drive_id)
+                    .await;
                 //let local = LocalLoadedDrive::load(&payload).await.ok();
                 let path = payload.global.get_path(&payload.id.drive_id).ok();
                 match (platform_drive, path) {
@@ -283,8 +288,10 @@ impl RunnableCommand<NativeError> for DriveOperation {
                     removal = true;
                 }
 
-                if let Some(platform_drive) =
-                    helpers::platform_drive_with_name(&payload.global, &payload.id.drive_id).await
+                if let Some(platform_drive) = payload
+                    .global
+                    .platform_drive_with_name(&payload.id.drive_id)
+                    .await
                 {
                     let client = payload.global.get_client().await?;
                     platform::drives::delete(&client, &platform_drive.id).await?;
